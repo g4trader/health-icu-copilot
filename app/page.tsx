@@ -121,21 +121,21 @@ function IcuPanel({ tablePatients }: { tablePatients?: Patient[] }) {
           </thead>
           <tbody>
             {rows.map((p) => (
-              <tr key={p.id}>
-                <td>{p.leito}</td>
-                <td style={{ fontWeight: 600 }}>{p.nome}</td>
-                <td>{p.idade} {p.idade === 1 ? "ano" : "anos"}</td>
-                <td>
-                  <span
-                    className={`risk-pill ${riskLevelFromScore(p.riscoMortality24h) === "alto" ? "risk-high" : riskLevelFromScore(p.riscoMortality24h) === "moderado" ? "risk-medium" : "risk-low"}`}
-                    style={{ fontSize: "0.75rem", padding: "0.2rem 0.5rem" }}
-                  >
-                    {(p.riscoMortality24h * 100).toFixed(0)}%
-                  </span>
-                </td>
-                <td>{p.sofa}</td>
-                <td>{getStatusText(p)}</td>
-              </tr>
+                      <tr key={p.id}>
+                        <td data-label="LEITO">{p.leito}</td>
+                        <td data-label="NOME" style={{ fontWeight: 600 }}>{p.nome}</td>
+                        <td data-label="IDADE">{p.idade} {p.idade === 1 ? "ano" : "anos"}</td>
+                        <td data-label="RISCO 24h (%)">
+                          <span
+                            className={`risk-pill ${riskLevelFromScore(p.riscoMortality24h) === "alto" ? "risk-high" : riskLevelFromScore(p.riscoMortality24h) === "moderado" ? "risk-medium" : "risk-low"}`}
+                            style={{ fontSize: "0.75rem", padding: "0.2rem 0.5rem" }}
+                          >
+                            {(p.riscoMortality24h * 100).toFixed(0)}%
+                          </span>
+                        </td>
+                        <td data-label="SOFA">{p.sofa}</td>
+                        <td data-label="STATUS">{getStatusText(p)}</td>
+                      </tr>
             ))}
           </tbody>
         </table>
