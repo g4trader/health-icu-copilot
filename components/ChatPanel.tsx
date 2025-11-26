@@ -129,7 +129,7 @@ export function ChatPanel({ focusedPatient }: Props) {
           placeholder={
             focusedPatient
               ? `Pergunte algo sobre o paciente do leito ${focusedPatient.leito} ou sobre a UTI inteira…`
-              : "Ex.: Quem são os 3 pacientes com maior risco de mortalidade nas próximas 24h?"
+              : "Protótipo com dados mockados – não usar para decisões reais. Ex.: Quem são os 3 pacientes com maior risco?"
           }
           value={input}
           onChange={(e) => setInput(e.target.value)}

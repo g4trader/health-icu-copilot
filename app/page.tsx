@@ -14,17 +14,31 @@ export default function HomePage() {
         <div className="panel-header">
           <div>
             <div className="panel-title">UTI • Hospital Moinhos de Vento</div>
-            <h1 style={{ margin: 0, fontSize: "1.2rem" }}>
+            <h1 style={{ margin: 0, fontSize: "1.4rem", fontWeight: 700 }}>
               Health ICU Copilot
             </h1>
           </div>
-          <span className="badge">dados mockados</span>
+          <span className="badge" style={{ background: "#a7f3d0", color: "#065f46" }}>
+            dados mockados
+          </span>
         </div>
         <p
           style={{
-            fontSize: "0.85rem",
-            color: "#cbd5f5",
-            marginBottom: "0.75rem"
+            fontSize: "0.7rem",
+            color: "#64748b",
+            marginBottom: "0.75rem",
+            fontStyle: "italic",
+            fontWeight: 500
+          }}
+        >
+          ⚠️ Protótipo com dados fictícios — uso exclusivo para demonstração hospitalar.
+        </p>
+        <p
+          style={{
+            fontSize: "0.8rem",
+            color: "#475569",
+            marginBottom: "0.75rem",
+            lineHeight: 1.5
           }}
         >
           Lista de pacientes priorizada por risco estimado de mortalidade em
@@ -41,14 +55,19 @@ export default function HomePage() {
         <div className="panel-header">
           <div>
             <div className="panel-title">Agente de apoio à decisão</div>
-            <h2 style={{ margin: 0, fontSize: "1.1rem" }}>
+            <h2 style={{ margin: 0, fontSize: "1.15rem", fontWeight: 600 }}>
               Conversa com a UTI em linguagem natural
             </h2>
           </div>
           {focusedPatient && (
-            <span className="badge">
-              Foco no {focusedPatient.leito.split(" ")[1]} • {focusedPatient.nome}
-            </span>
+            <div style={{ display: "flex", gap: "0.5rem", alignItems: "center", flexWrap: "wrap" }}>
+              <span className="badge" style={{ background: "#a7f3d0", color: "#065f46" }}>
+                Foco no {focusedPatient.leito.split(" ")[1]} • {focusedPatient.nome}
+              </span>
+              <span className="badge" style={{ background: "#f1f5f9", color: "#475569" }}>
+                {focusedPatient.diagnosticoPrincipal}
+              </span>
+            </div>
           )}
         </div>
         <ChatPanel focusedPatient={focusedPatient} />

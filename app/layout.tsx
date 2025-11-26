@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Health ICU Copilot - Mock",
-  description: "Protótipo de agent de IA para UTI com dados mockados."
+  title: "Health ICU Copilot - Prototipo Hospitalar",
+  description: "Interface de apoio à decisão para UTI, com visual limpo e hospitalar."
 };
 
 export default function RootLayout({
@@ -13,7 +13,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="pt-BR">
-      <body className="min-h-screen bg-slate-950 text-slate-50">
+      <body className="min-h-screen">
         {children}
       </body>
     </html>

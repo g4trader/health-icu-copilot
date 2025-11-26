@@ -1,4 +1,5 @@
 export type RiskLevel = "alto" | "moderado" | "baixo";
+export type TendenciaLactato = "subindo" | "estavel" | "caindo";
 
 export interface Patient {
   id: string;
@@ -16,6 +17,12 @@ export interface Patient {
   sofa: number;
   ultimaAtualizacao: string;
   tags: string[];
+  mapaPressaoMedia: number; // mmHg
+  tendenciaLactato: TendenciaLactato;
+  diasDeUTI: number;
+  emAntibiotico: boolean;
+  diasEmAntibioticoAtual: number;
+  temperatura: number; // ºC
 }
 
 export const mockPatients: Patient[] = [
@@ -34,7 +41,13 @@ export const mockPatients: Patient[] = [
     lactato: 4.2,
     sofa: 13,
     ultimaAtualizacao: "2025-11-26T09:15:00Z",
-    tags: ["sepse", "lactato em ascensão", "noradrenalina em aumento"]
+    tags: ["sepse", "lactato em ascensão", "noradrenalina em aumento"],
+    mapaPressaoMedia: 58,
+    tendenciaLactato: "subindo",
+    diasDeUTI: 3,
+    emAntibiotico: true,
+    diasEmAntibioticoAtual: 3,
+    temperatura: 38.8
   },
   {
     id: "p2",
@@ -51,7 +64,13 @@ export const mockPatients: Patient[] = [
     lactato: 1.8,
     sofa: 5,
     ultimaAtualizacao: "2025-11-26T09:10:00Z",
-    tags: ["pós-angioplastia", "monitorização hemodinâmica"]
+    tags: ["pós-angioplastia", "monitorização hemodinâmica"],
+    mapaPressaoMedia: 72,
+    tendenciaLactato: "caindo",
+    diasDeUTI: 1,
+    emAntibiotico: false,
+    diasEmAntibioticoAtual: 0,
+    temperatura: 36.8
   },
   {
     id: "p3",
@@ -68,7 +87,13 @@ export const mockPatients: Patient[] = [
     lactato: 3.1,
     sofa: 9,
     ultimaAtualizacao: "2025-11-26T09:05:00Z",
-    tags: ["PaO2/FiO2 em queda", "antibiótico D2", "febril persistente"]
+    tags: ["PaO2/FiO2 em queda", "antibiótico D2", "febril persistente"],
+    mapaPressaoMedia: 68,
+    tendenciaLactato: "subindo",
+    diasDeUTI: 5,
+    emAntibiotico: true,
+    diasEmAntibioticoAtual: 2,
+    temperatura: 38.5
   },
   {
     id: "p4",
@@ -85,7 +110,13 @@ export const mockPatients: Patient[] = [
     lactato: 1.5,
     sofa: 6,
     ultimaAtualizacao: "2025-11-26T09:00:00Z",
-    tags: ["PIC controlada", "sedação leve", "estável nas últimas 12h"]
+    tags: ["PIC controlada", "sedação leve", "estável nas últimas 12h"],
+    mapaPressaoMedia: 75,
+    tendenciaLactato: "estavel",
+    diasDeUTI: 8,
+    emAntibiotico: true,
+    diasEmAntibioticoAtual: 5,
+    temperatura: 37.2
   },
   {
     id: "p5",
@@ -102,7 +133,13 @@ export const mockPatients: Patient[] = [
     lactato: 2.6,
     sofa: 8,
     ultimaAtualizacao: "2025-11-26T08:55:00Z",
-    tags: ["diurético em ajuste", "BNP elevado", "edema periférico importante"]
+    tags: ["diurético em ajuste", "BNP elevado", "edema periférico importante"],
+    mapaPressaoMedia: 62,
+    tendenciaLactato: "estavel",
+    diasDeUTI: 4,
+    emAntibiotico: false,
+    diasEmAntibioticoAtual: 0,
+    temperatura: 37.0
   }
 ];
 
@@ -110,4 +147,44 @@ export function riskLevelFromScore(score: number): RiskLevel {
   if (score >= 0.7) return "alto";
   if (score >= 0.4) return "moderado";
   return "baixo";
+}
+
+/**
+ * Retorna pacientes ordenados descendentemente por risco de mortalidade em 24h.
+ */
+export function getSortedByMortalityRisk24h(): Patient[] {
+  return [...mockPatients].sort(
+    (a, b) => b.riscoMortality24h - a.riscoMortality24h
+  );
+}
+
+/**
+ * Retorna os pacientes mais instáveis, combinando alta instabilidade,
+ * uso de vasopressor e tendência de lactato "subindo".
+ */
+export function getTopUnstablePatients(limit: number): Patient[] {
+  return [...mockPatients]
+    .map((p) => {
+      let score = p.instabilityScore;
+      if (p.emVasopressor) score += 0.2;
+      if (p.tendenciaLactato === "subindo") score += 0.15;
+      return { patient: p, combinedScore: score };
+    })
+    .sort((a, b) => b.combinedScore - a.combinedScore)
+    .slice(0, limit)
+    .map((item) => item.patient);
+}
+
+/**
+ * Retorna pacientes que podem não estar respondendo bem à terapia:
+ * - em antibiótico há pelo menos 2 dias
+ * - com tendência de lactato "subindo" OU febre (temperatura >= 38ºC)
+ */
+export function getPossibleNonRespondersToTherapy(): Patient[] {
+  return mockPatients.filter(
+    (p) =>
+      p.emAntibiotico &&
+      p.diasEmAntibioticoAtual >= 2 &&
+      (p.tendenciaLactato === "subindo" || p.temperatura >= 38)
+  );
 }

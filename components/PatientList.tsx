@@ -1,6 +1,6 @@
 "use client";
 
-import { mockPatients, riskLevelFromScore } from "@/lib/mockData";
+import { getSortedByMortalityRisk24h, riskLevelFromScore } from "@/lib/mockData";
 import type { Patient } from "@/lib/mockData";
 
 interface Props {
@@ -9,9 +9,7 @@ interface Props {
 }
 
 export function PatientList({ onSelectPatient, selectedPatientId }: Props) {
-  const sorted = [...mockPatients].sort(
-    (a, b) => b.riscoMortality24h - a.riscoMortality24h
-  );
+  const sorted = getSortedByMortalityRisk24h();
 
   return (
     <div className="patients-list">
@@ -28,10 +26,10 @@ export function PatientList({ onSelectPatient, selectedPatientId }: Props) {
           <button
             key={p.id}
             type="button"
-            className="patient-card"
+            className={`patient-card ${riskLevel === "alto" ? "risk-high-card" : ""}`}
             style={
               selectedPatientId === p.id
-                ? { borderColor: "#38bdf8", boxShadow: "0 0 0 1px #38bdf8" }
+                ? { borderColor: "#059669", boxShadow: "0 0 0 1px #059669" }
                 : undefined
             }
             onClick={() => onSelectPatient?.(p)}
@@ -49,7 +47,14 @@ export function PatientList({ onSelectPatient, selectedPatientId }: Props) {
             </div>
             <div className="patient-score">
               Risco 24h: {(p.riscoMortality24h * 100).toFixed(0)}% • SOFA{" "}
-              {p.sofa} • Lactato {p.lactato.toFixed(1)} mmol/L
+              {p.sofa} • Lactato {p.lactato.toFixed(1)} mmol/L • tendência:{" "}
+              {p.tendenciaLactato}
+            </div>
+            <div className="patient-meta" style={{ marginTop: "0.2rem" }}>
+              {p.diasDeUTI} {p.diasDeUTI === 1 ? "dia" : "dias"} de UTI
+              {p.emAntibiotico && (
+                <span> • Antibiótico (D{p.diasEmAntibioticoAtual})</span>
+              )}
             </div>
             <div className="patient-tags">
               {p.tags.map((t) => (
