@@ -74,10 +74,10 @@ export default function HomePage() {
     <main className="shell">
       <header className="topbar">
         <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
-          <h1 style={{ margin: 0, fontSize: "1.25rem", fontWeight: 700 }}>
+          <h1 style={{ margin: 0, fontSize: "1.25rem", fontWeight: 700, color: "#0f172a" }}>
             HEALTH ICU COPILOT™
           </h1>
-          <span style={{ fontSize: "0.85rem", color: "#94a3b8" }}>
+          <span style={{ fontSize: "0.85rem", color: "#6b7280" }}>
             Interface de apoio à decisão para UTI
           </span>
         </div>
@@ -88,9 +88,9 @@ export default function HomePage() {
             style={{
               padding: "0.5rem 1rem",
               background: "transparent",
-              border: "1px solid rgba(148, 163, 184, 0.3)",
+              border: "1px solid #d1d5db",
               borderRadius: "0.5rem",
-              color: "#e2e8f0",
+              color: "#4b5563",
               cursor: "pointer",
               fontSize: "0.875rem"
             }}
@@ -100,9 +100,9 @@ export default function HomePage() {
           <span
             className="badge"
             style={{
-              background: "rgba(248, 113, 113, 0.15)",
-              color: "#fecaca",
-              border: "1px solid rgba(248, 113, 113, 0.4)"
+              background: "#a7f3d0",
+              color: "#047857",
+              border: "1px solid #86efac"
             }}
           >
             PROTÓTIPO
@@ -123,7 +123,7 @@ export default function HomePage() {
                 </div>
                 <div className="kpi-item">
                   <div className="kpi-label">EM RISCO ALTO (24h)</div>
-                  <div className="kpi-value" style={{ color: "#fecaca" }}>
+                  <div className="kpi-value" style={{ color: "#b91c1c" }}>
                     {emRiscoAlto}
                   </div>
                 </div>
