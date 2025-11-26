@@ -1,77 +1,213 @@
 "use client";
 
 import { useState } from "react";
-import { PatientList } from "@/components/PatientList";
-import { ChatPanel } from "@/components/ChatPanel";
-import type { Patient } from "@/lib/mockData";
+import { mockPatients, getSortedByMortalityRisk24h, riskLevelFromScore } from "@/lib/mockData";
 
 export default function HomePage() {
-  const [focusedPatient, setFocusedPatient] = useState<Patient | null>(null);
+  const [input, setInput] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [lastQuestion, setLastQuestion] = useState("");
+  const [lastAnswer, setLastAnswer] = useState("");
+  const [hasAnswer, setHasAnswer] = useState(false);
+
+  // Calcular KPIs
+  const totalPacientes = mockPatients.length;
+  const emRiscoAlto = mockPatients.filter((p) => p.riscoMortality24h >= 0.7).length;
+  const emVM = mockPatients.filter((p) => p.emVentilacaoMecanica).length;
+  const emVasopressor = mockPatients.filter((p) => p.emVasopressor).length;
+
+  // Top 5 pacientes por risco
+  const topPacientes = getSortedByMortalityRisk24h().slice(0, 5);
+
+  function getStatusText(patient: typeof mockPatients[0]): string {
+    const parts: string[] = [];
+    if (patient.emVentilacaoMecanica) parts.push("VM");
+    if (patient.emVasopressor) parts.push("vasopressor");
+    if (parts.length === 0) return "clinicamente estável";
+    return parts.join(" + ");
+  }
+
+  async function handleSend() {
+    if (!input.trim() || loading) return;
+
+    const question = input.trim();
+    setInput("");
+    setLoading(true);
+
+    try {
+      const res = await fetch("/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          message: question,
+          focusedPatientId: null
+        })
+      });
+
+      if (!res.ok) {
+        throw new Error("Falha ao consultar o agente.");
+      }
+
+      const data = (await res.json()) as { reply: string };
+      setLastQuestion(question);
+      setLastAnswer(data.reply);
+      setHasAnswer(true);
+    } catch (error) {
+      setLastQuestion(question);
+      setLastAnswer(
+        "Tive um problema temporário ao processar sua pergunta. Tente novamente em instantes."
+      );
+      setHasAnswer(true);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  function handleKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      void handleSend();
+    }
+  }
 
   return (
-    <main className="main-shell">
-      <section className="panel" style={{ flex: 1 }}>
-        <div className="panel-header">
-          <div>
-            <div className="panel-title">UTI • Hospital Moinhos de Vento</div>
-            <h1 style={{ margin: 0, fontSize: "1.4rem", fontWeight: 700 }}>
-              Health ICU Copilot
-            </h1>
-          </div>
-          <span className="badge" style={{ background: "#a7f3d0", color: "#065f46" }}>
-            dados mockados
+    <main className="shell">
+      <header className="topbar">
+        <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
+          <h1 style={{ margin: 0, fontSize: "1.25rem", fontWeight: 700 }}>
+            HEALTH ICU COPILOT™
+          </h1>
+          <span style={{ fontSize: "0.85rem", color: "#94a3b8" }}>
+            Interface de apoio à decisão para UTI
           </span>
         </div>
-        <p
-          style={{
-            fontSize: "0.7rem",
-            color: "#64748b",
-            marginBottom: "0.75rem",
-            fontStyle: "italic",
-            fontWeight: 500
-          }}
-        >
-          ⚠️ Protótipo com dados fictícios — uso exclusivo para demonstração hospitalar.
-        </p>
-        <p
-          style={{
-            fontSize: "0.8rem",
-            color: "#475569",
-            marginBottom: "0.75rem",
-            lineHeight: 1.5
-          }}
-        >
-          Lista de pacientes priorizada por risco estimado de mortalidade em
-          24h, combinando instabilidade aguda e resposta às terapias em curso.
-        </p>
-
-        <PatientList
-          selectedPatientId={focusedPatient?.id ?? null}
-          onSelectPatient={(p) => setFocusedPatient(p)}
-        />
-      </section>
-
-      <section className="panel" style={{ flex: 1.3 }}>
-        <div className="panel-header">
-          <div>
-            <div className="panel-title">Agente de apoio à decisão</div>
-            <h2 style={{ margin: 0, fontSize: "1.15rem", fontWeight: 600 }}>
-              Conversa com a UTI em linguagem natural
-            </h2>
-          </div>
-          {focusedPatient && (
-            <div style={{ display: "flex", gap: "0.5rem", alignItems: "center", flexWrap: "wrap" }}>
-              <span className="badge" style={{ background: "#a7f3d0", color: "#065f46" }}>
-                Foco no {focusedPatient.leito.split(" ")[1]} • {focusedPatient.nome}
-              </span>
-              <span className="badge" style={{ background: "#f1f5f9", color: "#475569" }}>
-                {focusedPatient.diagnosticoPrincipal}
-              </span>
-            </div>
-          )}
+        <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
+          <button
+            type="button"
+            className="history-button"
+            style={{
+              padding: "0.5rem 1rem",
+              background: "transparent",
+              border: "1px solid rgba(148, 163, 184, 0.3)",
+              borderRadius: "0.5rem",
+              color: "#e2e8f0",
+              cursor: "pointer",
+              fontSize: "0.875rem"
+            }}
+          >
+            Histórico
+          </button>
+          <span
+            className="badge"
+            style={{
+              background: "rgba(248, 113, 113, 0.15)",
+              color: "#fecaca",
+              border: "1px solid rgba(248, 113, 113, 0.4)"
+            }}
+          >
+            PROTÓTIPO
+          </span>
         </div>
-        <ChatPanel focusedPatient={focusedPatient} />
+      </header>
+
+      <section className="content">
+        {hasAnswer ? (
+          <div className="result-card">
+            <div className="question-bubble">{lastQuestion}</div>
+
+            <div className="icu-panel">
+              <div className="kpi-grid">
+                <div className="kpi-item">
+                  <div className="kpi-label">TOTAL DE PACIENTES</div>
+                  <div className="kpi-value">{totalPacientes}</div>
+                </div>
+                <div className="kpi-item">
+                  <div className="kpi-label">EM RISCO ALTO (24h)</div>
+                  <div className="kpi-value" style={{ color: "#fecaca" }}>
+                    {emRiscoAlto}
+                  </div>
+                </div>
+                <div className="kpi-item">
+                  <div className="kpi-label">EM VENTILAÇÃO MECÂNICA</div>
+                  <div className="kpi-value">{emVM}</div>
+                </div>
+                <div className="kpi-item">
+                  <div className="kpi-label">EM VASOPRESSOR</div>
+                  <div className="kpi-value">{emVasopressor}</div>
+                </div>
+              </div>
+
+              <div className="table-container">
+                <table className="patients-table">
+                  <thead>
+                    <tr>
+                      <th>LEITO</th>
+                      <th>NOME</th>
+                      <th>IDADE</th>
+                      <th>RISCO 24h (%)</th>
+                      <th>SOFA</th>
+                      <th>STATUS</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {topPacientes.map((p) => (
+                      <tr key={p.id}>
+                        <td>{p.leito}</td>
+                        <td style={{ fontWeight: 600 }}>{p.nome}</td>
+                        <td>{p.idade}</td>
+                        <td>
+                          <span
+                            className={`risk-pill ${riskLevelFromScore(p.riscoMortality24h) === "alto" ? "risk-high" : riskLevelFromScore(p.riscoMortality24h) === "moderado" ? "risk-medium" : "risk-low"}`}
+                            style={{ fontSize: "0.75rem", padding: "0.2rem 0.5rem" }}
+                          >
+                            {(p.riscoMortality24h * 100).toFixed(0)}%
+                          </span>
+                        </td>
+                        <td>{p.sofa}</td>
+                        <td>{getStatusText(p)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <div className="answer-summary">
+              <div className="answer-content">{lastAnswer}</div>
+            </div>
+          </div>
+        ) : (
+          <div className="hero">
+            <h1>Como posso ajudar a UTI hoje?</h1>
+            <p>
+              Faça uma pergunta sobre risco de mortalidade, prioridade de atendimento ou resposta
+              às terapias em curso.
+            </p>
+          </div>
+        )}
       </section>
+
+      <footer className="input-bar">
+        <div className="input-container">
+          <input
+            className="main-input"
+            type="text"
+            placeholder="Ex.: Quais são os 3 pacientes com maior risco de mortalidade em 24h?"
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            onKeyDown={handleKeyDown}
+            disabled={loading}
+          />
+          <button
+            className="ask-button"
+            type="button"
+            onClick={handleSend}
+            disabled={loading || !input.trim()}
+          >
+            {loading ? "Processando..." : "Perguntar"}
+          </button>
+        </div>
+      </footer>
     </main>
   );
 }
