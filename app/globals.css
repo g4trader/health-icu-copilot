@@ -503,6 +503,70 @@ a {
   border-color: #d1d5db;
 }
 
+/* Loading Card Styles */
+.loading-card-content {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  padding: 1rem 0;
+}
+
+.loading-title {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #0f172a;
+  text-align: center;
+}
+
+.loading-steps {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.loading-step {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-size: 0.95rem;
+  color: #4b5563;
+}
+
+.loading-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #059669;
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+.loading-step:nth-child(1) .loading-dot {
+  animation-delay: 0s;
+}
+
+.loading-step:nth-child(2) .loading-dot {
+  animation-delay: 0.2s;
+}
+
+.loading-step:nth-child(3) .loading-dot {
+  animation-delay: 0.4s;
+}
+
+.loading-step:nth-child(4) .loading-dot {
+  animation-delay: 0.6s;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.5;
+    transform: scale(0.8);
+  }
+}
+
 /* Responsividade para layout DIPAM */
 @media (max-width: 960px) {
   .topbar {

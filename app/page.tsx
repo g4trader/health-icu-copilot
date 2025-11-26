@@ -3,6 +3,31 @@
 import { useState } from "react";
 import { mockPatients, getSortedByMortalityRisk24h, riskLevelFromScore } from "@/lib/mockData";
 
+function LoadingCard() {
+  const steps = [
+    "Acessando prontuários eletrônicos…",
+    "Buscando exames laboratoriais recentes…",
+    "Analisando exames de imagem em busca de padrões…",
+    "Revisando prescrições e doses calculadas…"
+  ];
+
+  return (
+    <div className="result-card">
+      <div className="loading-card-content">
+        <div className="loading-title">Processando sua solicitação</div>
+        <div className="loading-steps">
+          {steps.map((step, idx) => (
+            <div key={idx} className="loading-step">
+              <div className="loading-dot"></div>
+              <span>{step}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function HomePage() {
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
@@ -75,10 +100,10 @@ export default function HomePage() {
       <header className="topbar">
         <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
           <h1 style={{ margin: 0, fontSize: "1.25rem", fontWeight: 700, color: "#0f172a" }}>
-            HEALTH ICU COPILOT™
+            HEALTH COPILOT +
           </h1>
           <span style={{ fontSize: "0.85rem", color: "#6b7280" }}>
-            Interface de apoio à decisão para UTI
+            Interface de apoio à decisão para UTI Pediátrica
           </span>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
@@ -111,7 +136,9 @@ export default function HomePage() {
       </header>
 
       <section className="content">
-        {hasAnswer ? (
+        {loading ? (
+          <LoadingCard />
+        ) : hasAnswer ? (
           <div className="result-card">
             <div className="question-bubble">{lastQuestion}</div>
 
@@ -154,7 +181,7 @@ export default function HomePage() {
                       <tr key={p.id}>
                         <td>{p.leito}</td>
                         <td style={{ fontWeight: 600 }}>{p.nome}</td>
-                        <td>{p.idade}</td>
+                        <td>{p.idade} {p.idade === 1 ? "ano" : "anos"}</td>
                         <td>
                           <span
                             className={`risk-pill ${riskLevelFromScore(p.riscoMortality24h) === "alto" ? "risk-high" : riskLevelFromScore(p.riscoMortality24h) === "moderado" ? "risk-medium" : "risk-low"}`}
@@ -178,10 +205,10 @@ export default function HomePage() {
           </div>
         ) : (
           <div className="hero">
-            <h1>Como posso ajudar a UTI hoje?</h1>
+            <h1>Como posso ajudar a UTI pediátrica hoje?</h1>
             <p>
-              Faça uma pergunta sobre risco de mortalidade, prioridade de atendimento ou resposta
-              às terapias em curso.
+              Faça uma pergunta sobre risco de mortalidade, prioridade de atendimento, exames laboratoriais, 
+              imagens, prescrições ou perfil da unidade.
             </p>
           </div>
         )}

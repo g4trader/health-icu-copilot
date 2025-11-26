@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Health ICU Copilot - Prototipo Hospitalar",
-  description: "Interface de apoio à decisão para UTI, com visual limpo e hospitalar."
+  title: "Health Copilot + - UTI Pediátrica",
+  description: "Interface de apoio à decisão para UTI Pediátrica, com visual limpo e hospitalar."
 };
 
 export default function RootLayout({
