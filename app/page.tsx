@@ -58,13 +58,17 @@ function LoadingCard({ compact }: { compact?: boolean }) {
 }
 
 function IcuPanel({ tablePatients }: { tablePatients?: Patient[] }) {
-  const allPatients = mockPatients;
+  // Se tablePatients fornecido, usar apenas esses para KPIs e tabela
+  // Senão, usar todos os pacientes
+  const patientsForMetrics = tablePatients && tablePatients.length > 0
+    ? tablePatients
+    : mockPatients;
   
-  // KPIs continuam usando todos os pacientes
-  const totalPacientes = allPatients.length;
-  const emRiscoAlto = allPatients.filter((p) => p.riscoMortality24h >= 0.7).length;
-  const emVM = allPatients.filter((p) => p.emVentilacaoMecanica).length;
-  const emVasopressor = allPatients.filter((p) => p.emVasopressor).length;
+  // KPIs usando o subset apropriado
+  const totalPacientes = patientsForMetrics.length;
+  const emRiscoAlto = patientsForMetrics.filter((p) => p.riscoMortality24h >= 0.7).length;
+  const emVM = patientsForMetrics.filter((p) => p.emVentilacaoMecanica).length;
+  const emVasopressor = patientsForMetrics.filter((p) => p.emVasopressor).length;
 
   // Para a tabela: usar tablePatients se fornecido, senão usar todos ordenados
   const sortedAll = getSortedByMortalityRisk24h();
@@ -221,12 +225,11 @@ export default function HomePage() {
   return (
     <main className="shell">
       <header className="topbar">
-        <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
-          <h1 style={{ margin: 0, fontSize: "1.25rem", fontWeight: 700, color: "#0f172a" }}>
-            HEALTH COPILOT +
-          </h1>
-          <span style={{ fontSize: "0.85rem", color: "#6b7280" }}>
-            Interface de apoio à decisão para UTI Pediátrica
+        <div className="logo-wrapper">
+          <img src="/logo-healthcopilot.png" alt="Health Copilot +" className="logo" />
+          <span className="logo-text">Health Copilot</span>
+          <span style={{ fontSize: "0.85rem", color: "#64748b" }}>
+            UTI Pediátrica
           </span>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>

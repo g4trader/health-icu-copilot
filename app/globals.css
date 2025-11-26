@@ -728,3 +728,32 @@ a {
     max-width: 100%;
   }
 }
+
+/* Logo Styles */
+.logo {
+  height: 40px;
+  width: auto;
+  object-fit: contain;
+}
+
+.logo-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.logo-text {
+  font-weight: 700;
+  color: #0f172a;
+  font-size: 1.25rem;
+  position: relative;
+  line-height: 1;
+}
+
+.logo-text::after {
+  content: "®";
+  font-size: 0.65em;
+  vertical-align: super;
+  margin-left: 2px;
+  color: #ef4444;
+}
