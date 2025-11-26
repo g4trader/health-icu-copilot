@@ -224,46 +224,31 @@ export default function HomePage() {
 
   return (
     <main className="shell">
-      <header className="topbar">
-        <div className="logo-wrapper">
-          <img src="/logo-healthcopilot.png" alt="Health Copilot +" className="logo" />
-          <span className="logo-text">HEALTH COPILOT</span>
-          <span className="subtitle">UTI Pediátrica</span>
+      <header className="hc-topbar">
+        <div className="hc-brand">
+          <img src="/favicon.png" alt="Health Copilot" className="hc-icon" />
+          <div className="hc-brand-text">
+            <div className="hc-title">
+              HEALTH COPILOT<span className="hc-reg">®</span>
+            </div>
+            <div className="hc-subtitle">UTI Pediátrica</div>
+          </div>
         </div>
-        <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
-          <button
-            type="button"
-            className="history-button"
-            style={{
-              padding: "0.5rem 1rem",
-              background: "transparent",
-              border: "1px solid #d1d5db",
-              borderRadius: "0.5rem",
-              color: "#4b5563",
-              cursor: "pointer",
-              fontSize: "0.875rem"
-            }}
-          >
-            Histórico
+
+        <div className="hc-actions">
+          <button className="hc-icon-btn" type="button" aria-label="Histórico">
+            <span>⏱</span>
+            <span className="hc-icon-btn-label">Histórico</span>
           </button>
-          <span
-            className="badge"
-            style={{
-              background: "#a7f3d0",
-              color: "#047857",
-              border: "1px solid #86efac"
-            }}
-          >
-            PROTÓTIPO
-          </span>
+          <span className="hc-badge">PROTÓTIPO</span>
         </div>
       </header>
 
       <section className="content">
         {conversation.length === 0 && !loading && (
           <div className="hero">
-            <h1>Como posso ajudar a UTI pediátrica hoje?</h1>
-            <p>
+            <h1 className="hero-title">Como posso ajudar a UTI pediátrica hoje?</h1>
+            <p className="hero-subtitle">
               Faça uma pergunta sobre risco de mortalidade, prioridade de atendimento, exames laboratoriais, 
               imagens, prescrições ou perfil da unidade.
             </p>
@@ -296,7 +281,7 @@ export default function HomePage() {
             )}
 
             <div ref={conversationEndRef} />
-          </div>
+        </div>
         )}
       </section>
 

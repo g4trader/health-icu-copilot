@@ -279,13 +279,94 @@ a {
   color: #0f172a;
 }
 
-.topbar {
-  height: 64px;
+/* Topbar estilo ChatGPT */
+.hc-topbar {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 2rem;
-  border-bottom: 1px solid #e2e8f0;
+  padding: 0.75rem 1.5rem;
+  background: #ffffff;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.hc-brand {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.hc-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  object-fit: cover;
+}
+
+.hc-brand-text {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.1;
+}
+
+.hc-title {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.hc-reg {
+  font-size: 0.65em;
+  vertical-align: super;
+  color: #ef4444;
+  margin-left: 0.1rem;
+}
+
+.hc-subtitle {
+  font-size: 0.85rem;
+  color: #64748b;
+}
+
+.hc-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.hc-icon-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.25rem 0.6rem;
+  border-radius: 999px;
+  border: 1px solid #cbd5e1;
+  background: #ffffff;
+  font-size: 0.8rem;
+  color: #1f2937;
+  cursor: pointer;
+  transition: background 120ms ease, border-color 120ms ease;
+}
+
+.hc-icon-btn:hover {
+  background: #f3f4f6;
+  border-color: #94a3b8;
+}
+
+.hc-badge {
+  padding: 0.25rem 0.75rem;
+  border-radius: 999px;
+  background: rgba(34, 197, 94, 0.2);
+  color: #15803d;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+/* Mantém compatibilidade com classe antiga */
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem 1.5rem;
+  border-bottom: 1px solid #e5e7eb;
   background: #ffffff;
 }
 
@@ -299,8 +380,24 @@ a {
 }
 
 .hero {
-  text-align: center;
   max-width: 640px;
+  margin: 0 auto;
+  text-align: center;
+  padding: 3rem 1.5rem 2rem;
+}
+
+.hero-title {
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: #0f172a;
+  margin-bottom: 0.75rem;
+}
+
+.hero-subtitle {
+  font-size: 0.95rem;
+  color: #6b7280;
+  line-height: 1.6;
+  margin: 0;
 }
 
 .hero h1 {
@@ -748,56 +845,48 @@ a {
 
 /* Mobile Responsive - 768px e abaixo */
 @media (max-width: 768px) {
-  .topbar {
-    flex-direction: column;
-    align-items: center;
-    gap: 0.5rem;
-    padding: 0.75rem 1rem;
+  .hc-topbar {
+    padding: 0.5rem 0.75rem;
   }
 
-  .logo {
-    height: 32px;
+  .hc-icon {
+    width: 28px;
+    height: 28px;
   }
 
-  .logo-wrapper {
-    flex-direction: column;
-    align-items: center;
+  .hc-title {
+    font-size: 0.95rem;
+  }
+
+  .hc-subtitle {
+    font-size: 0.75rem;
+  }
+
+  .hc-actions {
     gap: 0.25rem;
-    width: 100%;
   }
 
-  .subtitle {
-    font-size: 0.8rem;
-    text-align: center;
-    width: 100%;
+  .hc-icon-btn {
+    padding: 0.2rem 0.5rem;
+    font-size: 0.7rem;
   }
 
-  .logo-text {
-    font-size: 1.1rem;
+  .hc-badge {
+    padding: 0.2rem 0.55rem;
+    font-size: 0.7rem;
   }
 
-  .history-button {
-    padding: 0.5rem !important;
-    min-width: 40px;
-    width: 40px;
-    height: 40px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+  .hero {
+    padding-top: 2rem;
+    padding-bottom: 1.5rem;
   }
 
-  .history-button-text {
-    display: none;
+  .hero-title {
+    font-size: 1.4rem;
   }
 
-  .history-button::after {
-    content: "📋";
-    font-size: 1rem;
-  }
-
-  .badge {
-    font-size: 0.7rem !important;
-    padding: 0.25rem 0.5rem !important;
+  .hero-subtitle {
+    font-size: 0.9rem;
   }
 
   .content {
@@ -930,6 +1019,21 @@ a {
 
   .kpi-grid {
     grid-template-columns: 1fr;
+  }
+}
+
+/* Mobile muito pequeno - 480px e abaixo */
+@media (max-width: 480px) {
+  .hc-icon-btn-label {
+    display: none;
+  }
+
+  .hc-icon-btn {
+    padding: 0.25rem;
+    border-radius: 999px;
+    width: 28px;
+    height: 28px;
+    justify-content: center;
   }
 }
 
