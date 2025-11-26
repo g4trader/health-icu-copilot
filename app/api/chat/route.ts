@@ -19,15 +19,26 @@ const DISCLAIMER =
 /**
  * Handler para intenção de priorização de pacientes.
  */
-function handlePrioritizationIntent(): string {
+function handlePrioritizationIntent(message: string): { reply: string; topN: number } {
+  // Extrair número da mensagem (padrão: 3)
+  let topN = 3;
+  const match = message.toLowerCase().match(/(\d+)/);
+  if (match) {
+    const parsed = parseInt(match[1], 10);
+    if (!Number.isNaN(parsed) && parsed > 0 && parsed <= 10) {
+      topN = parsed;
+    }
+  }
+
+  const sorted = getSortedByMortalityRisk24h();
+  const topPatients = sorted.slice(0, topN);
+
   const templates = [
     () => {
-      const sorted = getSortedByMortalityRisk24h();
-      const top3 = sorted.slice(0, 3);
       const lines: string[] = [];
-      lines.push("Após acessar os prontuários eletrônicos e analisar os parâmetros de risco em tempo real, a seguinte priorização sugere-se:");
+      lines.push(`Após acessar os prontuários eletrônicos e analisar os parâmetros de risco em tempo real, selecionando os ${topN} pacientes mais graves para as próximas 24 horas:`);
       lines.push("");
-      top3.forEach((p, idx) => {
+      topPatients.forEach((p, idx) => {
         const risco24 = (p.riscoMortality24h * 100).toFixed(0);
         lines.push(`${idx + 1}. **${p.leito} • ${p.nome}** (${p.idade} ${p.idade === 1 ? "ano" : "anos"})`);
         lines.push(`   Risco 24h: ${risco24}% • Diagnóstico: ${p.diagnosticoPrincipal}`);
@@ -41,14 +52,12 @@ function handlePrioritizationIntent(): string {
       return lines.join("\n");
     },
     () => {
-      const sorted = getSortedByMortalityRisk24h();
-      const top5 = sorted.slice(0, 5);
       const lines: string[] = [];
-      lines.push("Com base na análise de risco de mortalidade em 24h e instabilidade hemodinâmica, cruzando dados do prontuário eletrônico:");
+      lines.push(`Com base na análise de risco de mortalidade em 24h e instabilidade hemodinâmica, cruzando dados do prontuário eletrônico. Selecionando os ${topN} pacientes mais graves:`);
       lines.push("");
-      lines.push("**TOP 5 por prioridade de avaliação:**");
+      lines.push(`**TOP ${topN} por prioridade de avaliação:**`);
       lines.push("");
-      top5.forEach((p, idx) => {
+      topPatients.forEach((p, idx) => {
         const risco24 = (p.riscoMortality24h * 100).toFixed(0);
         lines.push(`**${idx + 1}. ${p.leito}** — ${p.nome} (${p.idade} ${p.idade === 1 ? "ano" : "anos"})`);
         lines.push(`   ${p.diagnosticoPrincipal}`);
@@ -58,12 +67,10 @@ function handlePrioritizationIntent(): string {
       return lines.join("\n");
     },
     () => {
-      const sorted = getSortedByMortalityRisk24h();
-      const top3 = sorted.slice(0, 3);
       const lines: string[] = [];
-      lines.push("Consulta aos prontuários eletrônicos concluída. Três pacientes requerem atenção imediata:");
+      lines.push(`Consulta aos prontuários eletrônicos concluída. ${topN} ${topN === 1 ? "paciente requer" : "pacientes requerem"} atenção imediata:`);
       lines.push("");
-      top3.forEach((p, idx) => {
+      topPatients.forEach((p, idx) => {
         const risco24 = (p.riscoMortality24h * 100).toFixed(0);
         lines.push(`**${p.leito} — ${p.nome}** (${p.idade} ${p.idade === 1 ? "ano" : "anos"})`);
         lines.push(`Risco estimado: ${risco24}% em 24h | SOFA: ${p.sofa} | Lactato: ${p.lactato.toFixed(1)} mmol/L`);
@@ -77,13 +84,13 @@ function handlePrioritizationIntent(): string {
     }
   ];
   const template = templates[Math.floor(Math.random() * templates.length)];
-  return template() + DISCLAIMER;
+  return { reply: template() + DISCLAIMER, topN };
 }
 
 /**
  * Handler para intenção de exames laboratoriais.
  */
-function handleLaboratoryExamsIntent(): string {
+function handleLaboratoryExamsIntent(): { reply: string; showIcuPanel: boolean } {
   const templates = [
     () => {
       const lactatoAlto = mockPatients.filter((p) => p.lactato >= 3).length;
@@ -144,13 +151,13 @@ function handleLaboratoryExamsIntent(): string {
     }
   ];
   const template = templates[Math.floor(Math.random() * templates.length)];
-  return template() + DISCLAIMER;
+  return { reply: template() + DISCLAIMER, showIcuPanel: false };
 }
 
 /**
  * Handler para intenção de exames de imagem.
  */
-function handleImagingIntent(): string {
+function handleImagingIntent(): { reply: string; showIcuPanel: boolean } {
   const templates = [
     () => {
       const lines: string[] = [];
@@ -209,13 +216,13 @@ function handleImagingIntent(): string {
     }
   ];
   const template = templates[Math.floor(Math.random() * templates.length)];
-  return template() + DISCLAIMER;
+  return { reply: template() + DISCLAIMER, showIcuPanel: false };
 }
 
 /**
  * Handler para intenção de prescrições e cálculos de dose.
  */
-function handlePrescriptionIntent(): string {
+function handlePrescriptionIntent(): { reply: string; showIcuPanel: boolean } {
   const templates = [
     () => {
       const lines: string[] = [];
@@ -288,13 +295,13 @@ function handlePrescriptionIntent(): string {
     }
   ];
   const template = templates[Math.floor(Math.random() * templates.length)];
-  return template() + DISCLAIMER;
+  return { reply: template() + DISCLAIMER, showIcuPanel: false };
 }
 
 /**
  * Handler para intenção de perfil da unidade / casuística.
  */
-function handleUnitProfileIntent(): string {
+function handleUnitProfileIntent(): { reply: string; showIcuPanel: boolean } {
   const templates = [
     () => {
       const lines: string[] = [];
@@ -379,16 +386,16 @@ function handleUnitProfileIntent(): string {
     }
   ];
   const template = templates[Math.floor(Math.random() * templates.length)];
-  return template() + DISCLAIMER;
+  return { reply: template() + DISCLAIMER, showIcuPanel: false };
 }
 
 /**
  * Handler para intenção de paciente específico.
  */
-function handleFocusedPatientIntent(focusedPatientId: string): string {
+function handleFocusedPatientIntent(focusedPatientId: string): { reply: string; showIcuPanel: boolean } {
   const p = mockPatients.find((p) => p.id === focusedPatientId);
   if (!p) {
-    return "Não encontrei o paciente selecionado. Tente selecionar novamente." + DISCLAIMER;
+    return { reply: "Não encontrei o paciente selecionado. Tente selecionar novamente." + DISCLAIMER, showIcuPanel: false };
   }
 
   const risco24 = (p.riscoMortality24h * 100).toFixed(0);
@@ -443,30 +450,33 @@ function handleFocusedPatientIntent(focusedPatientId: string): string {
   linhas.push("");
   linhas.push("Dados obtidos do prontuário eletrônico. Use essas informações como apoio para sua avaliação clínica.");
 
-  return linhas.join("\n") + DISCLAIMER;
+  return { reply: linhas.join("\n") + DISCLAIMER, showIcuPanel: false };
 }
 
 /**
  * Handler fallback.
  */
-function handleFallbackIntent(): string {
-  return (
-    "Olá! Sou o **Health Copilot +**, um assistente de apoio à decisão para UTI pediátrica.\n\n" +
-    "Posso ajudar com:\n\n" +
-    "1. **Priorização de pacientes** por risco de mortalidade\n" +
-    "2. **Análise de exames laboratoriais** recentes\n" +
-    "3. **Padrões em exames de imagem** dos últimos 30 dias\n" +
-    "4. **Revisão de prescrições e cálculos de dose** pediátrica\n" +
-    "5. **Perfil epidemiológico da unidade** (casuística)\n" +
-    "6. **Resumo completo de um paciente específico**\n\n" +
-    "Tente perguntas como:\n" +
-    "• 'Quais são os 3 pacientes com maior risco de mortalidade em 24h?'\n" +
-    "• 'Me mostre os exames laboratoriais recentes'\n" +
-    "• 'Estamos vendo muitos padrões de pneumonia nas imagens?'\n" +
-    "• 'Preciso revisar as prescrições de antibióticos'\n" +
-    "• 'Qual o perfil da unidade nos últimos 30 dias?'" +
-    DISCLAIMER
-  );
+function handleFallbackIntent(): { reply: string; showIcuPanel: boolean } {
+  return {
+    reply: (
+      "Olá! Sou o **Health Copilot +**, um assistente de apoio à decisão para UTI pediátrica.\n\n" +
+      "Posso ajudar com:\n\n" +
+      "1. **Priorização de pacientes** por risco de mortalidade\n" +
+      "2. **Análise de exames laboratoriais** recentes\n" +
+      "3. **Padrões em exames de imagem** dos últimos 30 dias\n" +
+      "4. **Revisão de prescrições e cálculos de dose** pediátrica\n" +
+      "5. **Perfil epidemiológico da unidade** (casuística)\n" +
+      "6. **Resumo completo de um paciente específico**\n\n" +
+      "Tente perguntas como:\n" +
+      "• 'Quais são os 3 pacientes com maior risco de mortalidade em 24h?'\n" +
+      "• 'Me mostre os exames laboratoriais recentes'\n" +
+      "• 'Estamos vendo muitos padrões de pneumonia nas imagens?'\n" +
+      "• 'Preciso revisar as prescrições de antibióticos'\n" +
+      "• 'Qual o perfil da unidade nos últimos 30 dias?'" +
+      DISCLAIMER
+    ),
+    showIcuPanel: false
+  };
 }
 
 /**
@@ -591,45 +601,49 @@ export async function POST(req: Request) {
 
     if (!message) {
       return NextResponse.json({
-        reply: "Por favor, envie uma mensagem." + DISCLAIMER
+        reply: "Por favor, envie uma mensagem." + DISCLAIMER,
+        showIcuPanel: false
       });
     }
 
     const intent = detectIntent(message, focusedId);
-    let reply: string;
+    let result: { reply: string; showIcuPanel: boolean; topN?: number };
 
     switch (intent) {
-      case "prioritization":
-        reply = handlePrioritizationIntent();
+      case "prioritization": {
+        const prioritizationResult = handlePrioritizationIntent(message);
+        result = { ...prioritizationResult, showIcuPanel: true };
         break;
+      }
       case "laboratory":
-        reply = handleLaboratoryExamsIntent();
+        result = handleLaboratoryExamsIntent();
         break;
       case "imaging":
-        reply = handleImagingIntent();
+        result = handleImagingIntent();
         break;
       case "prescription":
-        reply = handlePrescriptionIntent();
+        result = handlePrescriptionIntent();
         break;
       case "unit_profile":
-        reply = handleUnitProfileIntent();
+        result = handleUnitProfileIntent();
         break;
       case "focused_patient":
         if (!focusedId) {
-          reply = "Para obter um resumo de um paciente específico, selecione-o primeiro." + DISCLAIMER;
+          result = { reply: "Para obter um resumo de um paciente específico, selecione-o primeiro." + DISCLAIMER, showIcuPanel: false };
         } else {
-          reply = handleFocusedPatientIntent(focusedId);
+          result = handleFocusedPatientIntent(focusedId);
         }
         break;
       default:
-        reply = handleFallbackIntent();
+        result = handleFallbackIntent();
     }
 
-    return NextResponse.json({ reply });
+    return NextResponse.json({ reply: result.reply, showIcuPanel: result.showIcuPanel, topN: result.topN });
   } catch (error) {
     return NextResponse.json(
       {
-        reply: "Tive um problema temporário ao processar sua pergunta. Tente novamente em instantes." + DISCLAIMER
+        reply: "Tive um problema temporário ao processar sua pergunta. Tente novamente em instantes." + DISCLAIMER,
+        showIcuPanel: false
       },
       { status: 500 }
     );
