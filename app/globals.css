@@ -742,6 +742,11 @@ a {
   gap: 0.75rem;
 }
 
+.subtitle {
+  font-size: 0.85rem;
+  color: #64748b;
+}
+
 .logo-text {
   font-weight: 700;
   color: #0f172a;
