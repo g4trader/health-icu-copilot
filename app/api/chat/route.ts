@@ -19,7 +19,7 @@ const DISCLAIMER =
 /**
  * Handler para intenção de priorização de pacientes.
  */
-function handlePrioritizationIntent(message: string): { reply: string; topN: number } {
+function handlePrioritizationIntent(message: string): { reply: string; topN: number; topPatients: Patient[] } {
   // Extrair número da mensagem (padrão: 3)
   let topN = 3;
   const match = message.toLowerCase().match(/(\d+)/);
@@ -84,7 +84,7 @@ function handlePrioritizationIntent(message: string): { reply: string; topN: num
     }
   ];
   const template = templates[Math.floor(Math.random() * templates.length)];
-  return { reply: template() + DISCLAIMER, topN };
+  return { reply: template() + DISCLAIMER, topN, topPatients };
 }
 
 /**
@@ -607,7 +607,7 @@ export async function POST(req: Request) {
     }
 
     const intent = detectIntent(message, focusedId);
-    let result: { reply: string; showIcuPanel: boolean; topN?: number };
+    let result: { reply: string; showIcuPanel: boolean; topN?: number; topPatients?: Patient[] };
 
     switch (intent) {
       case "prioritization": {
@@ -638,7 +638,12 @@ export async function POST(req: Request) {
         result = handleFallbackIntent();
     }
 
-    return NextResponse.json({ reply: result.reply, showIcuPanel: result.showIcuPanel, topN: result.topN });
+    return NextResponse.json({ 
+      reply: result.reply, 
+      showIcuPanel: result.showIcuPanel, 
+      topN: result.topN,
+      topPatients: result.topPatients
+    });
   } catch (error) {
     return NextResponse.json(
       {

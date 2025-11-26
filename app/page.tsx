@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { mockPatients, getSortedByMortalityRisk24h, riskLevelFromScore } from "@/lib/mockData";
+import { mockPatients, getSortedByMortalityRisk24h, riskLevelFromScore, type Patient } from "@/lib/mockData";
 
 type Message = {
   id: string;
@@ -9,12 +9,14 @@ type Message = {
   text: string;
   showIcuPanel?: boolean;
   topN?: number;
+  topPatients?: Patient[];
 };
 
 type AgentReply = {
   reply: string;
   showIcuPanel?: boolean;
   topN?: number;
+  topPatients?: Patient[];
 };
 
 function LoadingCard({ compact }: { compact?: boolean }) {
@@ -55,13 +57,20 @@ function LoadingCard({ compact }: { compact?: boolean }) {
   );
 }
 
-function IcuPanel({ topN = 3 }: { topN?: number }) {
-  const totalPacientes = mockPatients.length;
-  const emRiscoAlto = mockPatients.filter((p) => p.riscoMortality24h >= 0.7).length;
-  const emVM = mockPatients.filter((p) => p.emVentilacaoMecanica).length;
-  const emVasopressor = mockPatients.filter((p) => p.emVasopressor).length;
+function IcuPanel({ tablePatients }: { tablePatients?: Patient[] }) {
+  const allPatients = mockPatients;
+  
+  // KPIs continuam usando todos os pacientes
+  const totalPacientes = allPatients.length;
+  const emRiscoAlto = allPatients.filter((p) => p.riscoMortality24h >= 0.7).length;
+  const emVM = allPatients.filter((p) => p.emVentilacaoMecanica).length;
+  const emVasopressor = allPatients.filter((p) => p.emVasopressor).length;
 
-  const topPacientes = getSortedByMortalityRisk24h().slice(0, topN);
+  // Para a tabela: usar tablePatients se fornecido, senão usar todos ordenados
+  const sortedAll = getSortedByMortalityRisk24h();
+  const rows = tablePatients && tablePatients.length > 0
+    ? tablePatients
+    : sortedAll;
 
   function getStatusText(patient: typeof mockPatients[0]): string {
     const parts: string[] = [];
@@ -107,7 +116,7 @@ function IcuPanel({ topN = 3 }: { topN?: number }) {
             </tr>
           </thead>
           <tbody>
-            {topPacientes.map((p) => (
+            {rows.map((p) => (
               <tr key={p.id}>
                 <td>{p.leito}</td>
                 <td style={{ fontWeight: 600 }}>{p.nome}</td>
@@ -184,7 +193,8 @@ export default function HomePage() {
           role: "agent",
           text: data.reply,
           showIcuPanel: data.showIcuPanel ?? false,
-          topN: data.topN ?? 3
+          topN: data.topN ?? 3,
+          topPatients: data.topPatients
         }
       ]);
     } catch (error) {
@@ -268,7 +278,7 @@ export default function HomePage() {
                 <div className={`msg-bubble ${msg.role === "user" ? "msg-user" : "msg-agent"}`}>
                   {msg.role === "agent" && msg.showIcuPanel && (
                     <div className="icu-panel-wrapper">
-                      <IcuPanel topN={msg.topN} />
+                      <IcuPanel tablePatients={msg.topPatients} />
                     </div>
                   )}
                   <div className="msg-text" style={{ whiteSpace: "pre-wrap" }}>{msg.text}</div>
