@@ -376,6 +376,7 @@ a {
   align-items: center;
   justify-content: center;
   padding: 2rem;
+  padding-bottom: 100px; /* Espaço para input fixo */
   overflow-y: auto;
 }
 
@@ -412,6 +413,79 @@ a {
   color: #6b7280;
   line-height: 1.6;
   margin: 0;
+}
+
+/* Nova barra de input estilo ChatGPT */
+.hc-chat-input {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: #ffffff;
+  padding: 0.75rem 1rem;
+  border-top: 1px solid #e2e8f0;
+  box-shadow: 0 -1px 2px rgba(0, 0, 0, 0.05);
+  z-index: 20;
+}
+
+.hc-input-field {
+  flex: 1;
+  border: 1px solid #d1d5db;
+  background: #f9fafb;
+  border-radius: 9999px;
+  padding: 0.6rem 1rem;
+  font-size: 0.95rem;
+  outline: none;
+  color: #111827;
+  transition: border-color 0.2s ease, background-color 0.2s ease;
+}
+
+.hc-input-field:focus {
+  border-color: #22c55e;
+  background: #ffffff;
+}
+
+.hc-input-field:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.hc-input-field::placeholder {
+  color: #9ca3af;
+}
+
+.hc-send-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 42px;
+  height: 42px;
+  background-color: #22c55e;
+  border-radius: 50%;
+  border: none;
+  cursor: pointer;
+  transition: background-color 0.2s ease, transform 0.1s ease;
+  flex-shrink: 0;
+}
+
+.hc-send-btn:hover:not(:disabled) {
+  background-color: #16a34a;
+  transform: translateY(-1px);
+}
+
+.hc-send-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.hc-send-icon {
+  width: 22px;
+  height: 22px;
+  color: white;
 }
 
 .result-card {
@@ -889,6 +963,25 @@ a {
     font-size: 0.9rem;
   }
 
+  .hc-chat-input {
+    padding: 0.6rem 0.75rem;
+  }
+
+  .hc-input-field {
+    font-size: 0.9rem;
+    padding: 0.5rem 0.9rem;
+  }
+
+  .hc-send-btn {
+    width: 38px;
+    height: 38px;
+  }
+
+  .hc-send-icon {
+    width: 20px;
+    height: 20px;
+  }
+
   .content {
     padding: 0.75rem;
     padding-bottom: 100px; /* Espaço para input fixo */
@@ -970,6 +1063,26 @@ a {
     flex: 1;
   }
 
+  .hc-chat-input {
+    padding: 0.6rem 0.75rem;
+  }
+
+  .hc-input-field {
+    font-size: 0.9rem;
+    padding: 0.5rem 0.9rem;
+  }
+
+  .hc-send-btn {
+    width: 38px;
+    height: 38px;
+  }
+
+  .hc-send-icon {
+    width: 20px;
+    height: 20px;
+  }
+
+  /* Mantém compatibilidade */
   .input-bar {
     position: fixed;
     bottom: 0;

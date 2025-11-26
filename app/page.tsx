@@ -285,26 +285,38 @@ export default function HomePage() {
         )}
       </section>
 
-      <footer className="input-bar">
-        <div className="input-container">
-          <input
-            className="main-input"
-            type="text"
-            placeholder="Ex.: Quais são os 3 pacientes com maior risco de mortalidade em 24h?"
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyDown={handleKeyDown}
-            disabled={loading}
-          />
-          <button
-            className="ask-button"
-            type="button"
-            onClick={handleSend}
-            disabled={loading || !input.trim()}
+      <footer className="hc-chat-input">
+        <input
+          type="text"
+          placeholder="Digite sua pergunta..."
+          className="hc-input-field"
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          onKeyDown={handleKeyDown}
+          disabled={loading}
+        />
+        <button
+          className="hc-send-btn"
+          type="button"
+          onClick={handleSend}
+          disabled={loading || !input.trim()}
+          aria-label="Enviar mensagem"
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            fill="none"
+            viewBox="0 0 24 24"
+            strokeWidth={2}
+            stroke="currentColor"
+            className="hc-send-icon"
           >
-            {loading ? "Processando..." : "Perguntar"}
-          </button>
-        </div>
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              d="M3 10.5l18-8.25-8.25 18-2.25-7.5L3 10.5z"
+            />
+          </svg>
+        </button>
       </footer>
     </main>
   );
