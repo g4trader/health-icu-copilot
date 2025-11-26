@@ -6,6 +6,9 @@
 
 html {
   scroll-behavior: smooth;
+  overflow-x: hidden !important;
+  width: 100%;
+  max-width: 100vw;
 }
 
 html,
@@ -13,12 +16,22 @@ body {
   margin: 0;
   padding: 0;
   font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-  overflow-x: hidden;
+  overflow-x: hidden !important;
+  width: 100%;
+  max-width: 100vw;
 }
 
 body {
   background: #f8faf9;
   color: #0f172a;
+}
+
+#__next,
+main,
+.shell {
+  overflow-x: hidden;
+  width: 100%;
+  max-width: 100vw;
 }
 
 a {
@@ -277,6 +290,9 @@ a {
   flex-direction: column;
   background: #f8faf9;
   color: #0f172a;
+  width: 100%;
+  max-width: 100vw;
+  overflow-x: hidden;
 }
 
 /* Topbar estilo ChatGPT */
@@ -287,6 +303,9 @@ a {
   padding: 0.75rem 1.5rem;
   background: #ffffff;
   border-bottom: 1px solid #e5e7eb;
+  width: 100%;
+  max-width: 100vw;
+  overflow-x: hidden;
 }
 
 .hc-brand {
@@ -378,13 +397,18 @@ a {
   padding: 2rem;
   padding-bottom: 100px; /* Espaço para input fixo */
   overflow-y: auto;
+  overflow-x: hidden;
+  width: 100%;
+  max-width: 100vw;
 }
 
 .hero {
-  max-width: 640px;
+  max-width: min(640px, 100%);
   margin: 0 auto;
   text-align: center;
   padding: 3rem 1.5rem 2rem;
+  width: 100%;
+  overflow-x: hidden;
 }
 
 .hero-title {
@@ -421,6 +445,7 @@ a {
   bottom: 0;
   left: 0;
   width: 100%;
+  max-width: 100vw;
   display: flex;
   align-items: center;
   gap: 0.5rem;
@@ -429,6 +454,7 @@ a {
   border-top: 1px solid #e2e8f0;
   box-shadow: 0 -1px 2px rgba(0, 0, 0, 0.05);
   z-index: 20;
+  overflow-x: hidden;
 }
 
 .hc-input-field {
@@ -489,7 +515,7 @@ a {
 }
 
 .result-card {
-  max-width: 1100px;
+  max-width: min(1100px, 100%);
   width: 100%;
   padding: 1.5rem 1.75rem;
   border-radius: 1.25rem;
@@ -499,6 +525,7 @@ a {
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
+  overflow-x: hidden;
 }
 
 .question-bubble {
@@ -773,10 +800,11 @@ a {
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
-  max-width: 1100px;
+  max-width: min(1100px, 100%);
   width: 100%;
   max-height: calc(100vh - 220px);
   overflow-y: auto;
+  overflow-x: hidden;
   padding: 1rem 0;
 }
 
@@ -987,7 +1015,10 @@ a {
     padding-bottom: 100px; /* Espaço para input fixo */
     min-height: calc(100vh - 180px);
     overflow-y: auto;
+    overflow-x: hidden;
     scroll-behavior: smooth;
+    width: 100%;
+    max-width: 100vw;
   }
 
   .conversation {
