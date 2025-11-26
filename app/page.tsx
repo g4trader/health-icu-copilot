@@ -227,6 +227,7 @@ export default function HomePage() {
       <header className="topbar">
         <div className="logo-wrapper">
           <img src="/logo-healthcopilot.png" alt="Health Copilot +" className="logo" />
+          <span className="logo-text">HEALTH COPILOT</span>
           <span className="subtitle">UTI Pediátrica</span>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
