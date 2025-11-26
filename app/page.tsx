@@ -227,10 +227,6 @@ export default function HomePage() {
       <header className="topbar">
         <div className="logo-wrapper">
           <img src="/logo-healthcopilot.png" alt="Health Copilot +" className="logo" />
-          <span className="logo-text">Health Copilot</span>
-          <span style={{ fontSize: "0.85rem", color: "#64748b" }}>
-            UTI Pediátrica
-          </span>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
           <button
