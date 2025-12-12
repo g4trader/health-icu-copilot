@@ -437,7 +437,7 @@ export default function HomePage() {
     }
   }, [conversation, loading]);
 
-  async function handleSend(messageText?: string) {
+  const handleSend = useCallback(async (messageText?: string) => {
     const textToSend = messageText || input.trim();
     if (!textToSend || loading) return;
 
