@@ -4,7 +4,6 @@ import { usePreview, type PreviewPayload } from "./PreviewProvider";
 import { mockPatients, getTopPatients, riskLevelFromScore, calculateRiskScore } from "@/lib/mockData";
 import { getPatientsOnVentilation, getPatientsOnVasopressors, getHighRiskPatients } from "@/lib/icuSummary";
 import type { Patient } from "@/lib/mockData";
-import clsx from "clsx";
 
 export function PreviewDrawer() {
   const { previewType, previewPayload, clearPreview } = usePreview();
