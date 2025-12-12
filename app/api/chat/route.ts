@@ -82,6 +82,27 @@ function handleAgentOpinionIntent(patientId: string, agentId: ClinicalAgentId): 
     };
   }
 
+  // Tentar buscar parecer mockado primeiro
+  const specialistKey = agentId as SpecialistKey;
+  const mockOpinion = specialistOpinions[specialistKey]?.[patientId];
+
+  if (mockOpinion) {
+    // Usar parecer mockado
+    const footer = '\n\n---\n*Health Copilot+ v1.0.0* | Dados: Simulados | Parecer de agente de subespecialidade. Este conteúdo é apenas apoio à decisão e não substitui avaliação médica presencial.';
+    
+    return {
+      reply: mockOpinion + footer,
+      showIcuPanel: false,
+      agentId,
+      focusedPatient: patient,
+      showPatientOverview: true,
+      showVitalsPanel: true,
+      showLabsPanel: true,
+      showTherapiesPanel: true
+    };
+  }
+
+  // Fallback para buildAgentOpinion se não houver mock
   const opinion = buildAgentOpinion(patient, agentId);
   const agent = getClinicalAgent(agentId);
 
