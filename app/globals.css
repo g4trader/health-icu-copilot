@@ -1689,7 +1689,7 @@ a {
   flex-shrink: 0;
   padding: 1rem 0;
   background: #ffffff;
-  border-top: 1px solid #e5e7eb;
+  /* border-top removido para remover barrinha cinza acima do input */
 }
 
 .chat-input-wrapper {
