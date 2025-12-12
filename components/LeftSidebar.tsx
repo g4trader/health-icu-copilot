@@ -48,6 +48,19 @@ export function LeftSidebar() {
           </div>
         </nav>
       </div>
+
+      {/* Rodapé com nome do usuário */}
+      <div className="sidebar-footer">
+        <div className="sidebar-user">
+          <div className="sidebar-user-avatar">
+            FS
+          </div>
+          <div className="sidebar-user-info">
+            <span className="sidebar-user-name">Fabiano Souza</span>
+            <span className="sidebar-user-role">UTI Pediátrica A</span>
+          </div>
+        </div>
+      </div>
     </aside>
   );
 }

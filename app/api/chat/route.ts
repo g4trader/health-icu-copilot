@@ -224,97 +224,15 @@ function handleFocusedPatientIntent(focusedPatientId: string): { reply: string; 
 
   const templates = [
     () => {
-      const linhas: string[] = [];
-      linhas.push(`**Resumo pediátrico completo — ${p.nome}, leito ${p.leito}:**`);
-      linhas.push("");
-      linhas.push(`**Dados demográficos:** ${p.idade} ${p.idade === 1 ? "ano" : "anos"} de idade, ${p.peso.toFixed(1)} kg`);
-      linhas.push(`**Diagnóstico principal:** ${p.diagnosticoPrincipal}`);
-      linhas.push(`**Dias de internação na UTI:** ${p.diasDeUTI} ${p.diasDeUTI === 1 ? "dia" : "dias"}`);
-      linhas.push("");
-      linhas.push(`**Risco estimado:** ${risco24}% em 24h (${riscoLevel}) • ${risco7}% em 7 dias`);
-      linhas.push("");
-      linhas.push("**Sinais vitais atuais:**");
-      linhas.push(`• Temperatura: ${p.vitalSigns.temperatura.toFixed(1)}°C`);
-      linhas.push(`• Frequência cardíaca: ${p.vitalSigns.frequenciaCardiaca} bpm`);
-      linhas.push(`• Frequência respiratória: ${p.vitalSigns.frequenciaRespiratoria} rpm`);
-      linhas.push(`• Pressão arterial média: ${p.vitalSigns.pressaoArterialMedia} mmHg`);
-      linhas.push(`• Saturação O2: ${p.vitalSigns.saturacaoO2}%`);
-      if (p.vitalSigns.escalaGlasgow) {
-        linhas.push(`• Escala de Glasgow: ${p.vitalSigns.escalaGlasgow}`);
-      }
-      linhas.push("");
-      const lactato = p.labResults.find(l => l.tipo === "lactato");
-      if (lactato && typeof lactato.valor === "number") {
-        linhas.push(`**Exames laboratoriais:**`);
-        linhas.push(`• Lactato: ${lactato.valor.toFixed(1)} mmol/L (tendência: ${lactato.tendencia || "estável"})`);
-        linhas.push("");
-      }
-      const temVaso = p.medications.some(m => m.tipo === "vasopressor" && m.ativo);
-      linhas.push(`**Suporte avançado:**`);
-      linhas.push(`• ${temVaso ? "Em uso de vasopressor" : "Sem vasopressor"}`);
-      linhas.push(`• ${p.ventilationParams ? "Em ventilação mecânica" : "Sem ventilação mecânica"}`);
-      linhas.push("");
-      linhas.push("**Pontos de atenção:**");
-      p.tags.forEach((t) => {
-        linhas.push(`• ${t}`);
-      });
-      return linhas.join("\n");
+      return `Resumo clínico do paciente ${p.nome} (leito ${p.leito}): ${p.idade} ${p.idade === 1 ? "ano" : "anos"}, ${p.peso.toFixed(1)} kg, diagnóstico principal ${p.diagnosticoPrincipal}. Risco estimado de mortalidade: ${risco24}% em 24h (${riscoLevel}) e ${risco7}% em 7 dias. ${p.diasDeUTI} ${p.diasDeUTI === 1 ? "dia" : "dias"} de internação na UTI. Consulte o painel abaixo para detalhes completos de sinais vitais, exames laboratoriais, medicações e parâmetros de ventilação.`;
     },
     () => {
-      const linhas: string[] = [];
-      linhas.push(`**Avaliação clínica — ${p.nome} (${p.leito}):**`);
-      linhas.push("");
-      linhas.push(`Paciente de ${p.idade} ${p.idade === 1 ? "ano" : "anos"} (${p.peso.toFixed(1)} kg) com ${p.diagnosticoPrincipal}.`);
-      linhas.push(`Internado há ${p.diasDeUTI} ${p.diasDeUTI === 1 ? "dia" : "dias"} na UTI.`);
-      linhas.push("");
-      linhas.push(`**Risco de mortalidade:** ${risco24}% em 24h (${riscoLevel})`);
-      linhas.push("");
-      linhas.push("**Parâmetros hemodinâmicos:**");
-      linhas.push(`• MAP: ${p.vitalSigns.pressaoArterialMedia} mmHg`);
-      linhas.push(`• FC: ${p.vitalSigns.frequenciaCardiaca} bpm`);
-      linhas.push(`• FR: ${p.vitalSigns.frequenciaRespiratoria} rpm`);
-      linhas.push(`• SpO2: ${p.vitalSigns.saturacaoO2}%`);
-      linhas.push("");
-      const lactato = p.labResults.find(l => l.tipo === "lactato");
-      if (lactato && typeof lactato.valor === "number") {
-        linhas.push(`**Lactato:** ${lactato.valor.toFixed(1)} mmol/L (${lactato.tendencia || "estável"})`);
-        linhas.push("");
-      }
       const temVaso = p.medications.some(m => m.tipo === "vasopressor" && m.ativo);
-      if (temVaso) {
-        const vaso = p.medications.find(m => m.tipo === "vasopressor" && m.ativo);
-        linhas.push(`**Vasopressor:** ${vaso?.nome} ${vaso?.dose} ${vaso?.unidade}`);
-        linhas.push("");
-      }
-      if (p.ventilationParams) {
-        linhas.push(`**Ventilação mecânica:** ${p.ventilationParams.modo}, FiO2 ${p.ventilationParams.fiO2}%, PEEP ${p.ventilationParams.peep} cmH2O`);
-        linhas.push("");
-      }
-      return linhas.join("\n");
+      const temVM = p.ventilationParams !== undefined;
+      return `Paciente ${p.nome} (${p.leito}): ${p.idade} ${p.idade === 1 ? "ano" : "anos"}, ${p.diagnosticoPrincipal}. Risco de mortalidade em 24h: ${risco24}% (${riscoLevel}). ${temVM ? "Em ventilação mecânica." : ""} ${temVaso ? "Em uso de droga vasoativa." : ""} Veja o painel abaixo para informações detalhadas sobre sinais vitais, balanço hídrico, medicações e exames.`;
     },
     () => {
-      const linhas: string[] = [];
-      linhas.push(`**${p.leito} — ${p.nome}**`);
-      linhas.push(`${p.idade} ${p.idade === 1 ? "ano" : "anos"} • ${p.peso.toFixed(1)} kg`);
-      linhas.push("");
-      linhas.push(`**Diagnóstico:** ${p.diagnosticoPrincipal}`);
-      linhas.push(`**Dias de UTI:** ${p.diasDeUTI}`);
-      linhas.push(`**Risco 24h:** ${risco24}% (${riscoLevel})`);
-      linhas.push("");
-      linhas.push("**Sinais vitais:**");
-      linhas.push(`• Temp: ${p.vitalSigns.temperatura.toFixed(1)}°C | FC: ${p.vitalSigns.frequenciaCardiaca} bpm | FR: ${p.vitalSigns.frequenciaRespiratoria} rpm`);
-      linhas.push(`• MAP: ${p.vitalSigns.pressaoArterialMedia} mmHg | SpO2: ${p.vitalSigns.saturacaoO2}%`);
-      linhas.push("");
-      const lactato = p.labResults.find(l => l.tipo === "lactato");
-      if (lactato && typeof lactato.valor === "number") {
-        linhas.push(`**Lactato:** ${lactato.valor.toFixed(1)} mmol/L`);
-        linhas.push("");
-      }
-      const temVaso = p.medications.some(m => m.tipo === "vasopressor" && m.ativo);
-      linhas.push(`**Suporte:** ${temVaso ? "Vasopressor" : "Sem vasopressor"} | ${p.ventilationParams ? "VM" : "Sem VM"}`);
-      linhas.push("");
-      linhas.push("**Tags:** " + p.tags.join(", "));
-      return linhas.join("\n");
+      return `Análise clínica do paciente ${p.nome}, leito ${p.leito}: ${p.idade} ${p.idade === 1 ? "ano" : "anos"} de idade, ${p.peso.toFixed(1)} kg, com diagnóstico de ${p.diagnosticoPrincipal}. Risco estimado de ${risco24}% em 24h. ${p.diasDeUTI} ${p.diasDeUTI === 1 ? "dia" : "dias"} de internação. Os detalhes completos estão disponíveis no painel individual abaixo.`;
     }
   ];
   const template = templates[Math.floor(Math.random() * templates.length)];

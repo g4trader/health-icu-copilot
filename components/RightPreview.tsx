@@ -24,6 +24,8 @@ export function RightPreview() {
   switch (previewType) {
     case 'icu-overview':
       return <IcuOverviewPreview />;
+    case 'allPatients':
+      return <AllPatientsPreview payload={previewPayload} />;
     case 'ventilated':
       return <VentilatedPreview />;
     case 'vasopressors':
@@ -175,6 +177,43 @@ function HighRiskPreview() {
                 </div>
               </div>
             ))}
+          </div>
+        </div>
+      </div>
+    </aside>
+  );
+}
+
+function AllPatientsPreview({ payload }: { payload: PreviewPayload | null }) {
+  const patients = (payload?.patients || mockPatients) as Patient[];
+
+  return (
+    <aside className="right-preview">
+      <div className="preview-content">
+        <div className="preview-header">
+          <h3 className="preview-title">Todos os Pacientes da UTI</h3>
+        </div>
+        <div className="preview-body">
+          <div className="preview-list">
+            {patients.map((p) => {
+              const hasVM = p.ventilationParams !== undefined;
+              const hasVaso = p.medications.some(m => m.tipo === "vasopressor" && m.ativo);
+              return (
+                <div key={p.id} className="preview-item">
+                  <div className="preview-item-header">
+                    <strong>{p.leito}</strong> • {p.nome}
+                  </div>
+                  <div className="preview-item-details">
+                    <div>{p.idade} {p.idade === 1 ? "ano" : "anos"} • {p.diagnosticoPrincipal}</div>
+                    <div>Risco 24h: {(p.riscoMortality24h * 100).toFixed(0)}%</div>
+                    <div className="preview-badges">
+                      {hasVM && <span className="preview-badge preview-badge-vm">VM</span>}
+                      {hasVaso && <span className="preview-badge preview-badge-vaso">Vaso</span>}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </div>
       </div>

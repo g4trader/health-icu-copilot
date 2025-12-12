@@ -7,6 +7,7 @@ import {
   getHighRiskPatients
 } from "@/lib/icuSummary";
 import { usePreview } from "./PreviewProvider";
+import { mockPatients } from "@/lib/mockData";
 
 interface ContextSnapshotProps {
   onPromptClick: (prompt: string) => void;
@@ -33,7 +34,7 @@ export function ContextSnapshot({ onPromptClick }: ContextSnapshotProps) {
         <button
           type="button"
           className="snapshot-card snapshot-card-clickable"
-          onClick={() => setPreview('icu-overview')}
+          onClick={() => setPreview('allPatients', { patients: mockPatients })}
         >
           <div className="snapshot-card-label">Total de Pacientes</div>
           <div className="snapshot-card-value">{totalPatients}</div>

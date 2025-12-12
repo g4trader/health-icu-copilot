@@ -18,15 +18,14 @@ export function PreviewDrawer() {
       <aside className="preview-drawer">
         <div className="drawer-header">
           <h3 className="drawer-title">
+            {previewType === 'icu-overview' && 'Visão Geral da UTI'}
             {previewType === 'allPatients' && 'Todos os Pacientes da UTI'}
             {previewType === 'ventilated' && 'Pacientes em Ventilação Mecânica'}
             {previewType === 'vasopressors' && 'Pacientes em Droga Vasoativa'}
             {previewType === 'high-risk' && 'Pacientes em Alto Risco (24h)'}
-            {previewType === 'icu-overview' && 'Visão Geral da UTI'}
-            {previewType === 'unit-profile' && 'Perfil Epidemiológico da Unidade'}
+            {previewType === 'patient' && 'Resumo do Paciente'}
             {previewType === 'lab-results' && 'Exames Laboratoriais Recentes'}
-            {previewType === 'patient' && previewPayload?.patient && `${(previewPayload.patient as Patient).leito} • ${(previewPayload.patient as Patient).nome}`}
-            {!previewType && 'Preview'}
+            {previewType === 'unit-profile' && 'Perfil Epidemiológico da Unidade'}
           </h3>
           <button
             type="button"
@@ -93,28 +92,38 @@ function AllPatientsPreview({ payload }: { payload: PreviewPayload | null }) {
   const patients = (payload?.patients || mockPatients) as Patient[];
 
   return (
-    <div className="preview-content">
-      <div className="preview-list">
-        {patients.map((p) => {
-          const hasVM = p.ventilationParams !== undefined;
-          const hasVaso = p.medications.some(m => m.tipo === "vasopressor" && m.ativo);
-          return (
-            <div key={p.id} className="preview-item">
-              <div className="preview-item-header">
-                <strong>{p.leito}</strong> • {p.nome}
+    <div className="space-y-3">
+      {patients.map((p) => {
+        const hasVM = p.ventilationParams !== undefined;
+        const hasVaso = p.medications.some(m => m.tipo === "vasopressor" && m.ativo);
+        const risk24h = (p.riscoMortality24h * 100).toFixed(0);
+        return (
+          <div
+            key={p.id}
+            className="rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-sm"
+          >
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-semibold text-slate-900">
+                  {p.leito} • {p.nome}
+                </p>
+                <p className="text-xs text-slate-500">
+                  {p.idade} anos • {p.diagnosticoPrincipal}
+                </p>
               </div>
-              <div className="preview-item-details">
-                <div>{p.idade} {p.idade === 1 ? "ano" : "anos"} • {p.diagnosticoPrincipal}</div>
-                <div>Risco 24h: {(p.riscoMortality24h * 100).toFixed(0)}%</div>
-                <div className="preview-badges">
-                  {hasVM && <span className="preview-badge preview-badge-vm">VM</span>}
-                  {hasVaso && <span className="preview-badge preview-badge-vaso">Vaso</span>}
-                </div>
+              <div className="text-right">
+                <p className="text-xs text-slate-500">Risco 24h</p>
+                <p className="text-sm font-semibold text-amber-600">
+                  {risk24h}%
+                </p>
               </div>
             </div>
-          );
-        })}
-      </div>
+            <p className="mt-1 text-xs text-slate-500">
+              VM: {hasVM ? 'Sim' : 'Não'} • Vasopressor: {hasVaso ? 'Sim' : 'Não'}
+            </p>
+          </div>
+        );
+      })}
     </div>
   );
 }
