@@ -102,14 +102,21 @@ function AllPatientsPreview({ payload }: { payload: PreviewPayload | null }) {
           const hasVM = p.ventilationParams !== undefined;
           const hasVaso = p.medications.some(m => m.tipo === "vasopressor" && m.ativo);
           const risk24h = Math.round(p.riscoMortality24h * 100);
+          const patientId = p.id;
+          
           return (
             <button
-              key={p.id}
+              key={patientId || Math.random()}
               type="button"
               className="preview-item preview-item-clickable"
               onClick={(e) => {
                 e.stopPropagation();
-                onSelectPatient?.(p.id);
+                console.log('Click no paciente:', { paciente: p, id: patientId, hasId: !!patientId }); // Debug
+                if (patientId) {
+                  onSelectPatient?.(patientId);
+                } else {
+                  console.error('Paciente sem ID!', p);
+                }
               }}
             >
               <div className="preview-item-header">
