@@ -107,7 +107,10 @@ function AllPatientsPreview({ payload }: { payload: PreviewPayload | null }) {
               key={p.id}
               type="button"
               className="preview-item preview-item-clickable"
-              onClick={() => onSelectPatient?.(p.id)}
+              onClick={(e) => {
+                e.stopPropagation();
+                onSelectPatient?.(p.id);
+              }}
             >
               <div className="preview-item-header">
                 <strong>{p.leito}</strong> • {p.nome}
