@@ -689,26 +689,27 @@ export default function HomePage() {
       </header>
 
       <AppShell>
-        <section className="content">
-          <div className="chat-container">
-            {conversation.length === 0 && !loading && (
-              <div className="hero">
-                <h1 className="hero-title">Como posso ajudar a UTI pediátrica hoje?</h1>
-                <p className="hero-subtitle">
-                  Faça uma pergunta sobre risco de mortalidade, prioridade de atendimento, exames laboratoriais, 
-                  imagens, prescrições ou perfil da unidade.
-                </p>
-                <ContextSnapshot onPromptClick={handlePromptClick} />
-              </div>
-            )}
+        <div className="main-chat-content">
+          <main className="chat-content-scrollable">
+            <div className="chat-container">
+              {conversation.length === 0 && !loading && (
+                <div className="hero">
+                  <h1 className="hero-title">Como posso ajudar a UTI pediátrica hoje?</h1>
+                  <p className="hero-subtitle">
+                    Faça uma pergunta sobre risco de mortalidade, prioridade de atendimento, exames laboratoriais, 
+                    imagens, prescrições ou perfil da unidade.
+                  </p>
+                  <ContextSnapshot onPromptClick={handlePromptClick} />
+                </div>
+              )}
 
-            {conversation.length > 0 && (
-              <div className="conversation">
-                <PatientContextBar 
-                  activePatient={activePatient} 
-                  onClear={() => setActivePatientId(null)} 
-                />
-                {conversation.map((msg) => (
+              {conversation.length > 0 && (
+                <div className="conversation">
+                  <PatientContextBar 
+                    activePatient={activePatient} 
+                    onClear={() => setActivePatientId(null)} 
+                  />
+                  {conversation.map((msg) => (
                   <div key={msg.id} className={`msg-container ${msg.role === "user" ? "msg-user-wrapper" : "msg-agent-wrapper"}`}>
                     <div className={`msg-bubble ${msg.role === "user" ? "msg-user" : "msg-agent"}`}>
                       <div className="msg-text" style={{ whiteSpace: "pre-wrap" }}>{msg.text}</div>
@@ -763,25 +764,30 @@ export default function HomePage() {
                   </div>
                 )}
 
-                <div ref={conversationEndRef} />
-              </div>
-            )}
-
-            <ChatInput
-              value={input}
-              onChange={setInput}
-              onSend={handleSend}
-              onKeyDown={handleKeyDown}
-              loading={loading}
-              currentAgent={currentAgent}
-              onAgentChange={setCurrentAgent}
-              patients={mockPatients}
-              onSelectPatientFromUI={(patientId) => {
-                showPatientOverviewInline(patientId);
-              }}
-            />
+                  <div ref={conversationEndRef} />
           </div>
-        </section>
+              )}
+            </div>
+          </main>
+
+          <footer className="chat-input-footer">
+            <div className="chat-input-footer-inner">
+              <ChatInput
+                value={input}
+                onChange={setInput}
+                onSend={handleSend}
+                onKeyDown={handleKeyDown}
+                loading={loading}
+                currentAgent={currentAgent}
+                onAgentChange={setCurrentAgent}
+                patients={mockPatients}
+                onSelectPatientFromUI={(patientId) => {
+                  showPatientOverviewInline(patientId);
+                }}
+              />
+            </div>
+          </footer>
+        </div>
       </AppShell>
         </div>
   );

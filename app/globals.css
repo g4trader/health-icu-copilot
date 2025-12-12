@@ -390,26 +390,17 @@ a {
 }
 
 .content {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 2rem;
-  padding-bottom: 1.5rem;
-  overflow-y: auto;
-  overflow-x: hidden;
-  width: 100%;
-  max-width: 100vw;
+  /* Não usado mais, mantido para compatibilidade */
+  display: none;
 }
 
 .hero {
   max-width: min(640px, 100%);
   margin: 0 auto;
   text-align: center;
-  padding: 3rem 1.5rem 6rem 1.5rem; /* Espaço para input sticky */
+  padding: 3rem 1.5rem; /* padding-bottom removido pois footer é fixo */
   width: 100%;
   overflow-x: hidden;
-  flex: 1;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -806,10 +797,7 @@ a {
   flex-direction: column;
   gap: 1.5rem;
   width: 100%;
-  padding: 1.5rem 0 7rem 0; /* padding-bottom aumentado para evitar conteúdo passar por baixo do input */
-  flex: 1;
-  overflow-y: auto;
-  min-height: 0; /* Permite que o flex funcione corretamente */
+  padding: 1.5rem 0; /* padding removido do bottom pois o footer é fixo */
 }
 
 .msg-container {
@@ -1555,6 +1543,34 @@ a {
   background: #ffffff;
   border-left: 1px solid #e5e7eb;
   position: relative;
+  height: 100%;
+}
+
+/* Layout da área de chat com footer fixo */
+.main-chat-content {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+}
+
+.chat-content-scrollable {
+  flex: 1;
+  overflow-y: auto;
+  min-height: 0;
+}
+
+.chat-input-footer {
+  flex-shrink: 0;
+  border-top: 1px solid #f1f5f9; /* border-slate-100 */
+  background: #ffffff;
+  padding: 0;
+}
+
+.chat-input-footer-inner {
+  max-width: 900px; /* max-w-4xl equivalente, alinhado com chat-container */
+  margin: 0 auto;
+  padding: 1rem 1rem 1rem 2.75rem; /* padding igual ao sidebar-footer (1rem vertical) e alinhamento horizontal */
 }
 
 /* Left Sidebar */
@@ -1629,6 +1645,7 @@ a {
   border-top: 1px solid #e5e7eb;
   padding: 1rem;
   margin-top: auto;
+  flex-shrink: 0;
 }
 
 .sidebar-user {
@@ -1768,38 +1785,22 @@ a {
 /* Right Preview */
 /* Chat Container */
 .chat-container {
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-  min-height: 0; /* Permite que o flex funcione corretamente */
-  position: relative;
-  max-width: 900px;
-  margin: 0; /* Removido margin: 0 auto para alinhar à esquerda */
+  max-width: 900px; /* max-w-4xl equivalente */
+  margin: 0 auto;
   width: 100%;
-  padding: 0 1rem; /* padding padrão */
+  padding: 1.5rem 1rem; /* padding padrão */
 }
 
 /* Input alinhado horizontalmente com o nome do usuário na sidebar */
 /* O nome "Aristóteles" começa em: sidebar-footer padding (1rem) + avatar width (2rem) + gap (0.75rem) = 3.75rem da borda esquerda da sidebar */
 /* Como o chat-container já tem padding: 0 1rem, o padding-left adicional do input deve ser: 3.75rem - 1rem = 2.75rem */
 /* Chat Input - Estilo ChatGPT */
-/* Alinhamento vertical: sidebar-footer tem padding: 1rem top/bottom, conteúdo centralizado com align-items: center */
-/* Para alinhar o centro do input com o centro do sidebar-user, precisamos do mesmo padding vertical */
-.chat-input-container {
-  flex-shrink: 0;
-  padding: 1rem 1rem 1rem 2.75rem; /* padding vertical igual ao sidebar-footer (1rem) para alinhar centro com centro */
-  background: #ffffff;
-  display: flex;
-  align-items: center; /* Centraliza o input-wrapper verticalmente, igual ao sidebar-user */
-  /* border-top removido para remover barrinha cinza acima do input */
-}
-
 .chat-input-wrapper {
   display: flex;
   align-items: center;
   gap: 0.5rem;
   background: #ffffff;
-  border: 1px solid #e5e7eb;
+  border: 1px solid #e2e8f0; /* border-slate-200 */
   border-radius: 1.5rem;
   padding: 0.5rem 0.75rem;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);

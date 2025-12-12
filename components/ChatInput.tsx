@@ -82,8 +82,7 @@ export function ChatInput({
   }
 
   return (
-    <div className="chat-input-container">
-      <div className="chat-input-wrapper">
+    <div className="chat-input-wrapper">
         <div className="chat-input-left-buttons">
           <button
             type="button"
@@ -269,7 +268,6 @@ export function ChatInput({
             />
           </svg>
         </button>
-      </div>
     </div>
   );
 }
