@@ -1,25 +1,187 @@
 import { NextResponse } from "next/server";
 import {
   mockPatients,
-  riskLevelFromScore,
+  mockUnitProfile,
+  calculateRiskScore,
+  getTopPatients,
   getSortedByMortalityRisk24h,
-  getTopUnstablePatients,
-  getPossibleNonRespondersToTherapy,
+  riskLevelFromScore,
   type Patient
 } from "@/lib/mockData";
+import type { Patient as PatientType } from "@/types";
+import {
+  calculateDrugDose,
+  calculateMaintenanceFluids,
+  calculateSchwartzClCr,
+  calculateBSA,
+  calculateDoseByBSA
+} from "@/lib/clinicalCalculators";
+import { enhanceTextWithLLM } from "@/lib/llmClient";
+import { logClinicalInteraction } from "@/lib/auditLogger";
+import {
+  getOrCreateMemory,
+  updateActivePatient,
+  addIntentionToHistory,
+  resolveAmbiguity
+} from "@/lib/clinicalMemory";
+import { detectAgent, getAgent, type ClinicalAgentType } from "@/lib/clinicalAgents";
+import { storeResearchEntry, desidentifyText } from "@/lib/researchStore";
 
 interface RequestBody {
   message: string;
   focusedPatientId?: string | null;
+  sessionId?: string;
+  userId?: string;
+  role?: "plantonista" | "diarista" | "coordenador" | "outro";
+  unidade?: string;
+  turno?: string;
+  currentAgent?: ClinicalAgentType;
 }
+
+const VERSION = "1.0.0";
+const MODEL_VERSION = "llama-3.1-70b-versatile";
 
 const DISCLAIMER =
   "\n\n⚠️ **Lembrete importante**: Este é um protótipo com dados completamente fictícios e serve apenas como apoio à decisão, nunca substituindo a avaliação clínica.";
 
 /**
- * Handler para intenção de priorização de pacientes.
+ * Tipos de intenção detectáveis
  */
-function handlePrioritizationIntent(message: string): { reply: string; topN: number; topPatients: Patient[] } {
+type Intent = 
+  | "PRIORITIZACAO"
+  | "PACIENTE_ESPECIFICO"
+  | "SINAIS_VITAIS"
+  | "BALANCO_HIDRICO"
+  | "PERFIL_UNIDADE"
+  | "CALCULO_CLINICO"
+  | "FALLBACK";
+
+/**
+ * Parser simples de intenção por palavras-chave
+ */
+function detectIntent(message: string, focusedPatientId: string | null): Intent {
+  const msg = message.toLowerCase().trim();
+
+  // PRIORITIZACAO
+  if (
+    msg.includes("prioridade") ||
+    msg.includes("priorizar") ||
+    msg.includes("quem eu vejo primeiro") ||
+    msg.includes("maior risco") ||
+    msg.includes("pior paciente") ||
+    msg.includes("mais grave") ||
+    msg.includes("quem precisa") ||
+    msg.includes("urgente") ||
+    msg.includes("top") ||
+    (msg.includes("maior") && msg.includes("risco")) ||
+    msg.includes("pacientes mais críticos") ||
+    msg.includes("quais pacientes")
+  ) {
+    return "PRIORITIZACAO";
+  }
+
+  // PACIENTE_ESPECIFICO
+  if (
+    focusedPatientId &&
+    (msg.includes("esse paciente") ||
+      msg.includes("este paciente") ||
+      msg.includes("desse paciente") ||
+      msg.includes("deste paciente") ||
+      msg.includes("resumo") ||
+      msg.includes("quadro") ||
+      msg.includes("situação") ||
+      msg.includes("como está") ||
+      msg.includes("dados do paciente") ||
+      msg.includes("informações do paciente"))
+  ) {
+    return "PACIENTE_ESPECIFICO";
+  }
+
+  // SINAIS_VITAIS
+  if (
+    msg.includes("sinais vitais") ||
+    msg.includes("sinal vital") ||
+    msg.includes("pressão") ||
+    msg.includes("temperatura") ||
+    msg.includes("frequência cardíaca") ||
+    msg.includes("frequência respiratória") ||
+    msg.includes("saturação") ||
+    msg.includes("pao2") ||
+    msg.includes("pao2/fio2") ||
+    msg.includes("hemodinâmica") ||
+    msg.includes("hemodinamica")
+  ) {
+    return "SINAIS_VITAIS";
+  }
+
+  // BALANCO_HIDRICO
+  if (
+    msg.includes("balanço hídrico") ||
+    msg.includes("balanco hidrico") ||
+    msg.includes("balanço") ||
+    msg.includes("balanco") ||
+    msg.includes("diurese") ||
+    msg.includes("diurese") ||
+    msg.includes("entrada") ||
+    msg.includes("saída") ||
+    msg.includes("saida") ||
+    msg.includes("líquidos") ||
+    msg.includes("liquidos") ||
+    msg.includes("volume") ||
+    msg.includes("hidratação") ||
+    msg.includes("hidratacao")
+  ) {
+    return "BALANCO_HIDRICO";
+  }
+
+  // PERFIL_UNIDADE
+  if (
+    msg.includes("perfil da unidade") ||
+    msg.includes("perfil unidade") ||
+    msg.includes("principais doenças") ||
+    msg.includes("tipos de doenças") ||
+    msg.includes("casuística") ||
+    msg.includes("casuistica") ||
+    msg.includes("epidemiologia") ||
+    msg.includes("germes") ||
+    msg.includes("resistência") ||
+    msg.includes("resistencia") ||
+    msg.includes("antibióticos") ||
+    msg.includes("antibioticos") ||
+    (msg.includes("últimos") && (msg.includes("meses") || msg.includes("dias"))) ||
+    (msg.includes("ultimos") && (msg.includes("meses") || msg.includes("dias")))
+  ) {
+    return "PERFIL_UNIDADE";
+  }
+
+  // CALCULO_CLINICO
+  if (
+    msg.includes("calcule") ||
+    msg.includes("cálculo") ||
+    msg.includes("calculo") ||
+    msg.includes("dose") ||
+    msg.includes("manutenção hídrica") ||
+    msg.includes("manutencao hidrica") ||
+    msg.includes("função renal") ||
+    msg.includes("funcao renal") ||
+    msg.includes("clearance") ||
+    msg.includes("schwartz") ||
+    msg.includes("holliday") ||
+    msg.includes("segar") ||
+    msg.includes("quantos ml") ||
+    msg.includes("quanto de")
+  ) {
+    return "CALCULO_CLINICO";
+  }
+
+  // FALLBACK
+  return "FALLBACK";
+}
+
+/**
+ * Handler para intenção de PRIORITIZACAO
+ */
+function handlePrioritizationIntent(message: string): { reply: string; topN: number; topPatients: PatientType[] } {
   // Extrair número da mensagem (padrão: 3)
   let topN = 3;
   const match = message.toLowerCase().match(/(\d+)/);
@@ -30,22 +192,26 @@ function handlePrioritizationIntent(message: string): { reply: string; topN: num
     }
   }
 
-  const sorted = getSortedByMortalityRisk24h();
-  const topPatients = sorted.slice(0, topN);
+  const topPatients = getTopPatients(topN);
 
   const templates = [
     () => {
       const lines: string[] = [];
-      lines.push(`Após acessar os prontuários eletrônicos e analisar os parâmetros de risco em tempo real, selecionando os ${topN} pacientes mais graves para as próximas 24 horas:`);
+      lines.push(`Após análise dos prontuários eletrônicos e cálculo de risco baseado em instabilidade hemodinâmica, uso de vasopressores, ventilação mecânica, lactato elevado e tendências negativas, selecionando os ${topN} pacientes mais críticos:`);
       lines.push("");
       topPatients.forEach((p, idx) => {
+        const riskScore = calculateRiskScore(p);
         const risco24 = (p.riscoMortality24h * 100).toFixed(0);
-        lines.push(`${idx + 1}. **${p.leito} • ${p.nome}** (${p.idade} ${p.idade === 1 ? "ano" : "anos"})`);
-        lines.push(`   Risco 24h: ${risco24}% • Diagnóstico: ${p.diagnosticoPrincipal}`);
+        lines.push(`${idx + 1}. **${p.leito} • ${p.nome}** (${p.idade} ${p.idade === 1 ? "ano" : "anos"}, ${p.peso.toFixed(1)} kg)`);
+        lines.push(`   Risco 24h: ${risco24}% • Score de risco: ${(riskScore * 100).toFixed(0)}%`);
+        lines.push(`   Diagnóstico: ${p.diagnosticoPrincipal}`);
         const detalhes: string[] = [];
-        if (p.emVasopressor) detalhes.push("vasopressor");
-        if (p.emVentilacaoMecanica) detalhes.push("VM");
-        detalhes.push(`SOFA ${p.sofa}`, `lactato ${p.lactato.toFixed(1)} mmol/L`);
+        if (p.medications.some(m => m.tipo === "vasopressor" && m.ativo)) detalhes.push("vasopressor");
+        if (p.ventilationParams) detalhes.push("VM");
+        const lactato = p.labResults.find(l => l.tipo === "lactato");
+        if (lactato && typeof lactato.valor === "number") {
+          detalhes.push(`lactato ${lactato.valor.toFixed(1)} mmol/L`);
+        }
         lines.push(`   ${detalhes.join(" • ")} • ${p.diasDeUTI} dias de UTI`);
         lines.push("");
       });
@@ -53,7 +219,7 @@ function handlePrioritizationIntent(message: string): { reply: string; topN: num
     },
     () => {
       const lines: string[] = [];
-      lines.push(`Com base na análise de risco de mortalidade em 24h e instabilidade hemodinâmica, cruzando dados do prontuário eletrônico. Selecionando os ${topN} pacientes mais graves:`);
+      lines.push(`Com base na análise de risco de mortalidade em 24h, instabilidade hemodinâmica, uso de drogas vasoativas, ventilação mecânica e parâmetros laboratoriais críticos. Selecionando os ${topN} pacientes mais graves:`);
       lines.push("");
       lines.push(`**TOP ${topN} por prioridade de avaliação:**`);
       lines.push("");
@@ -61,22 +227,28 @@ function handlePrioritizationIntent(message: string): { reply: string; topN: num
         const risco24 = (p.riscoMortality24h * 100).toFixed(0);
         lines.push(`**${idx + 1}. ${p.leito}** — ${p.nome} (${p.idade} ${p.idade === 1 ? "ano" : "anos"})`);
         lines.push(`   ${p.diagnosticoPrincipal}`);
-        lines.push(`   Risco ${risco24}% • ${p.emVentilacaoMecanica ? "VM" : "Sem VM"} • ${p.emVasopressor ? "vasoativo" : "sem vasoativo"}`);
+        const temVaso = p.medications.some(m => m.tipo === "vasopressor" && m.ativo);
+        lines.push(`   Risco ${risco24}% • ${p.ventilationParams ? "VM" : "Sem VM"} • ${temVaso ? "vasoativo" : "sem vasoativo"}`);
         lines.push("");
       });
       return lines.join("\n");
     },
     () => {
       const lines: string[] = [];
-      lines.push(`Consulta aos prontuários eletrônicos concluída. ${topN} ${topN === 1 ? "paciente requer" : "pacientes requerem"} atenção imediata:`);
+      lines.push(`Consulta aos prontuários eletrônicos concluída. ${topN} ${topN === 1 ? "paciente requer" : "pacientes requerem"} atenção imediata baseado em critérios de instabilidade, uso de suporte avançado e parâmetros laboratoriais:`);
       lines.push("");
       topPatients.forEach((p, idx) => {
         const risco24 = (p.riscoMortality24h * 100).toFixed(0);
+        const riskScore = calculateRiskScore(p);
         lines.push(`**${p.leito} — ${p.nome}** (${p.idade} ${p.idade === 1 ? "ano" : "anos"})`);
-        lines.push(`Risco estimado: ${risco24}% em 24h | SOFA: ${p.sofa} | Lactato: ${p.lactato.toFixed(1)} mmol/L`);
+        lines.push(`Risco estimado: ${risco24}% em 24h | Score de risco: ${(riskScore * 100).toFixed(0)}%`);
         lines.push(`Diagnóstico: ${p.diagnosticoPrincipal}`);
-        if (p.mapaPressaoMedia < 65) {
-          lines.push(`⚠️ Hipotensão (MAP: ${p.mapaPressaoMedia} mmHg)`);
+        if (p.vitalSigns.pressaoArterialMedia < 65) {
+          lines.push(`⚠️ Hipotensão (MAP: ${p.vitalSigns.pressaoArterialMedia} mmHg)`);
+        }
+        const lactato = p.labResults.find(l => l.tipo === "lactato");
+        if (lactato && typeof lactato.valor === "number" && lactato.valor >= 3) {
+          lines.push(`⚠️ Lactato elevado: ${lactato.valor.toFixed(1)} mmol/L`);
         }
         lines.push("");
       });
@@ -88,209 +260,182 @@ function handlePrioritizationIntent(message: string): { reply: string; topN: num
 }
 
 /**
- * Handler para intenção de exames laboratoriais.
+ * Handler para intenção de PACIENTE_ESPECIFICO
  */
-function handleLaboratoryExamsIntent(): { reply: string; showIcuPanel: boolean } {
+function handleFocusedPatientIntent(focusedPatientId: string): { reply: string; showIcuPanel: boolean; focusedPatient?: PatientType } {
+  const p = mockPatients.find((p) => p.id === focusedPatientId);
+  if (!p) {
+    return { reply: "Não encontrei o paciente selecionado. Tente selecionar novamente." + DISCLAIMER, showIcuPanel: false };
+  }
+
+  const risco24 = (p.riscoMortality24h * 100).toFixed(0);
+  const risco7 = (p.riscoMortality7d * 100).toFixed(0);
+  const riscoLevel = riskLevelFromScore(p.riscoMortality24h);
+
   const templates = [
     () => {
-      const lactatoAlto = mockPatients.filter((p) => p.lactato >= 3).length;
-      const pcrElevado = mockPatients.filter((p) => p.emAntibiotico && p.temperatura >= 38).length;
-      const lines: string[] = [];
-      lines.push("Acessando exames laboratoriais recentes no prontuário eletrônico...");
-      lines.push("");
-      lines.push("**Resumo de exames críticos (últimas 24h):**");
-      lines.push("");
-      lines.push(`• **Lactato elevado (≥3 mmol/L):** ${lactatoAlto} ${lactatoAlto === 1 ? "paciente" : "pacientes"}`);
-      lines.push(`• **PCR muito elevada (associada a febre):** ${pcrElevado} ${pcrElevado === 1 ? "caso" : "casos"} em uso de antimicrobiano`);
-      const piorou = mockPatients.filter((p) => p.tendenciaLactato === "subindo" && p.lactato >= 2.5).length;
-      if (piorou > 0) {
-        lines.push(`• **Piora laboratorial recente (lactato subindo):** ${piorou} ${piorou === 1 ? "paciente" : "pacientes"}`);
+      const linhas: string[] = [];
+      linhas.push(`**Resumo pediátrico completo — ${p.nome}, leito ${p.leito}:**`);
+      linhas.push("");
+      linhas.push(`**Dados demográficos:** ${p.idade} ${p.idade === 1 ? "ano" : "anos"} de idade, ${p.peso.toFixed(1)} kg`);
+      linhas.push(`**Diagnóstico principal:** ${p.diagnosticoPrincipal}`);
+      linhas.push(`**Dias de internação na UTI:** ${p.diasDeUTI} ${p.diasDeUTI === 1 ? "dia" : "dias"}`);
+      linhas.push("");
+      linhas.push(`**Risco estimado:** ${risco24}% em 24h (${riscoLevel}) • ${risco7}% em 7 dias`);
+      linhas.push("");
+      linhas.push("**Sinais vitais atuais:**");
+      linhas.push(`• Temperatura: ${p.vitalSigns.temperatura.toFixed(1)}°C`);
+      linhas.push(`• Frequência cardíaca: ${p.vitalSigns.frequenciaCardiaca} bpm`);
+      linhas.push(`• Frequência respiratória: ${p.vitalSigns.frequenciaRespiratoria} rpm`);
+      linhas.push(`• Pressão arterial média: ${p.vitalSigns.pressaoArterialMedia} mmHg`);
+      linhas.push(`• Saturação O2: ${p.vitalSigns.saturacaoO2}%`);
+      if (p.vitalSigns.escalaGlasgow) {
+        linhas.push(`• Escala de Glasgow: ${p.vitalSigns.escalaGlasgow}`);
       }
-      lines.push("");
-      lines.push("Dados obtidos da integração com o laboratório. Recomendo revisão individual de cada prontuário para decisões clínicas.");
-      return lines.join("\n");
+      linhas.push("");
+      const lactato = p.labResults.find(l => l.tipo === "lactato");
+      if (lactato && typeof lactato.valor === "number") {
+        linhas.push(`**Exames laboratoriais:**`);
+        linhas.push(`• Lactato: ${lactato.valor.toFixed(1)} mmol/L (tendência: ${lactato.tendencia || "estável"})`);
+        linhas.push("");
+      }
+      const temVaso = p.medications.some(m => m.tipo === "vasopressor" && m.ativo);
+      linhas.push(`**Suporte avançado:**`);
+      linhas.push(`• ${temVaso ? "Em uso de vasopressor" : "Sem vasopressor"}`);
+      linhas.push(`• ${p.ventilationParams ? "Em ventilação mecânica" : "Sem ventilação mecânica"}`);
+      linhas.push("");
+      linhas.push("**Pontos de atenção:**");
+      p.tags.forEach((t) => {
+        linhas.push(`• ${t}`);
+      });
+      return linhas.join("\n");
     },
     () => {
+      const linhas: string[] = [];
+      linhas.push(`**Avaliação clínica — ${p.nome} (${p.leito}):**`);
+      linhas.push("");
+      linhas.push(`Paciente de ${p.idade} ${p.idade === 1 ? "ano" : "anos"} (${p.peso.toFixed(1)} kg) com ${p.diagnosticoPrincipal}.`);
+      linhas.push(`Internado há ${p.diasDeUTI} ${p.diasDeUTI === 1 ? "dia" : "dias"} na UTI.`);
+      linhas.push("");
+      linhas.push(`**Risco de mortalidade:** ${risco24}% em 24h (${riscoLevel})`);
+      linhas.push("");
+      linhas.push("**Parâmetros hemodinâmicos:**");
+      linhas.push(`• MAP: ${p.vitalSigns.pressaoArterialMedia} mmHg`);
+      linhas.push(`• FC: ${p.vitalSigns.frequenciaCardiaca} bpm`);
+      linhas.push(`• FR: ${p.vitalSigns.frequenciaRespiratoria} rpm`);
+      linhas.push(`• SpO2: ${p.vitalSigns.saturacaoO2}%`);
+      linhas.push("");
+      const lactato = p.labResults.find(l => l.tipo === "lactato");
+      if (lactato && typeof lactato.valor === "number") {
+        linhas.push(`**Lactato:** ${lactato.valor.toFixed(1)} mmol/L (${lactato.tendencia || "estável"})`);
+        linhas.push("");
+      }
+      const temVaso = p.medications.some(m => m.tipo === "vasopressor" && m.ativo);
+      if (temVaso) {
+        const vaso = p.medications.find(m => m.tipo === "vasopressor" && m.ativo);
+        linhas.push(`**Vasopressor:** ${vaso?.nome} ${vaso?.dose} ${vaso?.unidade}`);
+        linhas.push("");
+      }
+      if (p.ventilationParams) {
+        linhas.push(`**Ventilação mecânica:** ${p.ventilationParams.modo}, FiO2 ${p.ventilationParams.fiO2}%, PEEP ${p.ventilationParams.peep} cmH2O`);
+        linhas.push("");
+      }
+      return linhas.join("\n");
+    },
+    () => {
+      const linhas: string[] = [];
+      linhas.push(`**${p.leito} — ${p.nome}**`);
+      linhas.push(`${p.idade} ${p.idade === 1 ? "ano" : "anos"} • ${p.peso.toFixed(1)} kg`);
+      linhas.push("");
+      linhas.push(`**Diagnóstico:** ${p.diagnosticoPrincipal}`);
+      linhas.push(`**Dias de UTI:** ${p.diasDeUTI}`);
+      linhas.push(`**Risco 24h:** ${risco24}% (${riscoLevel})`);
+      linhas.push("");
+      linhas.push("**Sinais vitais:**");
+      linhas.push(`• Temp: ${p.vitalSigns.temperatura.toFixed(1)}°C | FC: ${p.vitalSigns.frequenciaCardiaca} bpm | FR: ${p.vitalSigns.frequenciaRespiratoria} rpm`);
+      linhas.push(`• MAP: ${p.vitalSigns.pressaoArterialMedia} mmHg | SpO2: ${p.vitalSigns.saturacaoO2}%`);
+      linhas.push("");
+      const lactato = p.labResults.find(l => l.tipo === "lactato");
+      if (lactato && typeof lactato.valor === "number") {
+        linhas.push(`**Lactato:** ${lactato.valor.toFixed(1)} mmol/L`);
+        linhas.push("");
+      }
+      const temVaso = p.medications.some(m => m.tipo === "vasopressor" && m.ativo);
+      linhas.push(`**Suporte:** ${temVaso ? "Vasopressor" : "Sem vasopressor"} | ${p.ventilationParams ? "VM" : "Sem VM"}`);
+      linhas.push("");
+      linhas.push("**Tags:** " + p.tags.join(", "));
+      return linhas.join("\n");
+    }
+  ];
+  const template = templates[Math.floor(Math.random() * templates.length)];
+  return { reply: template() + DISCLAIMER, showIcuPanel: false, focusedPatient: p };
+}
+
+/**
+ * Handler para intenção de SINAIS_VITAIS
+ */
+function handleVitalSignsIntent(): { reply: string; showIcuPanel: boolean; showLabPanel?: boolean; topPatients?: PatientType[] } {
+  const templates = [
+    () => {
       const lines: string[] = [];
-      lines.push("Buscando exames laboratoriais recentes no sistema...");
+      lines.push("Consultando sinais vitais de todos os pacientes no prontuário eletrônico...");
       lines.push("");
-      lines.push("**Análise de exames críticos:**");
+      lines.push("**Resumo de sinais vitais críticos:**");
       lines.push("");
-      const comLactatoAlto = mockPatients.filter((p) => p.lactato >= 3);
-      if (comLactatoAlto.length > 0) {
-        lines.push(`• ${comLactatoAlto.length} ${comLactatoAlto.length === 1 ? "paciente com" : "pacientes com"} lactato ≥3 mmol/L:`);
-        comLactatoAlto.forEach((p) => {
-          lines.push(`  - ${p.leito} (${p.nome}): ${p.lactato.toFixed(1)} mmol/L — tendência: ${p.tendenciaLactato}`);
+      const hipotensos = mockPatients.filter(p => p.vitalSigns.pressaoArterialMedia < 65);
+      const taquicardicos = mockPatients.filter(p => p.vitalSigns.frequenciaCardiaca > 150);
+      const hipoxemicos = mockPatients.filter(p => p.vitalSigns.saturacaoO2 < 92);
+      const febris = mockPatients.filter(p => p.vitalSigns.temperatura >= 38.5);
+      lines.push(`• **Hipotensão (MAP < 65 mmHg):** ${hipotensos.length} ${hipotensos.length === 1 ? "paciente" : "pacientes"}`);
+      if (hipotensos.length > 0) {
+        hipotensos.forEach(p => {
+          lines.push(`  - ${p.leito} (${p.nome}): MAP ${p.vitalSigns.pressaoArterialMedia} mmHg`);
         });
-        lines.push("");
       }
-      const gasometria = mockPatients.filter((p) => p.emVentilacaoMecanica).length;
-      lines.push(`• ${gasometria} ${gasometria === 1 ? "paciente em" : "pacientes em"} ventilação mecânica (gasometria arterial disponível no prontuário)`);
       lines.push("");
-      lines.push("Todos os valores foram obtidos do prontuário eletrônico. Confirme sempre com os laudos oficiais.");
+      lines.push(`• **Taquicardia (> 150 bpm):** ${taquicardicos.length} ${taquicardicos.length === 1 ? "paciente" : "pacientes"}`);
+      lines.push(`• **Hipoxemia (SpO2 < 92%):** ${hipoxemicos.length} ${hipoxemicos.length === 1 ? "paciente" : "pacientes"}`);
+      lines.push(`• **Febre (≥ 38.5°C):** ${febris.length} ${febris.length === 1 ? "paciente" : "pacientes"}`);
+      lines.push("");
+      lines.push("Dados obtidos do monitoramento contínuo. Sempre confirme com a avaliação clínica direta.");
       return lines.join("\n");
     },
     () => {
       const lines: string[] = [];
-      lines.push("Consultando banco de dados de exames laboratoriais...");
+      lines.push("Analisando sinais vitais dos pacientes em tempo real...");
       lines.push("");
-      lines.push("**Últimas atualizações laboratoriais:**");
+      const top3 = getTopPatients(3);
+      lines.push("**Sinais vitais dos 3 pacientes mais críticos:**");
       lines.push("");
-      const sorted = getSortedByMortalityRisk24h().slice(0, 3);
-      sorted.forEach((p) => {
-        lines.push(`**${p.leito} — ${p.nome}:**`);
-        lines.push(`• Lactato: ${p.lactato.toFixed(1)} mmol/L (${p.tendenciaLactato})`);
-        lines.push(`• Temperatura: ${p.temperatura.toFixed(1)}°C`);
-        if (p.emAntibiotico) {
-          lines.push(`• Em uso de antimicrobiano há ${p.diasEmAntibioticoAtual} ${p.diasEmAntibioticoAtual === 1 ? "dia" : "dias"}`);
+      top3.forEach((p, idx) => {
+        lines.push(`${idx + 1}. **${p.leito} — ${p.nome}**`);
+        lines.push(`   Temp: ${p.vitalSigns.temperatura.toFixed(1)}°C | FC: ${p.vitalSigns.frequenciaCardiaca} bpm | FR: ${p.vitalSigns.frequenciaRespiratoria} rpm`);
+        lines.push(`   MAP: ${p.vitalSigns.pressaoArterialMedia} mmHg | SpO2: ${p.vitalSigns.saturacaoO2}%`);
+        if (p.ventilationParams) {
+          lines.push(`   VM: ${p.ventilationParams.modo}, FiO2 ${p.ventilationParams.fiO2}%, PEEP ${p.ventilationParams.peep} cmH2O`);
         }
         lines.push("");
       });
-      lines.push("Dados extraídos do prontuário eletrônico. Verifique sempre os laudos completos antes de decisões clínicas.");
-      return lines.join("\n");
-    }
-  ];
-  const template = templates[Math.floor(Math.random() * templates.length)];
-  return { reply: template() + DISCLAIMER, showIcuPanel: false };
-}
-
-/**
- * Handler para intenção de exames de imagem.
- */
-function handleImagingIntent(): { reply: string; showIcuPanel: boolean } {
-  const templates = [
-    () => {
-      const lines: string[] = [];
-      lines.push("Analisando exames de imagem dos últimos 30 dias no sistema de PACS...");
-      lines.push("");
-      lines.push("**Padrões identificados:**");
-      lines.push("");
-      const respiratorios = mockPatients.filter((p) => 
-        p.diagnosticoPrincipal.toLowerCase().includes("pneumonia") || 
-        p.diagnosticoPrincipal.toLowerCase().includes("bronquiolite") ||
-        p.diagnosticoPrincipal.toLowerCase().includes("respiratória")
-      ).length;
-      lines.push(`• **Padrão de pneumonia/consolidação:** ${respiratorios} ${respiratorios === 1 ? "paciente" : "pacientes"} com laudos recentes compatíveis`);
-      lines.push(`• **Derrame pleural:** ${mockPatients.filter((p) => p.tags.some(t => t.toLowerCase().includes("derrame"))).length} casos`);
-      lines.push(`• **Padrão alveolar difuso:** identificado em pacientes com sepse respiratória`);
-      lines.push("");
-      lines.push("Análise baseada em histórico de exames de imagem do prontuário eletrônico. Recomendo revisão dos laudos oficiais para confirmação.");
       return lines.join("\n");
     },
     () => {
       const lines: string[] = [];
-      lines.push("Buscando exames de imagem (radiografias, tomografias) dos últimos 30 dias...");
+      lines.push("Acessando dados de monitoramento hemodinâmico e respiratório...");
       lines.push("");
-      lines.push("**Análise de padrões radiológicos:**");
+      lines.push("**Parâmetros hemodinâmicos e respiratórios:**");
       lines.push("");
-      lines.push("Nos últimos 30 dias, aproximadamente 60% dos laudos de radiografia de tórax mostraram:");
-      lines.push("• Consolidação pulmonar bilateral ou unilateral");
-      lines.push("• Opacidades em vidro fosco (compatível com processo inflamatório)");
-      lines.push("• Derrame pleural de pequeno a moderado volume");
-      lines.push("");
-      lines.push("Pacientes com sepse e bronquiolite mostraram maior incidência de consolidações bilaterais.");
-      lines.push("");
-      lines.push("Dados obtidos da integração com o sistema de imagens. Sempre revise os laudos oficiais.");
-      return lines.join("\n");
-    },
-    () => {
-      const lines: string[] = [];
-      lines.push("Acessando banco de dados de exames de imagem...");
-      lines.push("");
-      lines.push("**Padrões radiológicos identificados (últimos 30 dias):**");
-      lines.push("");
-      const pacientesComPneumonia = mockPatients.filter((p) => 
-        p.diagnosticoPrincipal.toLowerCase().includes("pneumonia")
-      );
-      if (pacientesComPneumonia.length > 0) {
-        lines.push(`• **Consolidação lobar:** identificada em ${pacientesComPneumonia.length} ${pacientesComPneumonia.length === 1 ? "paciente" : "pacientes"}`);
-        pacientesComPneumonia.forEach((p) => {
-          lines.push(`  - ${p.leito} (${p.nome}): padrão consolidativo bilateral`);
-        });
-        lines.push("");
-      }
-      lines.push("• **Ultrassonografia abdominal:** múltiplos casos com padrão de espessamento de alça intestinal em pacientes sépticos");
-      lines.push("");
-      lines.push("Análise realizada via integração com PACS. Confirme sempre com os laudos oficiais do serviço de imagem.");
-      return lines.join("\n");
-    }
-  ];
-  const template = templates[Math.floor(Math.random() * templates.length)];
-  return { reply: template() + DISCLAIMER, showIcuPanel: false };
-}
-
-/**
- * Handler para intenção de prescrições e cálculos de dose.
- */
-function handlePrescriptionIntent(): { reply: string; showIcuPanel: boolean } {
-  const templates = [
-    () => {
-      const lines: string[] = [];
-      lines.push("Revisando prescrições ativas e calculando doses pediátricas (mg/kg)...");
-      lines.push("");
-      lines.push("**Análise de prescrições:**");
-      lines.push("");
-      const emAntibiotico = mockPatients.filter((p) => p.emAntibiotico);
-      if (emAntibiotico.length > 0) {
-        lines.push(`• ${emAntibiotico.length} ${emAntibiotico.length === 1 ? "paciente em" : "pacientes em"} uso de antimicrobiano:`);
-        emAntibiotico.forEach((p) => {
-          lines.push(`  - ${p.leito} (${p.nome}, ${p.idade} ${p.idade === 1 ? "ano" : "anos"}): D${p.diasEmAntibioticoAtual}`);
-          if (p.diasEmAntibioticoAtual >= 3 && p.temperatura >= 38) {
-            lines.push(`    ⚠️ Atenção: febre persistente após ${p.diasEmAntibioticoAtual} dias — considerar reavaliação`);
-          }
-        });
-        lines.push("");
-      }
-      const emVaso = mockPatients.filter((p) => p.emVasopressor);
-      if (emVaso.length > 0) {
-        lines.push(`• Vasopressores em uso: ${emVaso.length} ${emVaso.length === 1 ? "paciente" : "pacientes"}`);
-        lines.push("  Recomendação: verificar doses ajustadas por peso e resposta hemodinâmica.");
-        lines.push("");
-      }
-      lines.push("⚠️ **Importante:** Todas as doses devem ser calculadas por peso (mg/kg) e ajustadas para função renal/hepática. Este é apenas um alerta de apoio — a prescrição final é de responsabilidade médica.");
-      return lines.join("\n");
-    },
-    () => {
-      const lines: string[] = [];
-      lines.push("Analisando prescrições ativas no prontuário eletrônico...");
-      lines.push("");
-      lines.push("**Revisão de doses pediátricas:**");
-      lines.push("");
-      lines.push("Conferindo cálculos de dose por peso (mg/kg) para todos os pacientes:");
-      lines.push("");
-      mockPatients.forEach((p) => {
-        if (p.emAntibiotico || p.emVasopressor) {
-          lines.push(`**${p.leito} — ${p.nome}** (${p.idade} ${p.idade === 1 ? "ano" : "anos"}):`);
-          if (p.emAntibiotico) {
-            lines.push(`  • Antimicrobiano: D${p.diasEmAntibioticoAtual} — tempo de uso monitorado`);
-          }
-          if (p.emVasopressor) {
-            lines.push(`  • Vasopressor: dose ajustada por peso — revisar ajuste conforme resposta`);
+      mockPatients.forEach(p => {
+        const temVaso = p.medications.some(m => m.tipo === "vasopressor" && m.ativo);
+        if (temVaso || p.vitalSigns.pressaoArterialMedia < 65 || p.ventilationParams) {
+          lines.push(`**${p.leito} — ${p.nome}:**`);
+          lines.push(`• MAP: ${p.vitalSigns.pressaoArterialMedia} mmHg | FC: ${p.vitalSigns.frequenciaCardiaca} bpm`);
+          lines.push(`• SpO2: ${p.vitalSigns.saturacaoO2}% | FR: ${p.vitalSigns.frequenciaRespiratoria} rpm`);
+          if (p.ventilationParams) {
+            lines.push(`• VM: FiO2 ${p.ventilationParams.fiO2}%, PEEP ${p.ventilationParams.peep} cmH2O`);
           }
           lines.push("");
         }
       });
-      lines.push("**Lembrete:** Em pediatria, todas as doses devem considerar peso, superfície corporal e função renal/hepática. Revisar periodicamente a necessidade de ajuste.");
-      return lines.join("\n");
-    },
-    () => {
-      const lines: string[] = [];
-      lines.push("Consultando prescrições ativas e verificando adequação de doses...");
-      lines.push("");
-      const precisaRevisar = mockPatients.filter((p) => 
-        p.emAntibiotico && p.diasEmAntibioticoAtual >= 3 && (p.temperatura >= 38 || p.tendenciaLactato === "subindo")
-      );
-      if (precisaRevisar.length > 0) {
-        lines.push("**Prescrições que podem requerer reavaliação:**");
-        lines.push("");
-        precisaRevisar.forEach((p) => {
-          lines.push(`• ${p.leito} (${p.nome}): antimicrobiano D${p.diasEmAntibioticoAtual}`);
-          lines.push(`  - Motivo: ${p.temperatura >= 38 ? "febre persistente" : ""} ${p.temperatura >= 38 && p.tendenciaLactato === "subindo" ? "e " : ""}${p.tendenciaLactato === "subindo" ? "lactato em ascensão" : ""}`);
-          lines.push(`  - Sugestão: considerar reavaliação do esquema antimicrobiano`);
-          lines.push("");
-        });
-      }
-      lines.push("**Atenção:** Este é um alerta de apoio. Toda prescrição deve ser revisada clinicamente, considerando peso, função renal/hepática e resposta ao tratamento.");
       return lines.join("\n");
     }
   ];
@@ -299,9 +444,81 @@ function handlePrescriptionIntent(): { reply: string; showIcuPanel: boolean } {
 }
 
 /**
- * Handler para intenção de perfil da unidade / casuística.
+ * Handler para intenção de BALANCO_HIDRICO
  */
-function handleUnitProfileIntent(): { reply: string; showIcuPanel: boolean } {
+function handleFluidBalanceIntent(): { reply: string; showIcuPanel: boolean } {
+  const templates = [
+    () => {
+      const lines: string[] = [];
+      lines.push("Consultando balanço hídrico dos pacientes no prontuário eletrônico...");
+      lines.push("");
+      lines.push("**Resumo de balanço hídrico (últimas 24h):**");
+      lines.push("");
+      const positivos = mockPatients.filter(p => p.fluidBalance.balanco24h > 3);
+      const negativos = mockPatients.filter(p => p.fluidBalance.balanco24h < -1);
+      const oliguricos = mockPatients.filter(p => p.fluidBalance.diurese < 1);
+      lines.push(`• **Balanço positivo excessivo (> 3 ml/kg/h):** ${positivos.length} ${positivos.length === 1 ? "paciente" : "pacientes"}`);
+      if (positivos.length > 0) {
+        positivos.forEach(p => {
+          lines.push(`  - ${p.leito} (${p.nome}): ${p.fluidBalance.balanco24h.toFixed(1)} ml/kg/h`);
+        });
+      }
+      lines.push("");
+      lines.push(`• **Balanço negativo (< -1 ml/kg/h):** ${negativos.length} ${negativos.length === 1 ? "paciente" : "pacientes"}`);
+      lines.push(`• **Oligúria (diurese < 1 ml/kg/h):** ${oliguricos.length} ${oliguricos.length === 1 ? "paciente" : "pacientes"}`);
+      lines.push("");
+      lines.push("**Importante:** Em pediatria, o balanço hídrico deve ser avaliado considerando peso, idade e estado clínico. Valores em ml/kg/h facilitam a comparação entre pacientes de diferentes tamanhos.");
+      return lines.join("\n");
+    },
+    () => {
+      const lines: string[] = [];
+      lines.push("Analisando balanço hídrico e diurese dos pacientes...");
+      lines.push("");
+      const top3 = getTopPatients(3);
+      lines.push("**Balanço hídrico dos 3 pacientes mais críticos:**");
+      lines.push("");
+      top3.forEach((p, idx) => {
+        lines.push(`${idx + 1}. **${p.leito} — ${p.nome}** (${p.peso.toFixed(1)} kg)`);
+        lines.push(`   Entrada 24h: ${p.fluidBalance.entrada24h.toFixed(1)} ml/kg/h (${p.fluidBalance.entradaTotal} ml total)`);
+        lines.push(`   Saída 24h: ${p.fluidBalance.saida24h.toFixed(1)} ml/kg/h (${p.fluidBalance.saidaTotal} ml total)`);
+        lines.push(`   Balanço: ${p.fluidBalance.balanco24h.toFixed(1)} ml/kg/h (${p.fluidBalance.balancoTotal > 0 ? "+" : ""}${p.fluidBalance.balancoTotal} ml)`);
+        lines.push(`   Diurese: ${p.fluidBalance.diurese.toFixed(1)} ml/kg/h`);
+        lines.push("");
+      });
+      return lines.join("\n");
+    },
+    () => {
+      const lines: string[] = [];
+      lines.push("Consultando registros de balanço hídrico...");
+      lines.push("");
+      lines.push("**Balanço hídrico detalhado:**");
+      lines.push("");
+      mockPatients.forEach(p => {
+        if (p.fluidBalance.balanco24h > 2 || p.fluidBalance.diurese < 1.5) {
+          lines.push(`**${p.leito} — ${p.nome}:**`);
+          lines.push(`• Entrada: ${p.fluidBalance.entrada24h.toFixed(1)} ml/kg/h | Saída: ${p.fluidBalance.saida24h.toFixed(1)} ml/kg/h`);
+          lines.push(`• Balanço: ${p.fluidBalance.balanco24h.toFixed(1)} ml/kg/h`);
+          lines.push(`• Diurese: ${p.fluidBalance.diurese.toFixed(1)} ml/kg/h`);
+          if (p.fluidBalance.balanco24h > 3) {
+            lines.push(`  ⚠️ Balanço positivo excessivo — considerar restrição hídrica`);
+          }
+          if (p.fluidBalance.diurese < 1) {
+            lines.push(`  ⚠️ Oligúria — avaliar função renal e estado volêmico`);
+          }
+          lines.push("");
+        }
+      });
+      return lines.join("\n");
+    }
+  ];
+  const template = templates[Math.floor(Math.random() * templates.length)];
+  return { reply: template() + DISCLAIMER, showIcuPanel: false };
+}
+
+/**
+ * Handler para intenção de PERFIL_UNIDADE
+ */
+function handleUnitProfileIntent(): { reply: string; showIcuPanel: boolean; showUnitProfilePanel?: boolean } {
   const templates = [
     () => {
       const lines: string[] = [];
@@ -309,27 +526,21 @@ function handleUnitProfileIntent(): { reply: string; showIcuPanel: boolean } {
       lines.push("");
       lines.push("**Casuística da unidade:**");
       lines.push("");
-      const respiratorios = mockPatients.filter((p) => 
-        p.diagnosticoPrincipal.toLowerCase().includes("pneumonia") || 
-        p.diagnosticoPrincipal.toLowerCase().includes("bronquiolite") ||
-        p.diagnosticoPrincipal.toLowerCase().includes("respiratória")
-      ).length;
-      const sepse = mockPatients.filter((p) => 
-        p.diagnosticoPrincipal.toLowerCase().includes("sepse")
-      ).length;
-      const cardiopatia = mockPatients.filter((p) => 
-        p.diagnosticoPrincipal.toLowerCase().includes("cardiopatia")
-      ).length;
-      const trauma = mockPatients.filter((p) => 
-        p.diagnosticoPrincipal.toLowerCase().includes("trauma")
-      ).length;
-      const total = mockPatients.length;
-      lines.push(`• **Casos respiratórios (bronquiolite, pneumonia):** ${respiratorios}/${total} (${((respiratorios/total)*100).toFixed(0)}%)`);
-      lines.push(`• **Sepse (diversos focos):** ${sepse}/${total} (${((sepse/total)*100).toFixed(0)}%)`);
-      lines.push(`• **Cardiopatias congênitas:** ${cardiopatia}/${total} (${((cardiopatia/total)*100).toFixed(0)}%)`);
-      lines.push(`• **Trauma:** ${trauma}/${total} (${((trauma/total)*100).toFixed(0)}%)`);
+      const total = mockUnitProfile.totalPacientes;
+      lines.push(`• **Casos respiratórios (bronquiolite, pneumonia):** ${mockUnitProfile.casuistica.respiratorios}/${total} (${((mockUnitProfile.casuistica.respiratorios/total)*100).toFixed(0)}%)`);
+      lines.push(`• **Sepse (diversos focos):** ${mockUnitProfile.casuistica.sepse}/${total} (${((mockUnitProfile.casuistica.sepse/total)*100).toFixed(0)}%)`);
+      lines.push(`• **Cardiopatias congênitas:** ${mockUnitProfile.casuistica.cardiopatias}/${total} (${((mockUnitProfile.casuistica.cardiopatias/total)*100).toFixed(0)}%)`);
+      lines.push(`• **Trauma:** ${mockUnitProfile.casuistica.trauma}/${total} (${((mockUnitProfile.casuistica.trauma/total)*100).toFixed(0)}%)`);
       lines.push("");
       lines.push("**Sazonalidade:** Observa-se maior incidência de casos respiratórios, compatível com sazonalidade de infecções virais na faixa etária pediátrica.");
+      lines.push("");
+      lines.push("**Germes mais frequentes:**");
+      mockUnitProfile.germesMaisFrequentes.forEach(g => {
+        lines.push(`• ${g.nome}: ${g.frequencia} ${g.frequencia === 1 ? "caso" : "casos"}`);
+        if (g.resistencia && g.resistencia.length > 0) {
+          lines.push(`  Resistência: ${g.resistencia.join(", ")}`);
+        }
+      });
       return lines.join("\n");
     },
     () => {
@@ -338,32 +549,18 @@ function handleUnitProfileIntent(): { reply: string; showIcuPanel: boolean } {
       lines.push("");
       lines.push("**Distribuição por tipo de caso:**");
       lines.push("");
-      const diagnosticos = mockPatients.map(p => p.diagnosticoPrincipal);
-      const categorias: Record<string, number> = {
-        "Respiratórios": 0,
-        "Sepse": 0,
-        "Cardiopatias": 0,
-        "Trauma": 0,
-        "Outros": 0
-      };
-      diagnosticos.forEach(d => {
-        const dLower = d.toLowerCase();
-        if (dLower.includes("pneumonia") || dLower.includes("bronquiolite") || dLower.includes("respiratória")) {
-          categorias["Respiratórios"]++;
-        } else if (dLower.includes("sepse")) {
-          categorias["Sepse"]++;
-        } else if (dLower.includes("cardiopatia")) {
-          categorias["Cardiopatias"]++;
-        } else if (dLower.includes("trauma")) {
-          categorias["Trauma"]++;
-        } else {
-          categorias["Outros"]++;
+      Object.entries(mockUnitProfile.casuistica).forEach(([cat, count]) => {
+        if (count > 0) {
+          const categoria = cat.charAt(0).toUpperCase() + cat.slice(1);
+          lines.push(`• ${categoria}: ${count} ${count === 1 ? "caso" : "casos"}`);
         }
       });
-      Object.entries(categorias).forEach(([cat, count]) => {
-        if (count > 0) {
-          lines.push(`• ${cat}: ${count} ${count === 1 ? "caso" : "casos"}`);
-        }
+      lines.push("");
+      lines.push("**Perfil de resistência antimicrobiana:**");
+      lines.push("");
+      mockUnitProfile.perfilResistencia.forEach(p => {
+        lines.push(`• ${p.antibiotico}: ${(p.taxaResistencia * 100).toFixed(0)}% de resistência`);
+        lines.push(`  Germes: ${p.germes.join(", ")}`);
       });
       lines.push("");
       lines.push("**Observação:** Perfil típico de UTI pediátrica com predominância de casos respiratórios e infecciosos, seguidos de cardiopatias e trauma.");
@@ -375,8 +572,10 @@ function handleUnitProfileIntent(): { reply: string; showIcuPanel: boolean } {
       lines.push("");
       lines.push("**Perfil da casuística (últimos 30 dias):**");
       lines.push("");
-      lines.push("Principais doenças atendidas:");
+      lines.push(`Total de pacientes: ${mockUnitProfile.totalPacientes}`);
+      lines.push(`Taxa de ocupação: ${(mockUnitProfile.taxaOcupacao * 100).toFixed(0)}%`);
       lines.push("");
+      lines.push("**Principais diagnósticos:**");
       mockPatients.forEach((p, idx) => {
         lines.push(`${idx + 1}. ${p.diagnosticoPrincipal} — ${p.idade} ${p.idade === 1 ? "ano" : "anos"}`);
       });
@@ -390,67 +589,169 @@ function handleUnitProfileIntent(): { reply: string; showIcuPanel: boolean } {
 }
 
 /**
- * Handler para intenção de paciente específico.
+ * Handler para intenção de CALCULO_CLINICO
  */
-function handleFocusedPatientIntent(focusedPatientId: string): { reply: string; showIcuPanel: boolean } {
-  const p = mockPatients.find((p) => p.id === focusedPatientId);
-  if (!p) {
-    return { reply: "Não encontrei o paciente selecionado. Tente selecionar novamente." + DISCLAIMER, showIcuPanel: false };
+function handleClinicalCalculationIntent(message: string, focusedPatientId: string | null): { reply: string; showIcuPanel: boolean; calculationData?: any } {
+  const msg = message.toLowerCase();
+  const patient = focusedPatientId ? mockPatients.find(p => p.id === focusedPatientId) : null;
+
+  // Detectar tipo de cálculo solicitado
+  if (msg.includes("manutenção hídrica") || msg.includes("manutencao hidrica") || msg.includes("holliday") || msg.includes("segar")) {
+    // Cálculo de manutenção hídrica
+    if (!patient) {
+      return {
+        reply: "Para calcular a manutenção hídrica, preciso do peso do paciente. Selecione um paciente ou informe o peso." + DISCLAIMER,
+        showIcuPanel: false
+      };
+    }
+
+    try {
+      const result = calculateMaintenanceFluids(patient.peso);
+      const lines: string[] = [];
+      lines.push("**Cálculo de manutenção hídrica pediátrica (regra de Holliday-Segar):**");
+      lines.push("");
+      lines.push(`**Paciente:** ${patient.nome} (${patient.peso.toFixed(1)} kg)`);
+      lines.push("");
+      lines.push("**Fórmula:**");
+      lines.push("- Primeiros 10 kg: 100 ml/kg/dia");
+      lines.push("- 10-20 kg: 1000 ml + 50 ml/kg para cada kg acima de 10");
+      lines.push("- > 20 kg: 1500 ml + 20 ml/kg para cada kg acima de 20");
+      lines.push("");
+      lines.push("**Resultado:**");
+      lines.push(`• Manutenção hídrica: **${result.mlPerDay} ml/dia**`);
+      lines.push(`• Infusão contínua: **${result.mlPerHour} ml/hora**`);
+      lines.push("");
+      lines.push("⚠️ **Importante:** Este é um exemplo de cálculo baseado em dados sintéticos. Sempre confirme dose e conduta em protocolo local e com a equipe médica.");
+
+      return {
+        reply: lines.join("\n") + DISCLAIMER,
+        showIcuPanel: false,
+        calculationData: { type: "maintenance_fluids", ...result }
+      };
+    } catch (error) {
+      return {
+        reply: "Erro ao calcular manutenção hídrica. Verifique se o peso do paciente está disponível." + DISCLAIMER,
+        showIcuPanel: false
+      };
+    }
   }
 
-  const risco24 = (p.riscoMortality24h * 100).toFixed(0);
-  const risco7 = (p.riscoMortality7d * 100).toFixed(0);
-  const riscoLevel = riskLevelFromScore(p.riscoMortality24h);
+  if (msg.includes("função renal") || msg.includes("funcao renal") || msg.includes("clearance") || msg.includes("schwartz") || msg.includes("creatinina")) {
+    // Cálculo de Schwartz (clearance de creatinina)
+    if (!patient) {
+      return {
+        reply: "Para calcular o clearance de creatinina (Schwartz), preciso de dados do paciente. Selecione um paciente." + DISCLAIMER,
+        showIcuPanel: false
+      };
+    }
 
-  const linhas: string[] = [];
-  linhas.push(`**Resumo pediátrico completo — ${p.nome}, leito ${p.leito}:**`);
-  linhas.push("");
-  linhas.push(`**Dados demográficos:** ${p.idade} ${p.idade === 1 ? "ano" : "anos"} de idade`);
-  linhas.push(`**Diagnóstico principal:** ${p.diagnosticoPrincipal}`);
-  linhas.push(`**Dias de internação na UTI:** ${p.diasDeUTI} ${p.diasDeUTI === 1 ? "dia" : "dias"}`);
-  linhas.push("");
-  linhas.push(`**Risco estimado:** ${risco24}% em 24h (${riscoLevel}) • ${risco7}% em 7 dias`);
-  linhas.push("");
-  linhas.push("**Parâmetros atuais (dados do prontuário eletrônico):**");
-  linhas.push(`• SOFA: ${p.sofa}`);
-  linhas.push(`• Lactato: ${p.lactato.toFixed(1)} mmol/L (tendência: ${p.tendenciaLactato})`);
-  linhas.push(`• Pressão arterial média: ${p.mapaPressaoMedia} mmHg`);
-  linhas.push(`• Temperatura: ${p.temperatura.toFixed(1)}°C`);
-  linhas.push(`• ${p.emVasopressor ? "Em uso de vasopressor" : "Sem vasopressor"}`);
-  linhas.push(`• ${p.emVentilacaoMecanica ? "Em ventilação mecânica" : "Sem ventilação mecânica"}`);
-  if (p.emAntibiotico) {
-    linhas.push(`• Em uso de antimicrobiano há ${p.diasEmAntibioticoAtual} ${p.diasEmAntibioticoAtual === 1 ? "dia" : "dias"} (D${p.diasEmAntibioticoAtual})`);
-  }
-  linhas.push("");
-  linhas.push("**Pontos de atenção:**");
-  p.tags.forEach((t) => {
-    linhas.push(`• ${t}`);
-  });
+    // Buscar creatinina nos exames laboratoriais
+    const creatinina = patient.labResults.find(l => l.tipo === "funcao_renal" || l.nome.toLowerCase().includes("creatinina"));
+    const creatininaValue = creatinina && typeof creatinina.valor === "number" ? creatinina.valor : null;
 
-  const alertas: string[] = [];
-  if (p.tendenciaLactato === "subindo" && p.lactato >= 3) {
-    alertas.push("Lactato em ascensão — monitorar de perto");
-  }
-  if (p.mapaPressaoMedia < 65) {
-    alertas.push("Hipotensão (MAP < 65 mmHg)");
-  }
-  if (p.emAntibiotico && p.diasEmAntibioticoAtual >= 2 && p.temperatura >= 38) {
-    alertas.push("Febre persistente após início de antimicrobiano — considerar reavaliação");
-  }
-  if (p.responseToTherapyScore < 0.5) {
-    alertas.push("Resposta à terapia abaixo do esperado");
+    if (!creatininaValue) {
+      return {
+        reply: "Não encontrei creatinina sérica nos exames laboratoriais deste paciente. O cálculo de Schwartz requer creatinina sérica (mg/dL)." + DISCLAIMER,
+        showIcuPanel: false
+      };
+    }
+
+    // Estimar altura baseada na idade (aproximação pediátrica)
+    // Para cálculo real, precisaríamos da altura real do paciente
+    const estimatedHeight = patient.idade < 2 ? 75 + (patient.idade * 10) : 75 + (patient.idade * 6);
+    const k = patient.idade >= 13 ? 0.7 : 0.55; // Constante K: 0.55 para crianças, 0.7 para adolescentes
+
+    try {
+      const result = calculateSchwartzClCr(estimatedHeight, creatininaValue, k);
+      const lines: string[] = [];
+      lines.push("**Cálculo de clearance de creatinina (fórmula de Schwartz):**");
+      lines.push("");
+      lines.push(`**Paciente:** ${patient.nome} (${patient.idade} ${patient.idade === 1 ? "ano" : "anos"})`);
+      lines.push(`**Altura estimada:** ${estimatedHeight} cm`);
+      lines.push(`**Creatinina sérica:** ${creatininaValue} mg/dL`);
+      lines.push(`**Constante K:** ${k} (${patient.idade >= 13 ? "adolescente" : "criança"})`);
+      lines.push("");
+      lines.push("**Fórmula:** ClCr = (K × altura em cm) / creatinina sérica");
+      lines.push("");
+      lines.push("**Resultado:**");
+      lines.push(`• Clearance de creatinina: **${result.clCrMlMin1_73} ml/min/1.73m²**`);
+      lines.push("");
+      lines.push("⚠️ **Importante:** Este é um exemplo de cálculo baseado em dados sintéticos. A altura foi estimada. Sempre confirme com dados reais e protocolo local.");
+
+      return {
+        reply: lines.join("\n") + DISCLAIMER,
+        showIcuPanel: false,
+        calculationData: { type: "schwartz", ...result }
+      };
+    } catch (error) {
+      return {
+        reply: "Erro ao calcular clearance de creatinina." + DISCLAIMER,
+        showIcuPanel: false
+      };
+    }
   }
 
-  if (alertas.length > 0) {
-    linhas.push("");
-    linhas.push("**Alertas:**");
-    alertas.forEach((a) => linhas.push(`⚠️ ${a}`));
+  if (msg.includes("dose") && (msg.includes("noradrenalina") || msg.includes("dopamina") || msg.includes("vasopressor") || msg.includes("droga"))) {
+    // Cálculo de dose de droga
+    if (!patient) {
+      return {
+        reply: "Para calcular a dose de droga, preciso do peso do paciente e da concentração da solução. Selecione um paciente." + DISCLAIMER,
+        showIcuPanel: false
+      };
+    }
+
+    // Exemplo: calcular dose de noradrenalina
+    const doseMcgPerKgPerMin = 0.5; // Exemplo: 0.5 mcg/kg/min
+    const concentrationMgPerMl = 0.08; // Exemplo: 0.08 mg/ml (8 mg em 100 ml)
+
+    try {
+      const result = calculateDrugDose(patient.peso, doseMcgPerKgPerMin, concentrationMgPerMl);
+      const lines: string[] = [];
+      lines.push("**Cálculo de dose de droga baseada em peso:**");
+      lines.push("");
+      lines.push(`**Paciente:** ${patient.nome} (${patient.peso.toFixed(1)} kg)`);
+      lines.push(`**Dose prescrita:** ${doseMcgPerKgPerMin} mcg/kg/min`);
+      lines.push(`**Concentração da solução:** ${concentrationMgPerMl} mg/ml`);
+      lines.push("");
+      lines.push("**Fórmula:**");
+      lines.push("1. Dose total (mcg/min) = peso (kg) × dose (mcg/kg/min)");
+      lines.push("2. Concentração (mcg/ml) = concentração (mg/ml) × 1000");
+      lines.push("3. Volume (ml/hora) = (dose total / concentração) × 60");
+      lines.push("");
+      lines.push("**Resultado:**");
+      lines.push(`• Dose total: **${result.doseMcgMin} mcg/min**`);
+      lines.push(`• Infusão: **${result.mlPerHour} ml/hora**`);
+      lines.push("");
+      lines.push("⚠️ **Importante:** Este é um exemplo de cálculo baseado em dados sintéticos. Sempre confirme dose e conduta em protocolo local e com a equipe médica.");
+
+      return {
+        reply: lines.join("\n") + DISCLAIMER,
+        showIcuPanel: false,
+        calculationData: { type: "drug_dose", ...result }
+      };
+    } catch (error) {
+      return {
+        reply: "Erro ao calcular dose de droga." + DISCLAIMER,
+        showIcuPanel: false
+      };
+    }
   }
 
-  linhas.push("");
-  linhas.push("Dados obtidos do prontuário eletrônico. Use essas informações como apoio para sua avaliação clínica.");
-
-  return { reply: linhas.join("\n") + DISCLAIMER, showIcuPanel: false };
+  // Resposta genérica para cálculos
+  return {
+    reply: (
+      "Posso ajudar com cálculos clínicos pediátricos:\n\n" +
+      "1. **Manutenção hídrica** (regra de Holliday-Segar)\n" +
+      "2. **Clearance de creatinina** (fórmula de Schwartz)\n" +
+      "3. **Cálculo de dose de droga** baseada em peso\n\n" +
+      "Para calcular, selecione um paciente e pergunte, por exemplo:\n" +
+      "• 'Calcule a manutenção hídrica deste paciente'\n" +
+      "• 'Qual o clearance de creatinina?'\n" +
+      "• 'Calcule a dose de noradrenalina para este peso'" +
+      DISCLAIMER
+    ),
+    showIcuPanel: false
+  };
 }
 
 /**
@@ -461,143 +762,50 @@ function handleFallbackIntent(): { reply: string; showIcuPanel: boolean } {
     reply: (
       "Olá! Sou o **Health Copilot +**, um assistente de apoio à decisão para UTI pediátrica.\n\n" +
       "Posso ajudar com:\n\n" +
-      "1. **Priorização de pacientes** por risco de mortalidade\n" +
-      "2. **Análise de exames laboratoriais** recentes\n" +
-      "3. **Padrões em exames de imagem** dos últimos 30 dias\n" +
-      "4. **Revisão de prescrições e cálculos de dose** pediátrica\n" +
-      "5. **Perfil epidemiológico da unidade** (casuística)\n" +
-      "6. **Resumo completo de um paciente específico**\n\n" +
+      "1. **Priorização de pacientes** por risco de mortalidade e instabilidade\n" +
+      "2. **Análise de sinais vitais** e parâmetros hemodinâmicos\n" +
+      "3. **Balanço hídrico** e diurese (ml/kg/h)\n" +
+      "4. **Perfil epidemiológico da unidade** (casuística, germes, resistência)\n" +
+      "5. **Resumo completo de um paciente específico**\n" +
+      "6. **Cálculos clínicos pediátricos** (manutenção hídrica, Schwartz, doses)\n\n" +
       "Tente perguntas como:\n" +
-      "• 'Quais são os 3 pacientes com maior risco de mortalidade em 24h?'\n" +
-      "• 'Me mostre os exames laboratoriais recentes'\n" +
-      "• 'Estamos vendo muitos padrões de pneumonia nas imagens?'\n" +
-      "• 'Preciso revisar as prescrições de antibióticos'\n" +
-      "• 'Qual o perfil da unidade nos últimos 30 dias?'" +
+      "• 'Quais são os 3 pacientes com maior risco?'\n" +
+      "• 'Me mostre os sinais vitais críticos'\n" +
+      "• 'Qual o balanço hídrico dos pacientes?'\n" +
+      "• 'Qual o perfil da unidade?'\n" +
+      "• 'Calcule a manutenção hídrica deste paciente'\n" +
+      "• 'Resumo do paciente selecionado'" +
       DISCLAIMER
     ),
     showIcuPanel: false
   };
 }
 
-/**
- * Detecta a intenção do usuário.
- */
-function detectIntent(
-  message: string,
-  focusedPatientId: string | null
-): "prioritization" | "laboratory" | "imaging" | "prescription" | "unit_profile" | "focused_patient" | "fallback" {
-  const msg = message.toLowerCase();
-
-  // Paciente específico (prioridade)
-  if (
-    focusedPatientId &&
-    (msg.includes("esse paciente") ||
-      msg.includes("este paciente") ||
-      msg.includes("desse paciente") ||
-      msg.includes("deste paciente") ||
-      msg.includes("resumo") ||
-      msg.includes("quadro") ||
-      msg.includes("situação") ||
-      msg.includes("como está"))
-  ) {
-    return "focused_patient";
-  }
-
-  // Priorização / Risco
-  if (
-    msg.includes("prioridade") ||
-    msg.includes("priorizar") ||
-    msg.includes("quem eu vejo primeiro") ||
-    msg.includes("maior risco") ||
-    msg.includes("pior paciente") ||
-    msg.includes("mais grave") ||
-    msg.includes("quem precisa") ||
-    msg.includes("urgente") ||
-    msg.includes("top") ||
-    (msg.includes("maior") && msg.includes("risco"))
-  ) {
-    return "prioritization";
-  }
-
-  // Exames laboratoriais
-  if (
-    msg.includes("exame") ||
-    msg.includes("exames") ||
-    msg.includes("laboratorial") ||
-    msg.includes("gasometria") ||
-    msg.includes("lactato") ||
-    msg.includes("hemograma") ||
-    msg.includes("pcr") ||
-    msg.includes("procalcitonina") ||
-    msg.includes("laboratório")
-  ) {
-    return "laboratory";
-  }
-
-  // Imagens
-  if (
-    msg.includes("imagem") ||
-    msg.includes("radiografia") ||
-    msg.includes("raio-x") ||
-    msg.includes("rx") ||
-    msg.includes("tomografia") ||
-    msg.includes("tc") ||
-    msg.includes("ultrassom") ||
-    msg.includes("padrão") ||
-    msg.includes("padrões") ||
-    (msg.includes("últimos") && msg.includes("30 dias")) ||
-    (msg.includes("ultimos") && msg.includes("30 dias")) ||
-    (msg.includes("pneumonia") && (msg.includes("imagem") || msg.includes("radiografia")))
-  ) {
-    return "imaging";
-  }
-
-  // Prescrições
-  if (
-    msg.includes("prescrição") ||
-    msg.includes("prescrições") ||
-    msg.includes("prescricao") ||
-    msg.includes("prescricoes") ||
-    msg.includes("dose") ||
-    msg.includes("mg/kg") ||
-    msg.includes("antibiótico") ||
-    msg.includes("antibiotico") ||
-    msg.includes("sedação") ||
-    msg.includes("sedacao") ||
-    msg.includes("vasopressor") ||
-    msg.includes("rever prescrição") ||
-    msg.includes("revisar prescrição")
-  ) {
-    return "prescription";
-  }
-
-  // Perfil da unidade
-  if (
-    msg.includes("perfil da unidade") ||
-    msg.includes("principais doenças") ||
-    msg.includes("tipos de doenças") ||
-    msg.includes("casuística") ||
-    msg.includes("casuistica") ||
-    msg.includes("epidemiologia") ||
-    (msg.includes("últimos") && (msg.includes("meses") || msg.includes("dias"))) ||
-    (msg.includes("ultimos") && (msg.includes("meses") || msg.includes("dias")))
-  ) {
-    return "unit_profile";
-  }
-
-  // Paciente específico (fallback se há focusedPatientId)
-  if (focusedPatientId) {
-    return "focused_patient";
-  }
-
-  return "fallback";
-}
-
 export async function POST(req: Request) {
+  const startTime = Date.now();
+  
   try {
     const body = (await req.json()) as RequestBody;
     const message = (body.message || "").trim();
     const focusedId = body.focusedPatientId ?? null;
+    
+    // Contexto de sessão clínica
+    const sessionId = body.sessionId || `session-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    const userId = body.userId || "user-mock";
+    const role = body.role || "plantonista";
+    const unidade = body.unidade || "UTI Pediátrica A";
+    const turno = body.turno || "manhã";
+    
+    // Memória clínica
+    const memory = getOrCreateMemory(sessionId);
+    if (focusedId !== memory.pacienteAtivo) {
+      updateActivePatient(sessionId, focusedId);
+    }
+    
+    // Detectar agente de subespecialidade
+    const currentAgent = body.currentAgent || "default";
+    const selectedAgent = detectAgent(message, currentAgent);
+    const agent = getAgent(selectedAgent);
 
     if (!message) {
       return NextResponse.json({
@@ -606,43 +814,125 @@ export async function POST(req: Request) {
       });
     }
 
-    const intent = detectIntent(message, focusedId);
-    let result: { reply: string; showIcuPanel: boolean; topN?: number; topPatients?: Patient[] };
+    // Detectar intenção e usar memória para resolver ambiguidades
+    let intent = detectIntent(message, focusedId);
+    intent = resolveAmbiguity(sessionId, intent, message) as Intent;
+    
+    // Adicionar à memória
+    addIntentionToHistory(sessionId, intent, focusedId);
+    let result: { reply: string; showIcuPanel: boolean; topN?: number; topPatients?: PatientType[]; focusedPatient?: PatientType; calculationData?: any; showLabPanel?: boolean; showUnitProfilePanel?: boolean };
 
     switch (intent) {
-      case "prioritization": {
+      case "PRIORITIZACAO": {
         const prioritizationResult = handlePrioritizationIntent(message);
         result = { ...prioritizationResult, showIcuPanel: true };
         break;
       }
-      case "laboratory":
-        result = handleLaboratoryExamsIntent();
-        break;
-      case "imaging":
-        result = handleImagingIntent();
-        break;
-      case "prescription":
-        result = handlePrescriptionIntent();
-        break;
-      case "unit_profile":
-        result = handleUnitProfileIntent();
-        break;
-      case "focused_patient":
+      case "PACIENTE_ESPECIFICO":
         if (!focusedId) {
           result = { reply: "Para obter um resumo de um paciente específico, selecione-o primeiro." + DISCLAIMER, showIcuPanel: false };
         } else {
-          result = handleFocusedPatientIntent(focusedId);
+          const patientResult = handleFocusedPatientIntent(focusedId);
+          result = { ...patientResult, showIcuPanel: false };
         }
+        break;
+      case "SINAIS_VITAIS":
+        result = handleVitalSignsIntent();
+        break;
+      case "BALANCO_HIDRICO":
+        result = handleFluidBalanceIntent();
+        break;
+      case "PERFIL_UNIDADE":
+        result = handleUnitProfileIntent();
+        break;
+      case "CALCULO_CLINICO":
+        result = handleClinicalCalculationIntent(message, focusedId);
         break;
       default:
         result = handleFallbackIntent();
     }
 
+    // Opcionalmente melhorar redação com LLM (apenas se GROQ_API_KEY estiver configurada)
+    let finalReply = result.reply;
+    let llmUtilizado = false;
+    
+    if (process.env.GROQ_API_KEY && result.reply.length > 100) {
+      try {
+        const enhanced = await enhanceTextWithLLM({
+          systemPrompt: agent.systemPrompt,
+          context: `Intenção detectada: ${intent}. Dados do paciente: ${focusedId ? "Paciente focado" : "Consulta geral"}. Agente: ${agent.name}`,
+          draftText: result.reply
+        });
+        finalReply = enhanced;
+        llmUtilizado = true;
+      } catch (error) {
+        // Em caso de erro, usar texto original
+        console.warn("LLM enhancement failed, using original text");
+      }
+    }
+    
+    // Adicionar transparência e disclaimers
+    const transparencyFooter = `\n\n---\n**Health Copilot+ v${VERSION}** | Dados: Simulados | ${llmUtilizado ? `LLM: ${MODEL_VERSION}` : "Processamento determinístico"}`;
+    finalReply = finalReply + transparencyFooter;
+
+    // Determinar tipo de resposta
+    let tipoResposta: "texto" | "painel" | "calculo" | "misto" = "texto";
+    if (result.showIcuPanel || result.showLabPanel || result.showUnitProfilePanel) {
+      tipoResposta = result.calculationData ? "misto" : "painel";
+    } else if (result.calculationData) {
+      tipoResposta = "calculo";
+    }
+
+    const duracaoProcessamento = Date.now() - startTime;
+
+    // Log de auditoria
+    logClinicalInteraction({
+      timestamp: new Date().toISOString(),
+      sessionId,
+      userId,
+      role,
+      unidade,
+      pacienteFocado: focusedId,
+      intencaoDetectada: intent,
+      tipoResposta,
+      versaoModelo: VERSION,
+      llmUtilizado,
+      mensagemUsuario: message.substring(0, 100),
+      duracaoProcessamento
+    });
+
+    // Store de pesquisa
+    const dadosExibidos = {
+      tipo: result.calculationData ? "calculo" as const :
+            result.showIcuPanel ? "paciente" as const :
+            result.showLabPanel ? "exames" as const :
+            result.showUnitProfilePanel ? "perfil" as const :
+            "outro" as const,
+      ids: result.topPatients?.map(p => p.id) || (result.focusedPatient ? [result.focusedPatient.id] : undefined),
+      quantidade: result.topPatients?.length || (result.focusedPatient ? 1 : undefined)
+    };
+
+    storeResearchEntry({
+      timestamp: new Date().toISOString(),
+      sessionId,
+      pergunta: desidentifyText(message),
+      intencao: intent,
+      dadosExibidos,
+      duracaoProcessamento,
+      llmUtilizado
+    });
+
     return NextResponse.json({ 
-      reply: result.reply, 
+      reply: finalReply, 
       showIcuPanel: result.showIcuPanel, 
       topN: result.topN,
-      topPatients: result.topPatients
+      topPatients: result.topPatients,
+      focusedPatient: result.focusedPatient,
+      showLabPanel: result.showLabPanel,
+      showUnitProfilePanel: result.showUnitProfilePanel,
+      intent: intent,
+      agent: selectedAgent,
+      agentName: agent.name
     });
   } catch (error) {
     return NextResponse.json(

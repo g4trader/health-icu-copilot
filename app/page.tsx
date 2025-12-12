@@ -1,15 +1,18 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { mockPatients, getSortedByMortalityRisk24h, riskLevelFromScore, type Patient } from "@/lib/mockData";
+import { mockPatients, getTopPatients, riskLevelFromScore, mockUnitProfile, type Patient } from "@/lib/mockData";
+import type { ClinicalAgentType } from "@/lib/clinicalAgents";
 
 type Message = {
   id: string;
   role: "user" | "agent";
   text: string;
-  showIcuPanel?: boolean;
-  topN?: number;
+  intent?: "PRIORITIZACAO" | "PACIENTE_ESPECIFICO" | "SINAIS_VITAIS" | "BALANCO_HIDRICO" | "PERFIL_UNIDADE" | "CALCULO_CLINICO" | "FALLBACK";
   topPatients?: Patient[];
+  focusedPatient?: Patient;
+  showLabPanel?: boolean;
+  showUnitProfilePanel?: boolean;
 };
 
 type AgentReply = {
@@ -17,128 +20,466 @@ type AgentReply = {
   showIcuPanel?: boolean;
   topN?: number;
   topPatients?: Patient[];
+  focusedPatient?: Patient;
+  showLabPanel?: boolean;
+  showUnitProfilePanel?: boolean;
+  intent?: string;
+  agent?: ClinicalAgentType;
+  agentName?: string;
 };
 
-function LoadingCard({ compact }: { compact?: boolean }) {
+function LoadingSkeleton() {
   const steps = [
     "Acessando prontuários eletrônicos…",
     "Buscando exames laboratoriais recentes…",
-    "Analisando exames de imagem em busca de padrões…",
+    "Analisando exames de imagem…",
     "Revisando prescrições e doses calculadas…"
   ];
 
-  if (compact) {
-    return (
-      <div className="loading-steps-compact">
-        {steps.map((step, idx) => (
-          <div key={idx} className="loading-step-compact">
-            <div className="loading-dot"></div>
-            <span>{step}</span>
-          </div>
-        ))}
+  return (
+    <div className="loading-skeleton">
+      {steps.map((step, idx) => (
+        <div key={idx} className="loading-step">
+          <div className="loading-dot"></div>
+          <span>{step}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function PrioritizationPanel({ patients }: { patients: Patient[] }) {
+  return (
+    <div className="prioritization-panel">
+      <div className="panel-header">
+        <h3 className="panel-title">TOP {patients.length} Pacientes por Prioridade</h3>
       </div>
-    );
-  }
+      <div className="prioritization-list">
+        {patients.map((p, idx) => {
+          const riskLevel = riskLevelFromScore(p.riscoMortality24h);
+          const lactato = p.labResults.find(l => l.tipo === "lactato");
+          const lactatoValue = lactato && typeof lactato.valor === "number" ? lactato.valor : 0;
+          
+          return (
+            <div key={p.id} className="prioritization-card">
+              <div className="prioritization-rank">#{idx + 1}</div>
+              <div className="prioritization-content">
+                <div className="prioritization-header">
+                  <div>
+                    <div className="prioritization-name">{p.leito} • {p.nome}</div>
+                    <div className="prioritization-meta">
+                      {p.idade} {p.idade === 1 ? "ano" : "anos"} • {p.peso?.toFixed(1) || "N/A"} kg
+                    </div>
+                  </div>
+                  <span className={`risk-pill ${riskLevel === "alto" ? "risk-high" : riskLevel === "moderado" ? "risk-medium" : "risk-low"}`}>
+                    Risco {(p.riscoMortality24h * 100).toFixed(0)}%
+                  </span>
+                </div>
+                <div className="prioritization-diagnosis">{p.diagnosticoPrincipal}</div>
+                <div className="prioritization-vitals">
+                  <div className="vital-item">
+                    <span className="vital-label">MAP:</span>
+                    <span className={p.vitalSigns.pressaoArterialMedia < 65 ? "vital-critical" : ""}>
+                      {p.vitalSigns.pressaoArterialMedia} mmHg
+                    </span>
+                  </div>
+                  <div className="vital-item">
+                    <span className="vital-label">FC:</span>
+                    <span>{p.vitalSigns.frequenciaCardiaca} bpm</span>
+                  </div>
+                  <div className="vital-item">
+                    <span className="vital-label">SpO2:</span>
+                    <span className={p.vitalSigns.saturacaoO2 < 92 ? "vital-critical" : ""}>
+                      {p.vitalSigns.saturacaoO2}%
+                    </span>
+                  </div>
+                  {lactatoValue > 0 && (
+                    <div className="vital-item">
+                      <span className="vital-label">Lactato:</span>
+                      <span className={lactatoValue >= 3 ? "vital-critical" : ""}>
+                        {lactatoValue.toFixed(1)} mmol/L
+                      </span>
+                    </div>
+                  )}
+                </div>
+                <div className="prioritization-support">
+                  {p.medications.some(m => m.tipo === "vasopressor" && m.ativo) && (
+                    <span className="support-badge vasopressor">Vasopressor</span>
+                  )}
+                  {p.ventilationParams && (
+                    <span className="support-badge ventilation">VM</span>
+                  )}
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function LabPanel({ patients }: { patients: Patient[] }) {
+  // Criar histórico mock de exames (últimos 2-3 valores por paciente)
+  const getLabHistory = (patient: Patient) => {
+    const lactato = patient.labResults.find(l => l.tipo === "lactato");
+    const pcr = patient.labResults.find(l => l.tipo === "pcr");
+    
+    // Mock de histórico: valores anteriores simulados
+    const lactatoHistory = lactato ? [
+      { value: typeof lactato.valor === "number" ? (lactato.valor * 0.85).toFixed(1) : "N/A", date: "24h atrás" },
+      { value: typeof lactato.valor === "number" ? lactato.valor.toFixed(1) : "N/A", date: "Atual", current: true }
+    ] : [];
+    
+    const pcrHistory = pcr ? [
+      { value: typeof pcr.valor === "number" ? (pcr.valor * 0.9).toFixed(0) : "N/A", date: "24h atrás" },
+      { value: typeof pcr.valor === "number" ? pcr.valor.toFixed(0) : "N/A", date: "Atual", current: true }
+    ] : [];
+
+    return { lactato: lactatoHistory, pcr: pcrHistory, lactatoTrend: lactato?.tendencia };
+  };
+
+  const top3 = patients.slice(0, 3);
 
   return (
-    <div className="result-card">
-      <div className="loading-card-content">
-        <div className="loading-title">Processando sua solicitação</div>
-        <div className="loading-steps">
-          {steps.map((step, idx) => (
-            <div key={idx} className="loading-step">
-              <div className="loading-dot"></div>
-              <span>{step}</span>
+    <div className="lab-panel">
+      <div className="panel-header">
+        <h3 className="panel-title">Exames Laboratoriais com Tendência</h3>
+      </div>
+      <div className="lab-panel-content">
+        {top3.map(patient => {
+          const history = getLabHistory(patient);
+          const lactato = patient.labResults.find(l => l.tipo === "lactato");
+          const lactatoValue = lactato && typeof lactato.valor === "number" ? lactato.valor : null;
+          const pcr = patient.labResults.find(l => l.tipo === "pcr");
+          const pcrValue = pcr && typeof pcr.valor === "number" ? pcr.valor : null;
+
+          return (
+            <div key={patient.id} className="lab-patient-card">
+              <div className="lab-patient-header">
+                <div className="lab-patient-name">{patient.leito} • {patient.nome}</div>
+                <div className="lab-patient-meta">{patient.idade} {patient.idade === 1 ? "ano" : "anos"} • {patient.peso?.toFixed(1) || "N/A"} kg</div>
+              </div>
+              
+              {lactatoValue !== null && (
+                <div className="lab-item">
+                  <div className="lab-item-header">
+                    <span className="lab-item-name">Lactato</span>
+                    <span className={`lab-trend ${history.lactatoTrend === "subindo" ? "trend-up" : history.lactatoTrend === "caindo" ? "trend-down" : "trend-stable"}`}>
+                      {history.lactatoTrend === "subindo" ? "↑" : history.lactatoTrend === "caindo" ? "↓" : "="}
+                    </span>
+                  </div>
+                  <div className="lab-values">
+                    {history.lactato.map((h, idx) => (
+                      <div key={idx} className={`lab-value ${h.current ? "lab-current" : ""}`}>
+                        <span className="lab-value-number">{h.value} mmol/L</span>
+                        <span className="lab-value-date">{h.date}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {pcrValue !== null && (
+                <div className="lab-item">
+                  <div className="lab-item-header">
+                    <span className="lab-item-name">PCR</span>
+                    <span className="lab-trend trend-stable">=</span>
+                  </div>
+                  <div className="lab-values">
+                    {history.pcr.map((h, idx) => (
+                      <div key={idx} className={`lab-value ${h.current ? "lab-current" : ""}`}>
+                        <span className="lab-value-number">{h.value} mg/L</span>
+                        <span className="lab-value-date">{h.date}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {lactatoValue === null && pcrValue === null && (
+                <div className="lab-no-data">Sem exames laboratoriais recentes</div>
+              )}
             </div>
-          ))}
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function UnitProfilePanel() {
+  const total = mockUnitProfile.totalPacientes;
+  const percentages = {
+    respiratorios: ((mockUnitProfile.casuistica.respiratorios / total) * 100).toFixed(0),
+    sepse: ((mockUnitProfile.casuistica.sepse / total) * 100).toFixed(0),
+    cardiopatias: ((mockUnitProfile.casuistica.cardiopatias / total) * 100).toFixed(0),
+    trauma: ((mockUnitProfile.casuistica.trauma / total) * 100).toFixed(0)
+  };
+
+  return (
+    <div className="unit-profile-panel">
+      <div className="panel-header">
+        <h3 className="panel-title">Perfil Epidemiológico da Unidade</h3>
+        <div className="unit-profile-period">Últimos 30 dias</div>
+      </div>
+
+      <div className="unit-profile-sections">
+        <div className="unit-section">
+          <h4 className="unit-section-title">Casuística</h4>
+          <div className="unit-casuistica">
+            <div className="unit-casuistica-item">
+              <div className="unit-casuistica-label">Respiratórios</div>
+              <div className="unit-casuistica-bar">
+                <div 
+                  className="unit-casuistica-fill" 
+                  style={{ width: `${percentages.respiratorios}%` }}
+                ></div>
+              </div>
+              <div className="unit-casuistica-value">
+                {mockUnitProfile.casuistica.respiratorios}/{total} ({percentages.respiratorios}%)
+              </div>
+            </div>
+            <div className="unit-casuistica-item">
+              <div className="unit-casuistica-label">Sepse</div>
+              <div className="unit-casuistica-bar">
+                <div 
+                  className="unit-casuistica-fill" 
+                  style={{ width: `${percentages.sepse}%` }}
+                ></div>
+              </div>
+              <div className="unit-casuistica-value">
+                {mockUnitProfile.casuistica.sepse}/{total} ({percentages.sepse}%)
+              </div>
+            </div>
+            <div className="unit-casuistica-item">
+              <div className="unit-casuistica-label">Cardiopatias</div>
+              <div className="unit-casuistica-bar">
+                <div 
+                  className="unit-casuistica-fill" 
+                  style={{ width: `${percentages.cardiopatias}%` }}
+                ></div>
+              </div>
+              <div className="unit-casuistica-value">
+                {mockUnitProfile.casuistica.cardiopatias}/{total} ({percentages.cardiopatias}%)
+              </div>
+            </div>
+            <div className="unit-casuistica-item">
+              <div className="unit-casuistica-label">Trauma</div>
+              <div className="unit-casuistica-bar">
+                <div 
+                  className="unit-casuistica-fill" 
+                  style={{ width: `${percentages.trauma}%` }}
+                ></div>
+              </div>
+              <div className="unit-casuistica-value">
+                {mockUnitProfile.casuistica.trauma}/{total} ({percentages.trauma}%)
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="unit-section">
+          <h4 className="unit-section-title">Germes Mais Frequentes</h4>
+          <div className="unit-germs">
+            {mockUnitProfile.germesMaisFrequentes.map((germe, idx) => (
+              <div key={idx} className="unit-germ-item">
+                <div className="unit-germ-name">{germe.nome}</div>
+                <div className="unit-germ-freq">{germe.frequencia} {germe.frequencia === 1 ? "caso" : "casos"}</div>
+                {germe.resistencia && germe.resistencia.length > 0 && (
+                  <div className="unit-germ-resistance">
+                    Resistência: {germe.resistencia.join(", ")}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="unit-section">
+          <h4 className="unit-section-title">Perfil de Resistência Antimicrobiana</h4>
+          <div className="unit-resistance">
+            {mockUnitProfile.perfilResistencia.map((perfil, idx) => (
+              <div key={idx} className="unit-resistance-item">
+                <div className="unit-resistance-header">
+                  <span className="unit-resistance-antibiotic">{perfil.antibiotico}</span>
+                  <span className="unit-resistance-rate">{(perfil.taxaResistencia * 100).toFixed(0)}%</span>
+                </div>
+                <div className="unit-resistance-germs">
+                  {perfil.germes.join(", ")}
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
     </div>
   );
 }
 
-function IcuPanel({ tablePatients }: { tablePatients?: Patient[] }) {
-  // Se tablePatients fornecido, usar apenas esses para KPIs e tabela
-  // Senão, usar todos os pacientes
-  const patientsForMetrics = tablePatients && tablePatients.length > 0
-    ? tablePatients
-    : mockPatients;
-  
-  // KPIs usando o subset apropriado
-  const totalPacientes = patientsForMetrics.length;
-  const emRiscoAlto = patientsForMetrics.filter((p) => p.riscoMortality24h >= 0.7).length;
-  const emVM = patientsForMetrics.filter((p) => p.emVentilacaoMecanica).length;
-  const emVasopressor = patientsForMetrics.filter((p) => p.emVasopressor).length;
-
-  // Para a tabela: usar tablePatients se fornecido, senão usar todos ordenados
-  const sortedAll = getSortedByMortalityRisk24h();
-  const rows = tablePatients && tablePatients.length > 0
-    ? tablePatients
-    : sortedAll;
-
-  function getStatusText(patient: typeof mockPatients[0]): string {
-    const parts: string[] = [];
-    if (patient.emVentilacaoMecanica) parts.push("VM");
-    if (patient.emVasopressor) parts.push("vasopressor");
-    if (parts.length === 0) return "clinicamente estável";
-    return parts.join(" + ");
-  }
+function PatientDetailPanel({ patient }: { patient: Patient }) {
+  const lactato = patient.labResults.find(l => l.tipo === "lactato");
+  const lactatoValue = lactato && typeof lactato.valor === "number" ? lactato.valor : 0;
+  const temVasopressor = patient.medications.some(m => m.tipo === "vasopressor" && m.ativo);
+  const antibioticos = patient.medications.filter(m => m.tipo === "antibiotico" && m.ativo);
 
   return (
-    <div className="icu-panel">
-      <div className="kpi-grid">
-        <div className="kpi-item">
-          <div className="kpi-label">TOTAL DE PACIENTES</div>
-          <div className="kpi-value">{totalPacientes}</div>
-        </div>
-        <div className="kpi-item">
-          <div className="kpi-label">EM RISCO ALTO (24h)</div>
-          <div className="kpi-value" style={{ color: "#b91c1c" }}>
-            {emRiscoAlto}
-          </div>
-        </div>
-        <div className="kpi-item">
-          <div className="kpi-label">EM VENTILAÇÃO MECÂNICA</div>
-          <div className="kpi-value">{emVM}</div>
-        </div>
-        <div className="kpi-item">
-          <div className="kpi-label">EM VASOPRESSOR</div>
-          <div className="kpi-value">{emVasopressor}</div>
-        </div>
+    <div className="patient-detail-panel">
+      <div className="panel-header">
+        <h3 className="panel-title">{patient.leito} • {patient.nome}</h3>
+        <span className={`risk-pill ${riskLevelFromScore(patient.riscoMortality24h) === "alto" ? "risk-high" : riskLevelFromScore(patient.riscoMortality24h) === "moderado" ? "risk-medium" : "risk-low"}`}>
+          Risco {(patient.riscoMortality24h * 100).toFixed(0)}%
+        </span>
       </div>
 
-      <div className="table-container">
-        <table className="patients-table">
-          <thead>
-            <tr>
-              <th>LEITO</th>
-              <th>NOME</th>
-              <th>IDADE</th>
-              <th>RISCO 24h (%)</th>
-              <th>SOFA</th>
-              <th>STATUS</th>
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map((p) => (
-                      <tr key={p.id}>
-                        <td data-label="LEITO">{p.leito}</td>
-                        <td data-label="NOME" style={{ fontWeight: 600 }}>{p.nome}</td>
-                        <td data-label="IDADE">{p.idade} {p.idade === 1 ? "ano" : "anos"}</td>
-                        <td data-label="RISCO 24h (%)">
-                          <span
-                            className={`risk-pill ${riskLevelFromScore(p.riscoMortality24h) === "alto" ? "risk-high" : riskLevelFromScore(p.riscoMortality24h) === "moderado" ? "risk-medium" : "risk-low"}`}
-                            style={{ fontSize: "0.75rem", padding: "0.2rem 0.5rem" }}
-                          >
-                            {(p.riscoMortality24h * 100).toFixed(0)}%
-                          </span>
-                        </td>
-                        <td data-label="SOFA">{p.sofa}</td>
-                        <td data-label="STATUS">{getStatusText(p)}</td>
-                      </tr>
-            ))}
-          </tbody>
-        </table>
+      <div className="patient-detail-sections">
+        <div className="detail-section">
+          <h4 className="detail-section-title">Resumo</h4>
+          <div className="detail-content">
+            <p><strong>Idade:</strong> {patient.idade} {patient.idade === 1 ? "ano" : "anos"} • <strong>Peso:</strong> {patient.peso?.toFixed(1) || "N/A"} kg</p>
+            <p><strong>Diagnóstico:</strong> {patient.diagnosticoPrincipal}</p>
+            <p><strong>Dias de UTI:</strong> {patient.diasDeUTI} {patient.diasDeUTI === 1 ? "dia" : "dias"}</p>
+          </div>
+        </div>
+
+        <div className="detail-section">
+          <h4 className="detail-section-title">Sinais Vitais</h4>
+          <div className="vitals-grid">
+            <div className="vital-card">
+              <div className="vital-label">Temperatura</div>
+              <div className="vital-value">{patient.vitalSigns.temperatura.toFixed(1)}°C</div>
+            </div>
+            <div className="vital-card">
+              <div className="vital-label">FC</div>
+              <div className="vital-value">{patient.vitalSigns.frequenciaCardiaca} bpm</div>
+            </div>
+            <div className="vital-card">
+              <div className="vital-label">FR</div>
+              <div className="vital-value">{patient.vitalSigns.frequenciaRespiratoria} rpm</div>
+            </div>
+            <div className="vital-card">
+              <div className="vital-label">MAP</div>
+              <div className={`vital-value ${patient.vitalSigns.pressaoArterialMedia < 65 ? "vital-critical" : ""}`}>
+                {patient.vitalSigns.pressaoArterialMedia} mmHg
+              </div>
+            </div>
+            <div className="vital-card">
+              <div className="vital-label">SpO2</div>
+              <div className={`vital-value ${patient.vitalSigns.saturacaoO2 < 92 ? "vital-critical" : ""}`}>
+                {patient.vitalSigns.saturacaoO2}%
+              </div>
+            </div>
+            {patient.vitalSigns.escalaGlasgow && (
+              <div className="vital-card">
+                <div className="vital-label">GCS</div>
+                <div className="vital-value">{patient.vitalSigns.escalaGlasgow}</div>
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div className="detail-section">
+          <h4 className="detail-section-title">Balanço Hídrico (24h)</h4>
+          <div className="fluid-balance-grid">
+            <div className="fluid-item">
+              <div className="fluid-label">Entrada</div>
+              <div className="fluid-value">{patient.fluidBalance.entrada24h.toFixed(1)} ml/kg/h</div>
+            </div>
+            <div className="fluid-item">
+              <div className="fluid-label">Saída</div>
+              <div className="fluid-value">{patient.fluidBalance.saida24h.toFixed(1)} ml/kg/h</div>
+            </div>
+            <div className="fluid-item">
+              <div className="fluid-label">Balanço</div>
+              <div className={`fluid-value ${patient.fluidBalance.balanco24h > 3 ? "fluid-positive" : patient.fluidBalance.balanco24h < -1 ? "fluid-negative" : ""}`}>
+                {patient.fluidBalance.balanco24h > 0 ? "+" : ""}{patient.fluidBalance.balanco24h.toFixed(1)} ml/kg/h
+              </div>
+            </div>
+            <div className="fluid-item">
+              <div className="fluid-label">Diurese</div>
+              <div className={`fluid-value ${patient.fluidBalance.diurese < 1 ? "fluid-critical" : ""}`}>
+                {patient.fluidBalance.diurese.toFixed(1)} ml/kg/h
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {temVasopressor && (
+          <div className="detail-section">
+            <h4 className="detail-section-title">Drogas Vasoativas</h4>
+            <div className="medications-list">
+              {patient.medications
+                .filter(m => m.tipo === "vasopressor" && m.ativo)
+                .map(m => (
+                  <div key={m.id} className="medication-item">
+                    <strong>{m.nome}</strong>: {m.dose} {m.unidade}
+                  </div>
+                ))}
+            </div>
+          </div>
+        )}
+
+        {antibioticos.length > 0 && (
+          <div className="detail-section">
+            <h4 className="detail-section-title">Antibióticos</h4>
+            <div className="medications-list">
+              {antibioticos.map(m => (
+                <div key={m.id} className="medication-item">
+                  <strong>{m.nome}</strong>: {m.dose} {m.unidade} • D{m.diasDeUso}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {patient.ventilationParams && (
+          <div className="detail-section">
+            <h4 className="detail-section-title">Ventilação Mecânica</h4>
+            <div className="ventilation-params">
+              <div className="vent-param">
+                <span className="vent-label">Modo:</span>
+                <span className="vent-value">{patient.ventilationParams.modo}</span>
+              </div>
+              <div className="vent-param">
+                <span className="vent-label">FiO2:</span>
+                <span className="vent-value">{patient.ventilationParams.fiO2}%</span>
+              </div>
+              <div className="vent-param">
+                <span className="vent-label">PEEP:</span>
+                <span className="vent-value">{patient.ventilationParams.peep} cmH2O</span>
+              </div>
+              {patient.ventilationParams.pressaoSuporte && (
+                <div className="vent-param">
+                  <span className="vent-label">PS:</span>
+                  <span className="vent-value">{patient.ventilationParams.pressaoSuporte} cmH2O</span>
+                </div>
+              )}
+              {patient.ventilationParams.paO2FiO2 && (
+                <div className="vent-param">
+                  <span className="vent-label">PaO2/FiO2:</span>
+                  <span className="vent-value">{patient.ventilationParams.paO2FiO2}</span>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {lactatoValue > 0 && (
+          <div className="detail-section">
+            <h4 className="detail-section-title">Exames Laboratoriais</h4>
+            <div className="lab-results">
+              <div className="lab-item">
+                <span className="lab-label">Lactato:</span>
+                <span className={`lab-value ${lactatoValue >= 3 ? "lab-critical" : ""}`}>
+                  {lactatoValue.toFixed(1)} mmol/L
+                </span>
+                {lactato?.tendencia && (
+                  <span className="lab-trend">({lactato.tendencia})</span>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -149,6 +490,10 @@ export default function HomePage() {
   const [loading, setLoading] = useState(false);
   const [input, setInput] = useState("");
   const conversationEndRef = useRef<HTMLDivElement>(null);
+  
+  // Contexto de sessão clínica (mock)
+  const sessionIdRef = useRef<string>(`session-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`);
+  const [currentAgent, setCurrentAgent] = useState<"default" | "cardiology" | "pneumology" | "neurology">("default");
 
   useEffect(() => {
     if (conversationEndRef.current) {
@@ -163,15 +508,12 @@ export default function HomePage() {
     setLoading(true);
 
     // Mensagem do usuário entra imediatamente no histórico
-    setConversation((prev) => [
-      ...prev,
-      {
-        id: crypto.randomUUID(),
-        role: "user",
-        text: trimmed
-      }
-    ]);
-
+    const userMessage: Message = {
+      id: crypto.randomUUID(),
+      role: "user",
+      text: trimmed
+    };
+    setConversation((prev) => [...prev, userMessage]);
     setInput("");
 
     try {
@@ -180,7 +522,13 @@ export default function HomePage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           message: trimmed,
-          focusedPatientId: null
+          focusedPatientId: null,
+          sessionId: sessionIdRef.current,
+          userId: "user-mock",
+          role: "plantonista",
+          unidade: "UTI Pediátrica A",
+          turno: "manhã",
+          currentAgent: currentAgent
         })
       });
 
@@ -190,26 +538,30 @@ export default function HomePage() {
 
       const data = (await res.json()) as AgentReply;
 
-      setConversation((prev) => [
-        ...prev,
-        {
-          id: crypto.randomUUID(),
-          role: "agent",
-          text: data.reply,
-          showIcuPanel: data.showIcuPanel ?? false,
-          topN: data.topN ?? 3,
-          topPatients: data.topPatients
-        }
-      ]);
+      // Atualizar agente se mudou
+      if (data.agent && data.agent !== currentAgent) {
+        setCurrentAgent(data.agent);
+      }
+
+      const agentMessage: Message = {
+        id: crypto.randomUUID(),
+        role: "agent",
+        text: data.reply,
+        intent: data.intent as Message["intent"],
+        topPatients: data.topPatients,
+        focusedPatient: data.focusedPatient,
+        showLabPanel: data.showLabPanel,
+        showUnitProfilePanel: data.showUnitProfilePanel
+      };
+
+      setConversation((prev) => [...prev, agentMessage]);
     } catch (error) {
-      setConversation((prev) => [
-        ...prev,
-        {
-          id: crypto.randomUUID(),
-          role: "agent",
-          text: "Tive um problema para processar essa pergunta no protótipo. Tente novamente em alguns instantes. Lembrando que este ambiente usa apenas dados fictícios para demonstração."
-        }
-      ]);
+      const agentMessage: Message = {
+        id: crypto.randomUUID(),
+        role: "agent",
+        text: "Tive um problema para processar essa pergunta no protótipo. Tente novamente em alguns instantes. Lembrando que este ambiente usa apenas dados fictícios para demonstração."
+      };
+      setConversation((prev) => [...prev, agentMessage]);
     } finally {
       setLoading(false);
     }
@@ -255,33 +607,42 @@ export default function HomePage() {
           </div>
         )}
 
-        {loading && conversation.length === 0 && <LoadingCard />}
-
         {conversation.length > 0 && (
           <div className="conversation">
             {conversation.map((msg) => (
               <div key={msg.id} className={`msg-container ${msg.role === "user" ? "msg-user-wrapper" : "msg-agent-wrapper"}`}>
                 <div className={`msg-bubble ${msg.role === "user" ? "msg-user" : "msg-agent"}`}>
-                  {msg.role === "agent" && msg.showIcuPanel && (
-                    <div className="icu-panel-wrapper">
-                      <IcuPanel tablePatients={msg.topPatients} />
-                    </div>
-                  )}
                   <div className="msg-text" style={{ whiteSpace: "pre-wrap" }}>{msg.text}</div>
-                </div>
+                  
+                  {msg.role === "agent" && msg.intent === "PRIORITIZACAO" && msg.topPatients && msg.topPatients.length > 0 && (
+                    <PrioritizationPanel patients={msg.topPatients} />
+                  )}
+                  
+                  {msg.role === "agent" && msg.intent === "PACIENTE_ESPECIFICO" && msg.focusedPatient && (
+                    <PatientDetailPanel patient={msg.focusedPatient} />
+                  )}
+
+                  {msg.role === "agent" && msg.showLabPanel && msg.topPatients && (
+                    <LabPanel patients={msg.topPatients} />
+                  )}
+
+                  {msg.role === "agent" && msg.showUnitProfilePanel && (
+                    <UnitProfilePanel />
+          )}
+        </div>
               </div>
             ))}
 
             {loading && (
               <div className="msg-container msg-agent-wrapper">
                 <div className="msg-bubble msg-agent">
-                  <LoadingCard compact />
+                  <LoadingSkeleton />
                 </div>
               </div>
             )}
 
             <div ref={conversationEndRef} />
-        </div>
+          </div>
         )}
       </section>
 
@@ -313,7 +674,7 @@ export default function HomePage() {
             <path
               strokeLinecap="round"
               strokeLinejoin="round"
-              d="M3 10.5l18-8.25-8.25 18-2.25-7.5L3 10.5z"
+              d="M6 12L3.269 3.126A59.768 59.768 0 0121.485 12 59.77 59.77 0 013.27 20.876L5.999 12zm0 0h7.5"
             />
           </svg>
         </button>
