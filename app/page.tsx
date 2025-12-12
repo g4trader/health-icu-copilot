@@ -437,7 +437,7 @@ export default function HomePage() {
     }
   }, [conversation, loading]);
 
-  const handleSend = useCallback(async (messageText?: string) => {
+  const handleSend = useCallback(async (messageText?: string, agentIdParam?: ClinicalAgentId, patientIdParam?: string) => {
     const textToSend = messageText || input.trim();
     if (!textToSend || loading) return;
 
@@ -452,20 +452,24 @@ export default function HomePage() {
     setConversation((prev) => [...prev, userMessage]);
     setInput("");
 
+    // Usar patientIdParam se fornecido, senão usar activePatientId
+    const patientIdToUse = patientIdParam || activePatientId;
+
     try {
       const res = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           message: textToSend,
-          focusedPatientId: activePatientId,
+          focusedPatientId: patientIdToUse,
           sessionId: sessionIdRef.current,
           userId: "user-mock",
           role: "plantonista",
           unidade: "UTI Pediátrica A",
           turno: "manhã",
           currentAgent: currentAgent,
-          patientId: activePatientId || undefined
+          agentId: agentIdParam,
+          patientId: patientIdToUse || undefined
         })
       });
 
@@ -532,7 +536,8 @@ export default function HomePage() {
     const message = `${agent.name}, avalie o caso do paciente ${patient.leito} - ${patient.nome} (${patient.idade} ${patient.idade === 1 ? 'ano' : 'anos'}, ${patient.diagnosticoPrincipal}) e sugira condutas ou exames complementares.`;
 
     // Disparar mensagem usando o fluxo de envio do chat (simulando que o usuário digitou isso)
-    handleSend(message);
+    // Passar explicitamente agentId e patientId para garantir detecção correta da intenção
+    handleSend(message, agentId, patientId);
   }, [handleSend]);
 
   // Função para solicitar parecer de agente especialista (mantida para compatibilidade com PatientAgentButton)
