@@ -6,6 +6,7 @@ import {
   getPatientsOnVasopressors,
   getHighRiskPatients
 } from "@/lib/icuSummary";
+import { usePreview } from "./PreviewProvider";
 
 interface ContextSnapshotProps {
   onPromptClick: (prompt: string) => void;
@@ -20,6 +21,7 @@ const quickPrompts = [
 ];
 
 export function ContextSnapshot({ onPromptClick }: ContextSnapshotProps) {
+  const { setPreview } = usePreview();
   const totalPatients = getTotalPatients();
   const onVentilation = getPatientsOnVentilation();
   const onVasopressors = getPatientsOnVasopressors();
@@ -28,25 +30,41 @@ export function ContextSnapshot({ onPromptClick }: ContextSnapshotProps) {
   return (
     <div className="context-snapshot">
       <div className="snapshot-cards">
-        <div className="snapshot-card">
+        <button
+          type="button"
+          className="snapshot-card snapshot-card-clickable"
+          onClick={() => setPreview('icu-overview')}
+        >
           <div className="snapshot-card-label">Total de Pacientes</div>
           <div className="snapshot-card-value">{totalPatients}</div>
-        </div>
+        </button>
         
-        <div className="snapshot-card">
+        <button
+          type="button"
+          className="snapshot-card snapshot-card-clickable"
+          onClick={() => setPreview('ventilated')}
+        >
           <div className="snapshot-card-label">Em Ventilação Mecânica</div>
           <div className="snapshot-card-value">{onVentilation}</div>
-        </div>
+        </button>
         
-        <div className="snapshot-card">
+        <button
+          type="button"
+          className="snapshot-card snapshot-card-clickable"
+          onClick={() => setPreview('vasopressors')}
+        >
           <div className="snapshot-card-label">Em Droga Vasoativa</div>
           <div className="snapshot-card-value">{onVasopressors}</div>
-        </div>
+        </button>
         
-        <div className="snapshot-card snapshot-card-highlight">
+        <button
+          type="button"
+          className="snapshot-card snapshot-card-highlight snapshot-card-clickable"
+          onClick={() => setPreview('high-risk')}
+        >
           <div className="snapshot-card-label">Alto Risco (24h)</div>
           <div className="snapshot-card-value snapshot-card-value-highlight">{highRisk}</div>
-        </div>
+        </button>
       </div>
 
       <div className="quick-prompts-section">

@@ -196,63 +196,13 @@ function handlePrioritizationIntent(message: string): { reply: string; topN: num
 
   const templates = [
     () => {
-      const lines: string[] = [];
-      lines.push(`Após análise dos prontuários eletrônicos e cálculo de risco baseado em instabilidade hemodinâmica, uso de vasopressores, ventilação mecânica, lactato elevado e tendências negativas, selecionando os ${topN} pacientes mais críticos:`);
-      lines.push("");
-      topPatients.forEach((p, idx) => {
-        const riskScore = calculateRiskScore(p);
-        const risco24 = (p.riscoMortality24h * 100).toFixed(0);
-        lines.push(`${idx + 1}. **${p.leito} • ${p.nome}** (${p.idade} ${p.idade === 1 ? "ano" : "anos"}, ${p.peso.toFixed(1)} kg)`);
-        lines.push(`   Risco 24h: ${risco24}% • Score de risco: ${(riskScore * 100).toFixed(0)}%`);
-        lines.push(`   Diagnóstico: ${p.diagnosticoPrincipal}`);
-        const detalhes: string[] = [];
-        if (p.medications.some(m => m.tipo === "vasopressor" && m.ativo)) detalhes.push("vasopressor");
-        if (p.ventilationParams) detalhes.push("VM");
-        const lactato = p.labResults.find(l => l.tipo === "lactato");
-        if (lactato && typeof lactato.valor === "number") {
-          detalhes.push(`lactato ${lactato.valor.toFixed(1)} mmol/L`);
-        }
-        lines.push(`   ${detalhes.join(" • ")} • ${p.diasDeUTI} dias de UTI`);
-        lines.push("");
-      });
-      return lines.join("\n");
+      return `Após análise dos prontuários eletrônicos e cálculo de risco baseado em instabilidade hemodinâmica, uso de vasopressores, ventilação mecânica, lactato elevado e tendências negativas, identifiquei os ${topN} pacientes mais críticos. Veja os detalhes no painel abaixo.`;
     },
     () => {
-      const lines: string[] = [];
-      lines.push(`Com base na análise de risco de mortalidade em 24h, instabilidade hemodinâmica, uso de drogas vasoativas, ventilação mecânica e parâmetros laboratoriais críticos. Selecionando os ${topN} pacientes mais graves:`);
-      lines.push("");
-      lines.push(`**TOP ${topN} por prioridade de avaliação:**`);
-      lines.push("");
-      topPatients.forEach((p, idx) => {
-        const risco24 = (p.riscoMortality24h * 100).toFixed(0);
-        lines.push(`**${idx + 1}. ${p.leito}** — ${p.nome} (${p.idade} ${p.idade === 1 ? "ano" : "anos"})`);
-        lines.push(`   ${p.diagnosticoPrincipal}`);
-        const temVaso = p.medications.some(m => m.tipo === "vasopressor" && m.ativo);
-        lines.push(`   Risco ${risco24}% • ${p.ventilationParams ? "VM" : "Sem VM"} • ${temVaso ? "vasoativo" : "sem vasoativo"}`);
-        lines.push("");
-      });
-      return lines.join("\n");
+      return `Com base na análise de risco de mortalidade em 24h, instabilidade hemodinâmica, uso de drogas vasoativas, ventilação mecânica e parâmetros laboratoriais críticos, selecionei os ${topN} pacientes que requerem atenção imediata. Os detalhes estão no painel de priorização.`;
     },
     () => {
-      const lines: string[] = [];
-      lines.push(`Consulta aos prontuários eletrônicos concluída. ${topN} ${topN === 1 ? "paciente requer" : "pacientes requerem"} atenção imediata baseado em critérios de instabilidade, uso de suporte avançado e parâmetros laboratoriais:`);
-      lines.push("");
-      topPatients.forEach((p, idx) => {
-        const risco24 = (p.riscoMortality24h * 100).toFixed(0);
-        const riskScore = calculateRiskScore(p);
-        lines.push(`**${p.leito} — ${p.nome}** (${p.idade} ${p.idade === 1 ? "ano" : "anos"})`);
-        lines.push(`Risco estimado: ${risco24}% em 24h | Score de risco: ${(riskScore * 100).toFixed(0)}%`);
-        lines.push(`Diagnóstico: ${p.diagnosticoPrincipal}`);
-        if (p.vitalSigns.pressaoArterialMedia < 65) {
-          lines.push(`⚠️ Hipotensão (MAP: ${p.vitalSigns.pressaoArterialMedia} mmHg)`);
-        }
-        const lactato = p.labResults.find(l => l.tipo === "lactato");
-        if (lactato && typeof lactato.valor === "number" && lactato.valor >= 3) {
-          lines.push(`⚠️ Lactato elevado: ${lactato.valor.toFixed(1)} mmol/L`);
-        }
-        lines.push("");
-      });
-      return lines.join("\n");
+      return `Consulta aos prontuários eletrônicos concluída. ${topN} ${topN === 1 ? "paciente requer" : "pacientes requerem"} atenção imediata baseado em critérios de instabilidade, uso de suporte avançado e parâmetros laboratoriais. Consulte o painel abaixo para detalhes completos.`;
     }
   ];
   const template = templates[Math.floor(Math.random() * templates.length)];

@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import { PreviewProvider } from "@/components/PreviewProvider";
 
 export const metadata: Metadata = {
   title: "Health Copilot + - UTI Pediátrica",
@@ -22,7 +23,9 @@ export default function RootLayout({
         <meta name="theme-color" content="#10b981" />
       </head>
       <body>
-        {children}
+        <PreviewProvider>
+          {children}
+        </PreviewProvider>
       </body>
     </html>
   );

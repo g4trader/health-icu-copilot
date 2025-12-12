@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from "react";
 import { mockPatients, getTopPatients, riskLevelFromScore, mockUnitProfile, type Patient } from "@/lib/mockData";
 import type { ClinicalAgentType } from "@/lib/clinicalAgents";
 import { ContextSnapshot } from "@/components/ContextSnapshot";
+import { AppShell } from "@/components/AppShell";
 
 type Message = {
   id: string;
@@ -583,7 +584,7 @@ export default function HomePage() {
   }
 
   return (
-    <main className="shell">
+    <div className="app-wrapper">
       <header className="hc-topbar">
         <div className="hc-brand">
           <img src="/favicon.png" alt="Health Copilot" className="hc-icon" />
@@ -604,7 +605,8 @@ export default function HomePage() {
         </div>
       </header>
 
-      <section className="content">
+      <AppShell>
+        <section className="content">
         {conversation.length === 0 && !loading && (
           <div className="hero">
             <h1 className="hero-title">Como posso ajudar a UTI pediátrica hoje?</h1>
@@ -654,6 +656,7 @@ export default function HomePage() {
           </div>
         )}
       </section>
+      </AppShell>
 
       <footer className="hc-chat-input">
         <input
@@ -665,13 +668,13 @@ export default function HomePage() {
           onKeyDown={handleKeyDown}
           disabled={loading}
         />
-          <button
-            className="hc-send-btn"
-            type="button"
-            onClick={() => void handleSend()}
-            disabled={loading || !input.trim()}
-            aria-label="Enviar mensagem"
-          >
+        <button
+          className="hc-send-btn"
+          type="button"
+          onClick={() => void handleSend()}
+          disabled={loading || !input.trim()}
+          aria-label="Enviar mensagem"
+        >
           <svg
             xmlns="http://www.w3.org/2000/svg"
             fill="none"
@@ -688,6 +691,6 @@ export default function HomePage() {
           </svg>
         </button>
       </footer>
-    </main>
+    </div>
   );
 }
