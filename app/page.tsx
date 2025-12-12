@@ -6,6 +6,8 @@ import type { ClinicalAgentType } from "@/lib/clinicalAgents";
 import { ContextSnapshot } from "@/components/ContextSnapshot";
 import { AppShell } from "@/components/AppShell";
 import { ChatInput } from "@/components/ChatInput";
+import { PatientContextBar } from "@/components/PatientContextBar";
+import { usePreview } from "@/components/PreviewProvider";
 
 type Message = {
   id: string;
@@ -30,6 +32,7 @@ type AgentReply = {
   intent?: string;
   agent?: ClinicalAgentType;
   agentName?: string;
+  selectedPatientId?: string;
 };
 
 function LoadingSkeleton() {
@@ -52,7 +55,7 @@ function LoadingSkeleton() {
   );
 }
 
-function PrioritizationPanel({ patients }: { patients: Patient[] }) {
+function PrioritizationPanel({ patients, onSelectPatient }: { patients: Patient[]; onSelectPatient?: (patientId: string) => void }) {
   return (
     <div className="prioritization-panel">
       <div className="panel-header">
@@ -65,7 +68,12 @@ function PrioritizationPanel({ patients }: { patients: Patient[] }) {
           const lactatoValue = lactato && typeof lactato.valor === "number" ? lactato.valor : 0;
           
           return (
-            <div key={p.id} className="prioritization-card">
+            <button
+              key={p.id}
+              type="button"
+              className="prioritization-card prioritization-card-clickable"
+              onClick={() => onSelectPatient?.(p.id)}
+            >
               <div className="prioritization-rank">#{idx + 1}</div>
               <div className="prioritization-content">
                 <div className="prioritization-header">
@@ -115,7 +123,7 @@ function PrioritizationPanel({ patients }: { patients: Patient[] }) {
                   )}
                 </div>
               </div>
-            </div>
+            </button>
           );
         })}
       </div>
@@ -498,6 +506,29 @@ export default function HomePage() {
   // Contexto de sessão clínica (mock)
   const sessionIdRef = useRef<string>(`session-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`);
   const [currentAgent, setCurrentAgent] = useState<"default" | "cardiology" | "pneumology" | "neurology">("default");
+  const [activePatientId, setActivePatientId] = useState<string | null>(null);
+  const activePatient = mockPatients.find(p => p.id === activePatientId) || null;
+  const { setPreview, setOnSelectPatient } = usePreview();
+
+  // Configurar handler de seleção de paciente
+  useEffect(() => {
+    const handleSelectPatient = (patientId: string) => {
+      setActivePatientId(patientId);
+      const patient = mockPatients.find(p => p.id === patientId);
+      if (patient) {
+        setPreview('patient', { patient });
+        // Adicionar mensagem de sistema leve no chat
+        const systemMessage: Message = {
+          id: crypto.randomUUID(),
+          role: "agent",
+          text: `Agora estou focando no paciente ${patient.leito} • ${patient.nome} (${patient.idade} ${patient.idade === 1 ? "ano" : "anos"}).`
+        };
+        setConversation((prev) => [...prev, systemMessage]);
+      }
+    };
+    setOnSelectPatient(handleSelectPatient);
+    return () => setOnSelectPatient(undefined);
+  }, [setPreview, setOnSelectPatient]);
 
   useEffect(() => {
     if (conversationEndRef.current) {
@@ -526,7 +557,7 @@ export default function HomePage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           message: textToSend,
-          focusedPatientId: null,
+          focusedPatientId: activePatientId,
           sessionId: sessionIdRef.current,
           userId: "user-mock",
           role: "plantonista",
@@ -545,6 +576,11 @@ export default function HomePage() {
       // Atualizar agente se mudou
       if (data.agent && data.agent !== currentAgent) {
         setCurrentAgent(data.agent);
+      }
+
+      // Se o backend retornou um selectedPatientId, atualizar o paciente ativo
+      if (data.selectedPatientId) {
+        setActivePatientId(data.selectedPatientId);
       }
 
       const agentMessage: Message = {
@@ -622,13 +658,26 @@ export default function HomePage() {
 
             {conversation.length > 0 && (
               <div className="conversation">
+                <PatientContextBar 
+                  activePatient={activePatient} 
+                  onClear={() => setActivePatientId(null)} 
+                />
                 {conversation.map((msg) => (
                   <div key={msg.id} className={`msg-container ${msg.role === "user" ? "msg-user-wrapper" : "msg-agent-wrapper"}`}>
                     <div className={`msg-bubble ${msg.role === "user" ? "msg-user" : "msg-agent"}`}>
                       <div className="msg-text" style={{ whiteSpace: "pre-wrap" }}>{msg.text}</div>
                       
                       {msg.role === "agent" && msg.showIcuPanel && msg.topPatients && msg.topPatients.length > 0 && (
-                        <PrioritizationPanel patients={msg.topPatients} />
+                        <PrioritizationPanel 
+                          patients={msg.topPatients} 
+                          onSelectPatient={(patientId) => {
+                            setActivePatientId(patientId);
+                            const patient = mockPatients.find(p => p.id === patientId);
+                            if (patient) {
+                              setPreview('patient', { patient });
+                            }
+                          }}
+                        />
                       )}
                       
                       {msg.role === "agent" && msg.focusedPatient && (
@@ -670,6 +719,6 @@ export default function HomePage() {
           </div>
         </section>
       </AppShell>
-    </div>
+        </div>
   );
 }

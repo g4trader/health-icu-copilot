@@ -82,17 +82,16 @@ function detectIntent(message: string, focusedPatientId: string | null): Intent 
 
   // PACIENTE_ESPECIFICO
   if (
-    focusedPatientId &&
-    (msg.includes("esse paciente") ||
-      msg.includes("este paciente") ||
-      msg.includes("desse paciente") ||
-      msg.includes("deste paciente") ||
-      msg.includes("resumo") ||
-      msg.includes("quadro") ||
-      msg.includes("situação") ||
-      msg.includes("como está") ||
-      msg.includes("dados do paciente") ||
-      msg.includes("informações do paciente"))
+    focusedPatientId ||
+    msg.match(/(?:UTI|leito)\s*\d+/i) ||
+    mockPatients.some(p => msg.toLowerCase().includes(p.nome.toLowerCase())) ||
+    (msg.includes("resumo") && (msg.includes("paciente") || msg.match(/(?:UTI|leito)/i))) ||
+    msg.includes("dados do paciente") ||
+    msg.includes("informações do paciente") ||
+    (msg.includes("esse paciente") || msg.includes("este paciente") || msg.includes("desse paciente") || msg.includes("deste paciente")) ||
+    (msg.includes("quadro") && msg.includes("paciente")) ||
+    (msg.includes("situação") && msg.includes("paciente")) ||
+    (msg.includes("como está") && msg.includes("paciente"))
   ) {
     return "PACIENTE_ESPECIFICO";
   }
@@ -212,7 +211,7 @@ function handlePrioritizationIntent(message: string): { reply: string; topN: num
 /**
  * Handler para intenção de PACIENTE_ESPECIFICO
  */
-function handleFocusedPatientIntent(focusedPatientId: string): { reply: string; showIcuPanel: boolean; focusedPatient?: PatientType } {
+function handleFocusedPatientIntent(focusedPatientId: string): { reply: string; showIcuPanel: boolean; focusedPatient?: PatientType; selectedPatientId?: string } {
   const p = mockPatients.find((p) => p.id === focusedPatientId);
   if (!p) {
     return { reply: "Não encontrei o paciente selecionado. Tente selecionar novamente." + DISCLAIMER, showIcuPanel: false };
@@ -236,7 +235,7 @@ function handleFocusedPatientIntent(focusedPatientId: string): { reply: string; 
     }
   ];
   const template = templates[Math.floor(Math.random() * templates.length)];
-  return { reply: template() + DISCLAIMER, showIcuPanel: false, focusedPatient: p };
+  return { reply: template() + DISCLAIMER, showIcuPanel: false, focusedPatient: p, selectedPatientId: p.id };
 }
 
 /**
@@ -659,10 +658,10 @@ export async function POST(req: Request) {
   const startTime = Date.now();
   
   try {
-    const body = (await req.json()) as RequestBody;
+  const body = (await req.json()) as RequestBody;
     const message = (body.message || "").trim();
-    const focusedId = body.focusedPatientId ?? null;
-    
+  const focusedId = body.focusedPatientId ?? null;
+
     // Contexto de sessão clínica
     const sessionId = body.sessionId || `session-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
     const userId = body.userId || "user-mock";
@@ -702,14 +701,35 @@ export async function POST(req: Request) {
         result = { ...prioritizationResult, showIcuPanel: true };
         break;
       }
-      case "PACIENTE_ESPECIFICO":
-        if (!focusedId) {
-          result = { reply: "Para obter um resumo de um paciente específico, selecione-o primeiro." + DISCLAIMER, showIcuPanel: false };
-        } else {
-          const patientResult = handleFocusedPatientIntent(focusedId);
+      case "PACIENTE_ESPECIFICO": {
+        // Tentar identificar paciente por leito ou nome na mensagem
+        let patientId = focusedId;
+        if (!patientId) {
+          // Buscar por leito (ex: "UTI 03", "leito 03")
+          const leitoMatch = message.match(/(?:UTI|leito)\s*(\d+)/i);
+          if (leitoMatch) {
+            const leitoNum = leitoMatch[1].padStart(2, '0');
+            const leitoStr = `UTI ${leitoNum}`;
+            const patient = mockPatients.find(p => p.leito === leitoStr);
+            if (patient) patientId = patient.id;
+          }
+          // Se não encontrou por leito, tentar por nome
+          if (!patientId) {
+            const patient = mockPatients.find(p => 
+              message.toLowerCase().includes(p.nome.toLowerCase())
+            );
+            if (patient) patientId = patient.id;
+          }
+        }
+        
+        if (!patientId) {
+          result = { reply: "Para obter um resumo de um paciente específico, mencione o leito (ex: 'UTI 03') ou o nome do paciente, ou selecione-o primeiro." + DISCLAIMER, showIcuPanel: false };
+  } else {
+          const patientResult = handleFocusedPatientIntent(patientId);
           result = { ...patientResult, showIcuPanel: false };
         }
         break;
+      }
       case "SINAIS_VITAIS":
         result = handleVitalSignsIntent();
         break;

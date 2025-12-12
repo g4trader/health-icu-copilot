@@ -4,6 +4,7 @@ import { usePreview, type PreviewPayload } from "./PreviewProvider";
 import { mockPatients, getTopPatients, riskLevelFromScore, calculateRiskScore } from "@/lib/mockData";
 import { getPatientsOnVentilation, getPatientsOnVasopressors, getHighRiskPatients } from "@/lib/icuSummary";
 import type { Patient } from "@/lib/mockData";
+import { PatientDetailPanel } from "./PatientDetailPanel";
 
 export function PreviewDrawer() {
   const { previewType, previewPayload, clearPreview } = usePreview();
@@ -23,7 +24,7 @@ export function PreviewDrawer() {
             {previewType === 'ventilated' && 'Pacientes em Ventilação Mecânica'}
             {previewType === 'vasopressors' && 'Pacientes em Droga Vasoativa'}
             {previewType === 'high-risk' && 'Pacientes em Alto Risco (24h)'}
-            {previewType === 'patient' && 'Resumo do Paciente'}
+            {previewType === 'patient' && previewPayload?.patient && `${(previewPayload.patient as Patient).leito} • ${(previewPayload.patient as Patient).nome}`}
             {previewType === 'lab-results' && 'Exames Laboratoriais Recentes'}
             {previewType === 'unit-profile' && 'Perfil Epidemiológico da Unidade'}
           </h3>
@@ -50,7 +51,9 @@ export function PreviewDrawer() {
           {previewType === 'ventilated' && <VentilatedPreview />}
           {previewType === 'vasopressors' && <VasopressorsPreview />}
           {previewType === 'high-risk' && <HighRiskPreview />}
-          {previewType === 'patient' && <PatientPreview payload={previewPayload} />}
+          {previewType === 'patient' && previewPayload?.patient && (
+            <PatientDetailPanel patient={previewPayload.patient as Patient} />
+          )}
           {previewType === 'icu-overview' && <IcuOverviewPreview />}
         </div>
       </aside>
@@ -90,6 +93,7 @@ function IcuOverviewPreview() {
 
 function AllPatientsPreview({ payload }: { payload: PreviewPayload | null }) {
   const patients = (payload?.patients || mockPatients) as Patient[];
+  const { onSelectPatient } = usePreview();
 
   return (
     <div className="preview-content">
@@ -99,7 +103,12 @@ function AllPatientsPreview({ payload }: { payload: PreviewPayload | null }) {
           const hasVaso = p.medications.some(m => m.tipo === "vasopressor" && m.ativo);
           const risk24h = Math.round(p.riscoMortality24h * 100);
           return (
-            <div key={p.id} className="preview-item">
+            <button
+              key={p.id}
+              type="button"
+              className="preview-item preview-item-clickable"
+              onClick={() => onSelectPatient?.(p.id)}
+            >
               <div className="preview-item-header">
                 <strong>{p.leito}</strong> • {p.nome}
               </div>
@@ -108,7 +117,7 @@ function AllPatientsPreview({ payload }: { payload: PreviewPayload | null }) {
                 <div>Risco 24h: {risk24h}%</div>
                 <div>VM: {hasVM ? 'Sim' : 'Não'} • Vasopressor: {hasVaso ? 'Sim' : 'Não'}</div>
               </div>
-            </div>
+            </button>
           );
         })}
       </div>
@@ -118,12 +127,18 @@ function AllPatientsPreview({ payload }: { payload: PreviewPayload | null }) {
 
 function VentilatedPreview() {
   const ventilated = mockPatients.filter(p => p.ventilationParams !== undefined);
+  const { onSelectPatient } = usePreview();
 
   return (
     <div className="preview-content">
       <div className="preview-list">
         {ventilated.map((p) => (
-          <div key={p.id} className="preview-item">
+          <button
+            key={p.id}
+            type="button"
+            className="preview-item preview-item-clickable"
+            onClick={() => onSelectPatient?.(p.id)}
+          >
             <div className="preview-item-header">
               <strong>{p.leito}</strong> • {p.nome}
             </div>
@@ -133,7 +148,7 @@ function VentilatedPreview() {
               )}
               <div>Risco 24h: {(p.riscoMortality24h * 100).toFixed(0)}%</div>
             </div>
-          </div>
+          </button>
         ))}
       </div>
     </div>
@@ -144,6 +159,7 @@ function VasopressorsPreview() {
   const onVaso = mockPatients.filter(p => 
     p.medications.some(m => m.tipo === "vasopressor" && m.ativo)
   );
+  const { onSelectPatient } = usePreview();
 
   return (
     <div className="preview-content">
@@ -151,7 +167,12 @@ function VasopressorsPreview() {
         {onVaso.map((p) => {
           const vaso = p.medications.find(m => m.tipo === "vasopressor" && m.ativo);
           return (
-            <div key={p.id} className="preview-item">
+            <button
+              key={p.id}
+              type="button"
+              className="preview-item preview-item-clickable"
+              onClick={() => onSelectPatient?.(p.id)}
+            >
               <div className="preview-item-header">
                 <strong>{p.leito}</strong> • {p.nome}
               </div>
@@ -160,7 +181,7 @@ function VasopressorsPreview() {
                 <div>MAP: {p.vitalSigns.pressaoArterialMedia} mmHg</div>
                 <div>Risco 24h: {(p.riscoMortality24h * 100).toFixed(0)}%</div>
               </div>
-            </div>
+            </button>
           );
         })}
       </div>
@@ -173,12 +194,18 @@ function HighRiskPreview() {
     const riskScore = calculateRiskScore(p);
     return riskLevelFromScore(riskScore) === "alto" || p.riscoMortality24h >= 0.7;
   });
+  const { onSelectPatient } = usePreview();
 
   return (
     <div className="preview-content">
       <div className="preview-list">
         {highRisk.map((p) => (
-          <div key={p.id} className="preview-item">
+          <button
+            key={p.id}
+            type="button"
+            className="preview-item preview-item-clickable"
+            onClick={() => onSelectPatient?.(p.id)}
+          >
             <div className="preview-item-header">
               <strong>{p.leito}</strong> • {p.nome}
             </div>
@@ -188,7 +215,7 @@ function HighRiskPreview() {
               {p.ventilationParams && <div>VM: Sim</div>}
               {p.medications.some(m => m.tipo === "vasopressor" && m.ativo) && <div>Vasopressor: Sim</div>}
             </div>
-          </div>
+          </button>
         ))}
       </div>
     </div>
