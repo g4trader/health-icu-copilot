@@ -395,7 +395,7 @@ a {
   align-items: center;
   justify-content: center;
   padding: 2rem;
-  padding-bottom: 100px; /* Espaço para input fixo */
+  padding-bottom: 1.5rem;
   overflow-y: auto;
   overflow-x: hidden;
   width: 100%;
@@ -806,8 +806,10 @@ a {
   flex-direction: column;
   gap: 1.5rem;
   width: 100%;
-  padding: 1.5rem 0 6rem 0; /* Espaço para input sticky */
+  padding: 1.5rem 0;
   flex: 1;
+  overflow-y: auto;
+  min-height: 0; /* Permite que o flex funcione corretamente */
 }
 
 .msg-container {
@@ -1014,8 +1016,8 @@ a {
 
   .content {
     padding: 0.75rem;
-    padding-bottom: 100px; /* Espaço para input fixo */
-    min-height: calc(100vh - 180px);
+    padding-bottom: 1.5rem;
+    min-height: 0;
     overflow-y: auto;
     overflow-x: hidden;
     scroll-behavior: smooth;
@@ -1674,6 +1676,7 @@ a {
   display: flex;
   flex-direction: column;
   height: 100%;
+  min-height: 0; /* Permite que o flex funcione corretamente */
   position: relative;
   max-width: 900px;
   margin: 0 auto;
@@ -1683,12 +1686,10 @@ a {
 
 /* Chat Input - Estilo ChatGPT */
 .chat-input-container {
-  position: sticky;
-  bottom: 0;
+  flex-shrink: 0;
   padding: 1rem 0;
-  background: linear-gradient(to top, rgba(255, 255, 255, 1) 0%, rgba(255, 255, 255, 0.95) 80%, rgba(255, 255, 255, 0) 100%);
-  z-index: 10;
-  margin-top: auto;
+  background: #ffffff;
+  border-top: 1px solid #e5e7eb;
 }
 
 .chat-input-wrapper {

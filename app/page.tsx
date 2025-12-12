@@ -519,8 +519,8 @@ export default function HomePage() {
   const activePatient = mockPatients.find(p => p.id === activePatientId) || null;
   const { setPreview, setOnSelectPatient } = usePreview();
 
-  // Função para abrir overview do paciente
-  const openPatientOverviewFromSelection = useCallback((patientId: string) => {
+  // Função para mostrar overview inline no chat (sem drawer) - usado no menu do input
+  const showPatientOverviewInline = useCallback((patientId: string) => {
     setActivePatientId(patientId);
     const patient = mockPatients.find(p => p.id === patientId);
     if (!patient) {
@@ -528,10 +528,7 @@ export default function HomePage() {
       return;
     }
 
-    // Abrir drawer com painel detalhado
-    setPreview('patient', { patient });
-
-    // Adicionar mensagem automática no chat com overview
+    // Adicionar mensagem automática no chat com overview (sem abrir drawer)
     const overviewMessage: Message = {
       id: crypto.randomUUID(),
       role: "agent",
@@ -545,17 +542,28 @@ export default function HomePage() {
       showTherapiesPanel: true
     };
     setConversation((prev) => [...prev, overviewMessage]);
-  }, [setPreview, setConversation]);
+  }, [setConversation]);
 
-  // Configurar handler de seleção de paciente
+  // Função para abrir drawer com paciente (usado em cards/big numbers)
+  const openPatientPreviewDrawer = useCallback((patientId: string) => {
+    setActivePatientId(patientId);
+    const patient = mockPatients.find(p => p.id === patientId);
+    if (!patient) {
+      console.error('Paciente não encontrado com ID:', patientId);
+      return;
+    }
+    setPreview('patient', { patient });
+  }, [setPreview]);
+
+  // Configurar handler de seleção de paciente (para cards/big numbers - abre drawer)
   useEffect(() => {
     const handleSelectPatient = (patientId: string) => {
       console.log('Selecionando paciente:', patientId); // Debug
-      openPatientOverviewFromSelection(patientId);
+      openPatientPreviewDrawer(patientId);
     };
     setOnSelectPatient(handleSelectPatient);
     return () => setOnSelectPatient(undefined);
-  }, [setOnSelectPatient, openPatientOverviewFromSelection]);
+  }, [setOnSelectPatient, openPatientPreviewDrawer]);
 
   useEffect(() => {
     if (conversationEndRef.current) {
@@ -698,11 +706,7 @@ export default function HomePage() {
                         <PrioritizationPanel 
                           patients={msg.topPatients} 
                           onSelectPatient={(patientId) => {
-                            setActivePatientId(patientId);
-                            const patient = mockPatients.find(p => p.id === patientId);
-                            if (patient) {
-                              setPreview('patient', { patient });
-                            }
+                            openPatientPreviewDrawer(patientId);
                           }}
                         />
                       )}
@@ -762,7 +766,7 @@ export default function HomePage() {
               onAgentChange={setCurrentAgent}
               patients={mockPatients}
               onSelectPatientFromUI={(patientId) => {
-                openPatientOverviewFromSelection(patientId);
+                showPatientOverviewInline(patientId);
               }}
             />
           </div>
