@@ -106,7 +106,9 @@ export function PatientDetailPanel({ patient }: PatientDetailPanelProps) {
                 {typeof lactato.valor === 'number' ? lactato.valor.toFixed(1) : lactato.valor} mmol/L
               </span>
               {lactato.tendencia && (
-                <span className="lab-trend">{lactato.tendencia === 'subindo' ? '↑' : lactato.tendencia === 'descendo' ? '↓' : '='}</span>
+                <span className="lab-trend">
+                  {lactato.tendencia === 'subindo' ? '↑' : lactato.tendencia === 'caindo' ? '↓' : '='}
+                </span>
               )}
             </div>
           )}
