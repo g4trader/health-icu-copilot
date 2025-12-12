@@ -163,7 +163,12 @@ export function ChatInput({
             <path
               strokeLinecap="round"
               strokeLinejoin="round"
-              d="M12 1v6m0 6v6m5-13a5 5 0 01-10 0M7 21h10M7 21a2 2 0 01-2-2v-6a2 2 0 012-2h10a2 2 0 012 2v6a2 2 0 01-2 2"
+              d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z"
+            />
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              d="M19 10v2a7 7 0 01-14 0v-2M12 19v4M8 23h8"
             />
           </svg>
         </button>
@@ -186,7 +191,7 @@ export function ChatInput({
             <path
               strokeLinecap="round"
               strokeLinejoin="round"
-              d="M6 12L3.269 3.126A59.768 59.768 0 0121.485 12 59.77 59.77 0 013.27 20.876L5.999 12zm0 0h7.5"
+              d="M5 10l7-7m0 0l7 7m-7-7v18"
             />
           </svg>
         </button>
