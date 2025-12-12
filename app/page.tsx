@@ -420,13 +420,6 @@ export default function HomePage() {
     setPreview('patient', { patient });
   }, [setPreview]);
 
-  // Declarar handleSend primeiro para usar em requestSpecialistOpinion
-  const handleSendRef = useRef<((messageText?: string) => void) | null>(null);
-
-  // Função para solicitar parecer de agente especialista (mantida para compatibilidade com PatientAgentButton)
-  const handleRequestAgentOpinion = useCallback((patientId: string, agentId: ClinicalAgentId) => {
-    requestSpecialistOpinion(agentId, patientId);
-  }, [requestSpecialistOpinion]);
 
   // Configurar handler de seleção de paciente (para cards/big numbers - abre drawer)
   useEffect(() => {
