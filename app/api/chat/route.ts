@@ -163,9 +163,14 @@ function detectIntent(
   const msg = message.toLowerCase().trim();
   
   // Detectar frases relacionadas a parecer
+  // Verificar se a mensagem contém nome de agente especialista
+  const agentNames = ['assistente geral', 'cardiologia', 'pneumologia', 'neurologia', 'cardio', 'pneumo', 'neuro'];
+  const hasAgentName = agentNames.some(name => msg.includes(name));
+  
   if (
-    (msg.includes("parecer") || msg.includes("opinião") || msg.includes("opiniao")) &&
-    (msg.includes("cardio") || msg.includes("pneumo") || msg.includes("neuro") || msg.includes("especialista"))
+    ((msg.includes("parecer") || msg.includes("opinião") || msg.includes("opiniao")) &&
+    (msg.includes("cardio") || msg.includes("pneumo") || msg.includes("neuro") || msg.includes("especialista"))) ||
+    (hasAgentName && (msg.includes("avalie") || msg.includes("parecer") || msg.includes("opinião") || msg.includes("opiniao")))
   ) {
     return "AGENTE_PARECER";
   }
