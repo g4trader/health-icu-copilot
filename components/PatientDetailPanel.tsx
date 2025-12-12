@@ -1,6 +1,7 @@
 "use client";
 
 import type { Patient } from "@/lib/mockData";
+import { PatientPinButton } from "./PatientPinButton";
 
 interface PatientDetailPanelProps {
   patient: Patient;
@@ -21,7 +22,10 @@ export function PatientDetailPanel({ patient }: PatientDetailPanelProps) {
     <div className="patient-detail-panel">
       {/* Resumo */}
       <div className="detail-section">
-        <h4 className="detail-section-title">Resumo</h4>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.75rem" }}>
+          <h4 className="detail-section-title">Resumo</h4>
+          <PatientPinButton patient={patient} />
+        </div>
         <div className="detail-summary">
           <div className="detail-row">
             <span className="detail-label">Leito:</span>

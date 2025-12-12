@@ -1,6 +1,21 @@
 "use client";
 
+import { useClinicalSession } from "@/lib/ClinicalSessionContext";
+import { usePreview } from "@/components/PreviewProvider";
+import { mockPatients } from "@/lib/mockData";
+
 export function LeftSidebar() {
+  const { pinnedPatients, setActivePatient } = useClinicalSession();
+  const { setPreview } = usePreview();
+
+  const handleSelectPatient = (patientId: string) => {
+    setActivePatient(patientId);
+    const patient = mockPatients.find(p => p.id === patientId);
+    if (patient) {
+      setPreview('patient', { patient });
+    }
+  };
+
   return (
     <aside className="left-sidebar">
       <div className="sidebar-content">
@@ -45,6 +60,45 @@ export function LeftSidebar() {
                 </button>
               </li>
             </ul>
+          </div>
+
+          {/* Seção Meus pacientes */}
+          <div className="sidebar-section">
+            <h3 className="sidebar-title">Meus pacientes</h3>
+            {pinnedPatients.length === 0 ? (
+              <p className="sidebar-empty-message">
+                Fixe pacientes importantes para acompanhar aqui.
+              </p>
+            ) : (
+              <ul className="sidebar-list">
+                {pinnedPatients.map((pinned) => {
+                  const patient = mockPatients.find(p => p.id === pinned.id);
+                  if (!patient) return null;
+                  
+                  return (
+                    <li key={pinned.id} className="sidebar-item">
+                      <button
+                        type="button"
+                        className="sidebar-pinned-patient"
+                        onClick={() => handleSelectPatient(pinned.id)}
+                      >
+                        <div className="sidebar-pinned-avatar">
+                          {pinned.bedId?.replace('UTI ', '') ?? patient.leito.replace('UTI ', '')}
+                        </div>
+                        <div className="sidebar-pinned-info">
+                          <span className="sidebar-pinned-name">
+                            {pinned.name}
+                          </span>
+                          <span className="sidebar-pinned-meta">
+                            Risco 24h: {Math.round((patient.riscoMortality24h * 100))}%
+                          </span>
+                        </div>
+                      </button>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
           </div>
         </nav>
       </div>

@@ -11,6 +11,8 @@ import { usePreview } from "@/components/PreviewProvider";
 import { MiniPatientSummary } from "@/components/MiniPatientSummary";
 import { VitalsPanel } from "@/components/VitalsPanel";
 import { TherapiesPanel } from "@/components/TherapiesPanel";
+import { PatientPinButton } from "@/components/PatientPinButton";
+import { useClinicalSession } from "@/lib/ClinicalSessionContext";
 
 type Message = {
   id: string;
@@ -92,9 +94,12 @@ function PrioritizationPanel({ patients, onSelectPatient }: { patients: Patient[
                       {p.idade} {p.idade === 1 ? "ano" : "anos"} • {p.peso?.toFixed(1) || "N/A"} kg
                     </div>
                   </div>
-                  <span className={`risk-pill ${riskLevel === "alto" ? "risk-high" : riskLevel === "moderado" ? "risk-medium" : "risk-low"}`}>
-                    Risco {(p.riscoMortality24h * 100).toFixed(0)}%
-                  </span>
+                  <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                    <PatientPinButton patient={p} />
+                    <span className={`risk-pill ${riskLevel === "alto" ? "risk-high" : riskLevel === "moderado" ? "risk-medium" : "risk-low"}`}>
+                      Risco {(p.riscoMortality24h * 100).toFixed(0)}%
+                    </span>
+                  </div>
                 </div>
                 <div className="prioritization-diagnosis">{p.diagnosticoPrincipal}</div>
                 <div className="prioritization-vitals">
@@ -518,6 +523,12 @@ export default function HomePage() {
   const [activePatientId, setActivePatientId] = useState<string | null>(null);
   const activePatient = mockPatients.find(p => p.id === activePatientId) || null;
   const { setPreview, setOnSelectPatient } = usePreview();
+  const { setActivePatient: setActivePatientFromContext } = useClinicalSession();
+
+  // Sincronizar activePatientId com o contexto
+  useEffect(() => {
+    setActivePatientFromContext(activePatientId || undefined);
+  }, [activePatientId, setActivePatientFromContext]);
 
   // Função para mostrar overview inline no chat (sem drawer) - usado no menu do input
   const showPatientOverviewInline = useCallback((patientId: string) => {

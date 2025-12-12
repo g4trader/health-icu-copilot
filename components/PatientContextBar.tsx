@@ -2,6 +2,7 @@
 
 import type { Patient } from "@/lib/mockData";
 import { usePreview } from "./PreviewProvider";
+import { PatientPinButton } from "./PatientPinButton";
 
 interface PatientContextBarProps {
   activePatient: Patient | null;
@@ -41,16 +42,19 @@ export function PatientContextBar({ activePatient, onClear }: PatientContextBarP
             {activePatient.idade} {activePatient.idade === 1 ? "ano" : "anos"} • {activePatient.diagnosticoPrincipal}
           </span>
         </div>
-        <div className="patient-context-chips">
-          <span className="patient-context-chip patient-context-chip-risk">
-            Risco 24h: {risk24h}%
-          </span>
-          <span className="patient-context-chip">
-            VM: {hasVM ? 'Sim' : 'Não'}
-          </span>
-          <span className="patient-context-chip">
-            Vasopressor: {hasVaso ? 'Sim' : 'Não'}
-          </span>
+        <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+          <PatientPinButton patient={activePatient} />
+          <div className="patient-context-chips">
+            <span className="patient-context-chip patient-context-chip-risk">
+              Risco 24h: {risk24h}%
+            </span>
+            <span className="patient-context-chip">
+              VM: {hasVM ? 'Sim' : 'Não'}
+            </span>
+            <span className="patient-context-chip">
+              Vasopressor: {hasVaso ? 'Sim' : 'Não'}
+            </span>
+          </div>
         </div>
       </div>
       <div className="patient-context-actions">

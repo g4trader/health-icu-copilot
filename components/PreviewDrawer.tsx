@@ -5,6 +5,7 @@ import { mockPatients, getTopPatients, riskLevelFromScore, calculateRiskScore } 
 import { getPatientsOnVentilation, getPatientsOnVasopressors, getHighRiskPatients } from "@/lib/icuSummary";
 import type { Patient } from "@/lib/mockData";
 import { PatientDetailPanel } from "./PatientDetailPanel";
+import { PatientPinButton } from "./PatientPinButton";
 
 export function PreviewDrawer() {
   const { previewType, previewPayload, clearPreview } = usePreview();
@@ -125,8 +126,11 @@ function AllPatientsPreview({ payload }: { payload: PreviewPayload | null }) {
                 }
               }}
             >
-              <div className="preview-item-header">
-                <strong>{p.leito}</strong> • {p.nome}
+              <div className="preview-item-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <div>
+                  <strong>{p.leito}</strong> • {p.nome}
+                </div>
+                <PatientPinButton patient={p} />
               </div>
               <div className="preview-item-details">
                 <div>{p.idade} anos • {p.diagnosticoPrincipal}</div>
@@ -158,8 +162,11 @@ function VentilatedPreview() {
               onSelectPatient?.(p.id);
             }}
           >
-            <div className="preview-item-header">
-              <strong>{p.leito}</strong> • {p.nome}
+            <div className="preview-item-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <div>
+                <strong>{p.leito}</strong> • {p.nome}
+              </div>
+              <PatientPinButton patient={p} />
             </div>
             <div className="preview-item-details">
               {p.ventilationParams && (
@@ -195,8 +202,11 @@ function VasopressorsPreview() {
                 onSelectPatient?.(p.id);
               }}
             >
-              <div className="preview-item-header">
-                <strong>{p.leito}</strong> • {p.nome}
+              <div className="preview-item-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <div>
+                  <strong>{p.leito}</strong> • {p.nome}
+                </div>
+                <PatientPinButton patient={p} />
               </div>
               <div className="preview-item-details">
                 {vaso && <div>Vasopressor: {vaso.nome} {vaso.dose}</div>}
@@ -231,8 +241,11 @@ function HighRiskPreview() {
               onSelectPatient?.(p.id);
             }}
           >
-            <div className="preview-item-header">
-              <strong>{p.leito}</strong> • {p.nome}
+            <div className="preview-item-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <div>
+                <strong>{p.leito}</strong> • {p.nome}
+              </div>
+              <PatientPinButton patient={p} />
             </div>
             <div className="preview-item-details">
               <div>Risco 24h: {(p.riscoMortality24h * 100).toFixed(0)}%</div>

@@ -1,6 +1,7 @@
 "use client";
 
 import type { Patient } from "@/lib/mockData";
+import { PatientPinButton } from "./PatientPinButton";
 
 interface MiniPatientSummaryProps {
   patient: Patient;
@@ -21,7 +22,9 @@ export function MiniPatientSummary({ patient }: MiniPatientSummaryProps) {
             {patient.idade} anos • {patient.diagnosticoPrincipal}
           </div>
         </div>
-        <div className="mini-patient-chips">
+        <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+          <PatientPinButton patient={patient} />
+          <div className="mini-patient-chips">
           <span className="mini-patient-chip mini-patient-chip-risk">
             Risco 24h: {risk24h}%
           </span>
@@ -31,6 +34,7 @@ export function MiniPatientSummary({ patient }: MiniPatientSummaryProps) {
           <span className={`mini-patient-chip ${hasVaso ? 'mini-patient-chip-active' : ''}`}>
             Vasopressor: {hasVaso ? 'Sim' : 'Não'}
           </span>
+        </div>
         </div>
       </div>
     </div>

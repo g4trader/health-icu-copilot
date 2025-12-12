@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import { PreviewProvider } from "@/components/PreviewProvider";
+import { ClinicalSessionProvider } from "@/lib/ClinicalSessionContext";
 
 export const metadata: Metadata = {
   title: "Health Copilot + - UTI Pediátrica",
@@ -23,9 +24,11 @@ export default function RootLayout({
         <meta name="theme-color" content="#10b981" />
       </head>
       <body>
-        <PreviewProvider>
-          {children}
-        </PreviewProvider>
+        <ClinicalSessionProvider>
+          <PreviewProvider>
+            {children}
+          </PreviewProvider>
+        </ClinicalSessionProvider>
       </body>
     </html>
   );
