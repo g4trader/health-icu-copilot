@@ -95,6 +95,12 @@ function AllPatientsPreview({ payload }: { payload: PreviewPayload | null }) {
   const patients = (payload?.patients || mockPatients) as Patient[];
   const { onSelectPatient } = usePreview();
 
+  // Debug: verificar estrutura dos dados
+  if (patients && patients.length > 0) {
+    console.log('AllPatientsPreview - Primeiro paciente:', patients[0]);
+    console.log('AllPatientsPreview - Primeiro paciente ID:', patients[0]?.id);
+  }
+
   return (
     <div className="preview-content">
       <div className="preview-list">
