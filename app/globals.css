@@ -2789,29 +2789,30 @@ a {
 }
 
 .patient-agent-icon-btn {
-  display: flex;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 28px;
-  height: 28px;
-  border: none;
-  background: transparent;
-  border-radius: 50%;
+  width: 2rem;
+  height: 2rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 9999px;
+  background: #ffffff;
+  color: #94a3b8;
   cursor: pointer;
-  color: #64748b;
   transition: all 0.2s ease;
   flex-shrink: 0;
   padding: 0;
 }
 
 .patient-agent-icon-btn:hover {
-  background: #f1f5f9;
-  color: #1e293b;
+  color: #059669;
+  border-color: #86efac;
+  background: #f0fdf4;
 }
 
 .patient-agent-icon {
-  width: 18px;
-  height: 18px;
+  width: 1rem;
+  height: 1rem;
 }
 
 .patient-agent-menu {
