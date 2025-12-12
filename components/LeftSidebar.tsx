@@ -53,10 +53,10 @@ export function LeftSidebar() {
       <div className="sidebar-footer">
         <div className="sidebar-user">
           <div className="sidebar-user-avatar">
-            FS
+            A
           </div>
           <div className="sidebar-user-info">
-            <span className="sidebar-user-name">Fabiano Souza</span>
+            <span className="sidebar-user-name">Aristóteles</span>
             <span className="sidebar-user-role">UTI Pediátrica A</span>
           </div>
         </div>
