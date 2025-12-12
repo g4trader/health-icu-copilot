@@ -2140,6 +2140,170 @@ a {
   color: #10b981;
 }
 
+/* Chat Input - Left Buttons Group */
+.chat-input-left-buttons {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* Chat Input - Patient Menu */
+.chat-input-patient-menu {
+  position: absolute;
+  bottom: 100%;
+  left: 1rem;
+  margin-bottom: 0.5rem;
+  z-index: 50;
+  width: 20rem;
+  max-height: 20rem;
+  overflow-y: auto;
+  border-radius: 1rem;
+  border: 1px solid #e5e7eb;
+  background: #ffffff;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+}
+
+.chat-input-patient-menu-header {
+  padding: 0.75rem 1rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #64748b;
+  border-bottom: 1px solid #e5e7eb;
+  background: #f9fafb;
+  border-radius: 1rem 1rem 0 0;
+}
+
+.chat-input-patient-menu-list {
+  list-style: none;
+  margin: 0;
+  padding: 0.25rem 0;
+}
+
+.chat-input-patient-menu-item {
+  width: 100%;
+  text-align: left;
+  padding: 0.75rem 1rem;
+  background: transparent;
+  border: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.chat-input-patient-menu-item:hover {
+  background: #f9fafb;
+}
+
+.chat-input-patient-menu-name {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #1e293b;
+}
+
+.chat-input-patient-menu-meta {
+  font-size: 0.75rem;
+  color: #64748b;
+}
+
+/* Mini Patient Summary */
+.mini-patient-summary {
+  margin-top: 1rem;
+  padding: 1rem;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.75rem;
+}
+
+.mini-patient-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+}
+
+.mini-patient-bed {
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #64748b;
+}
+
+.mini-patient-name {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #1e293b;
+  margin: 0.25rem 0;
+}
+
+.mini-patient-meta {
+  font-size: 0.875rem;
+  color: #64748b;
+}
+
+.mini-patient-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.mini-patient-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.25rem 0.75rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  background: #f1f5f9;
+  color: #475569;
+}
+
+.mini-patient-chip-risk {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.mini-patient-chip-active {
+  background: #dbeafe;
+  color: #1e40af;
+}
+
+/* Mini Panels */
+.mini-panel {
+  margin-top: 1rem;
+  padding: 1rem;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.75rem;
+}
+
+.mini-panel-title {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #1e293b;
+  margin-bottom: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.mini-panel-section {
+  margin-bottom: 1rem;
+}
+
+.mini-panel-section:last-child {
+  margin-bottom: 0;
+}
+
+.vitals-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+  gap: 0.75rem;
+}
+
 .preview-patient-details {
   display: flex;
   flex-direction: column;

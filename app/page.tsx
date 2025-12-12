@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { mockPatients, getTopPatients, riskLevelFromScore, mockUnitProfile, type Patient } from "@/lib/mockData";
 import type { ClinicalAgentType } from "@/lib/clinicalAgents";
 import { ContextSnapshot } from "@/components/ContextSnapshot";
@@ -8,6 +8,9 @@ import { AppShell } from "@/components/AppShell";
 import { ChatInput } from "@/components/ChatInput";
 import { PatientContextBar } from "@/components/PatientContextBar";
 import { usePreview } from "@/components/PreviewProvider";
+import { MiniPatientSummary } from "@/components/MiniPatientSummary";
+import { VitalsPanel } from "@/components/VitalsPanel";
+import { TherapiesPanel } from "@/components/TherapiesPanel";
 
 type Message = {
   id: string;
@@ -19,6 +22,12 @@ type Message = {
   showIcuPanel?: boolean;
   showLabPanel?: boolean;
   showUnitProfilePanel?: boolean;
+  type?: 'patient-overview';
+  patientId?: string;
+  showPatientMiniPanel?: boolean;
+  showVitalsPanel?: boolean;
+  showLabsPanel?: boolean;
+  showTherapiesPanel?: boolean;
 };
 
 type AgentReply = {
@@ -510,29 +519,43 @@ export default function HomePage() {
   const activePatient = mockPatients.find(p => p.id === activePatientId) || null;
   const { setPreview, setOnSelectPatient } = usePreview();
 
+  // Função para abrir overview do paciente
+  const openPatientOverviewFromSelection = useCallback((patientId: string) => {
+    setActivePatientId(patientId);
+    const patient = mockPatients.find(p => p.id === patientId);
+    if (!patient) {
+      console.error('Paciente não encontrado com ID:', patientId);
+      return;
+    }
+
+    // Abrir drawer com painel detalhado
+    setPreview('patient', { patient });
+
+    // Adicionar mensagem automática no chat com overview
+    const overviewMessage: Message = {
+      id: crypto.randomUUID(),
+      role: "agent",
+      text: `Mostrando overview do paciente ${patient.leito} • ${patient.nome}.`,
+      type: 'patient-overview',
+      patientId: patientId,
+      focusedPatient: patient,
+      showPatientMiniPanel: true,
+      showVitalsPanel: true,
+      showLabsPanel: true,
+      showTherapiesPanel: true
+    };
+    setConversation((prev) => [...prev, overviewMessage]);
+  }, [setPreview, setConversation]);
+
   // Configurar handler de seleção de paciente
   useEffect(() => {
     const handleSelectPatient = (patientId: string) => {
       console.log('Selecionando paciente:', patientId); // Debug
-      setActivePatientId(patientId);
-      const patient = mockPatients.find(p => p.id === patientId);
-      if (patient) {
-        console.log('Paciente encontrado:', patient.nome); // Debug
-        setPreview('patient', { patient });
-        // Adicionar mensagem de sistema leve no chat
-        const systemMessage: Message = {
-          id: crypto.randomUUID(),
-          role: "agent",
-          text: `Agora estou focando no paciente ${patient.leito} • ${patient.nome} (${patient.idade} ${patient.idade === 1 ? "ano" : "anos"}).`
-        };
-        setConversation((prev) => [...prev, systemMessage]);
-      } else {
-        console.error('Paciente não encontrado com ID:', patientId);
-      }
+      openPatientOverviewFromSelection(patientId);
     };
     setOnSelectPatient(handleSelectPatient);
     return () => setOnSelectPatient(undefined);
-  }, [setPreview, setOnSelectPatient, setConversation]);
+  }, [setOnSelectPatient, openPatientOverviewFromSelection]);
 
   useEffect(() => {
     if (conversationEndRef.current) {
@@ -684,11 +707,29 @@ export default function HomePage() {
                         />
                       )}
                       
-                      {msg.role === "agent" && msg.focusedPatient && (
+                      {msg.role === "agent" && msg.focusedPatient && !msg.type && (
                         <PatientDetailPanel patient={msg.focusedPatient} />
                       )}
 
-                      {msg.role === "agent" && msg.showLabPanel && msg.topPatients && msg.topPatients.length > 0 && (
+                      {/* Overview do paciente com micro-painéis */}
+                      {msg.role === "agent" && msg.type === 'patient-overview' && msg.focusedPatient && (
+                        <>
+                          {msg.showPatientMiniPanel && (
+                            <MiniPatientSummary patient={msg.focusedPatient} />
+                          )}
+                          {msg.showVitalsPanel && (
+                            <VitalsPanel patient={msg.focusedPatient} />
+                          )}
+                          {msg.showLabsPanel && (
+                            <LabPanel patients={msg.focusedPatient ? [msg.focusedPatient] : []} />
+                          )}
+                          {msg.showTherapiesPanel && (
+                            <TherapiesPanel patient={msg.focusedPatient} />
+                          )}
+                        </>
+                      )}
+
+                      {msg.role === "agent" && msg.showLabPanel && msg.topPatients && msg.topPatients.length > 0 && !msg.type && (
                         <LabPanel patients={msg.topPatients} />
                       )}
 
@@ -719,6 +760,10 @@ export default function HomePage() {
               loading={loading}
               currentAgent={currentAgent}
               onAgentChange={setCurrentAgent}
+              patients={mockPatients}
+              onSelectPatientFromUI={(patientId) => {
+                openPatientOverviewFromSelection(patientId);
+              }}
             />
           </div>
         </section>
