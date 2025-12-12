@@ -806,7 +806,7 @@ a {
   flex-direction: column;
   gap: 1.5rem;
   width: 100%;
-  padding: 1.5rem 0;
+  padding: 1.5rem 0 7rem 0; /* padding-bottom aumentado para evitar conteúdo passar por baixo do input */
   flex: 1;
   overflow-y: auto;
   min-height: 0; /* Permite que o flex funcione corretamente */
