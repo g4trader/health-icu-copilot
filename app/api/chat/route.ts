@@ -24,7 +24,7 @@ import {
   addIntentionToHistory,
   resolveAmbiguity
 } from "@/lib/clinicalMemory";
-import { detectAgent, getAgent, type ClinicalAgentType } from "@/lib/clinicalAgents";
+import { detectAgent, getAgent, getClinicalAgent, buildAgentOpinion, type ClinicalAgentType, type ClinicalAgentId } from "@/lib/clinicalAgents";
 import { storeResearchEntry, desidentifyText } from "@/lib/researchStore";
 
 interface RequestBody {
@@ -36,6 +36,8 @@ interface RequestBody {
   unidade?: string;
   turno?: string;
   currentAgent?: ClinicalAgentType;
+  agentId?: ClinicalAgentId;
+  patientId?: string;
 }
 
 const VERSION = "1.0.0";
@@ -54,13 +56,97 @@ type Intent =
   | "BALANCO_HIDRICO"
   | "PERFIL_UNIDADE"
   | "CALCULO_CLINICO"
+  | "AGENTE_PARECER"
   | "FALLBACK";
+
+/**
+ * Handler para intenção de AGENTE_PARECER
+ */
+function handleAgentOpinionIntent(patientId: string, agentId: ClinicalAgentId): { 
+  reply: string; 
+  showIcuPanel: boolean;
+  agentId: ClinicalAgentId;
+  focusedPatient?: PatientType;
+  showPatientOverview?: boolean;
+  showVitalsPanel?: boolean;
+  showLabsPanel?: boolean;
+  showTherapiesPanel?: boolean;
+} {
+  const patient = mockPatients.find(p => p.id === patientId);
+  if (!patient) {
+    return { 
+      reply: "Paciente não encontrado. Tente selecionar novamente." + DISCLAIMER,
+      showIcuPanel: false,
+      agentId 
+    };
+  }
+
+  const opinion = buildAgentOpinion(patient, agentId);
+  const agent = getClinicalAgent(agentId);
+
+  const lines: string[] = [];
+  lines.push(opinion.title);
+  lines.push("");
+  lines.push("**Resumo do caso**");
+  lines.push(opinion.summary);
+  lines.push("");
+  lines.push("**Impressão diagnóstica**");
+  lines.push(opinion.diagnosticImpression);
+  lines.push("");
+  
+  if (opinion.suggestedExams.length > 0) {
+    lines.push("**Exames recomendados**");
+    opinion.suggestedExams.forEach(exam => {
+      lines.push(`- ${exam}`);
+    });
+    lines.push("");
+  }
+  
+  if (opinion.treatmentSuggestions.length > 0) {
+    lines.push("**Sugestões terapêuticas**");
+    opinion.treatmentSuggestions.forEach(suggestion => {
+      lines.push(`- ${suggestion}`);
+    });
+    lines.push("");
+  }
+  
+  lines.push("⚠️ *Este é um parecer automatizado com dados simulados. Sempre confirme condutas com a equipe médica e protocolos locais.*");
+
+  return {
+    reply: lines.join("\n"),
+    showIcuPanel: false,
+    agentId,
+    focusedPatient: patient,
+    showPatientOverview: true,
+    showVitalsPanel: true,
+    showLabsPanel: true,
+    showTherapiesPanel: true
+  };
+}
 
 /**
  * Parser simples de intenção por palavras-chave
  */
-function detectIntent(message: string, focusedPatientId: string | null): Intent {
+function detectIntent(
+  message: string, 
+  focusedPatientId: string | null, 
+  agentId?: ClinicalAgentId,
+  requestPatientId?: string
+): Intent {
+  // Se há agentId e patientId (ou paciente focado), é AGENTE_PARECER
+  if (agentId && agentId !== 'general' && (requestPatientId || focusedPatientId)) {
+    return "AGENTE_PARECER";
+  }
+
   const msg = message.toLowerCase().trim();
+  
+  // Detectar frases relacionadas a parecer
+  if (
+    (msg.includes("parecer") || msg.includes("opinião") || msg.includes("opiniao")) &&
+    (msg.includes("cardio") || msg.includes("pneumo") || msg.includes("neuro") || msg.includes("especialista"))
+  ) {
+    return "AGENTE_PARECER";
+  }
 
   // PRIORITIZACAO
   if (
@@ -688,12 +774,29 @@ export async function POST(req: Request) {
     }
 
     // Detectar intenção e usar memória para resolver ambiguidades
-    let intent = detectIntent(message, focusedId);
+    const agentIdFromBody = body.agentId as ClinicalAgentId | undefined;
+    const requestPatientId = body.patientId as string | undefined;
+    
+    let intent = detectIntent(message, focusedId, agentIdFromBody, requestPatientId);
     intent = resolveAmbiguity(sessionId, intent, message) as Intent;
     
     // Adicionar à memória
     addIntentionToHistory(sessionId, intent, focusedId);
-    let result: { reply: string; showIcuPanel: boolean; topN?: number; topPatients?: PatientType[]; focusedPatient?: PatientType; calculationData?: any; showLabPanel?: boolean; showUnitProfilePanel?: boolean };
+    let result: { 
+      reply: string; 
+      showIcuPanel: boolean; 
+      topN?: number; 
+      topPatients?: PatientType[]; 
+      focusedPatient?: PatientType; 
+      calculationData?: any; 
+      showLabPanel?: boolean; 
+      showUnitProfilePanel?: boolean;
+      agentId?: ClinicalAgentId;
+      showPatientOverview?: boolean;
+      showVitalsPanel?: boolean;
+      showLabsPanel?: boolean;
+      showTherapiesPanel?: boolean;
+    };
 
     switch (intent) {
       case "PRIORITIZACAO": {
@@ -742,6 +845,19 @@ export async function POST(req: Request) {
       case "CALCULO_CLINICO":
         result = handleClinicalCalculationIntent(message, focusedId);
         break;
+      case "AGENTE_PARECER": {
+        const patientIdToUse = requestPatientId || focusedId;
+        const agentIdToUse = agentIdFromBody || 'general';
+        if (!patientIdToUse) {
+          result = { 
+            reply: "Para solicitar um parecer de especialista, é necessário selecionar um paciente primeiro." + DISCLAIMER, 
+            showIcuPanel: false 
+          };
+        } else {
+          result = handleAgentOpinionIntent(patientIdToUse, agentIdToUse);
+        }
+        break;
+      }
       default:
         result = handleFallbackIntent();
     }
@@ -826,7 +942,12 @@ export async function POST(req: Request) {
       showUnitProfilePanel: result.showUnitProfilePanel,
       intent: intent,
       agent: selectedAgent,
-      agentName: agent.name
+      agentName: agent.name,
+      agentId: result.agentId,
+      showPatientOverview: result.showPatientOverview,
+      showVitalsPanel: result.showVitalsPanel,
+      showLabsPanel: result.showLabsPanel,
+      showTherapiesPanel: result.showTherapiesPanel
     });
   } catch (error) {
     return NextResponse.json(

@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect, useCallback } from "react";
 import { mockPatients, getTopPatients, riskLevelFromScore, mockUnitProfile, type Patient } from "@/lib/mockData";
-import type { ClinicalAgentType } from "@/lib/clinicalAgents";
+import { clinicalAgents, type ClinicalAgentType, type ClinicalAgentId } from "@/lib/clinicalAgents";
 import { ContextSnapshot } from "@/components/ContextSnapshot";
 import { AppShell } from "@/components/AppShell";
 import { ChatInput } from "@/components/ChatInput";
@@ -11,14 +11,18 @@ import { usePreview } from "@/components/PreviewProvider";
 import { MiniPatientSummary } from "@/components/MiniPatientSummary";
 import { VitalsPanel } from "@/components/VitalsPanel";
 import { TherapiesPanel } from "@/components/TherapiesPanel";
+import { LabPanel } from "@/components/LabPanel";
+import { UnitProfilePanel } from "@/components/UnitProfilePanel";
+import { PatientDetailPanel } from "@/components/PatientDetailPanel";
 import { PatientPinButton } from "@/components/PatientPinButton";
+import { PatientAgentButton } from "@/components/PatientAgentButton";
 import { useClinicalSession } from "@/lib/ClinicalSessionContext";
 
 type Message = {
   id: string;
   role: "user" | "agent";
   text: string;
-  intent?: "PRIORITIZACAO" | "PACIENTE_ESPECIFICO" | "SINAIS_VITAIS" | "BALANCO_HIDRICO" | "PERFIL_UNIDADE" | "CALCULO_CLINICO" | "FALLBACK";
+  intent?: "PRIORITIZACAO" | "PACIENTE_ESPECIFICO" | "SINAIS_VITAIS" | "BALANCO_HIDRICO" | "PERFIL_UNIDADE" | "CALCULO_CLINICO" | "AGENTE_PARECER" | "FALLBACK";
   topPatients?: Patient[];
   focusedPatient?: Patient;
   showIcuPanel?: boolean;
@@ -30,6 +34,7 @@ type Message = {
   showVitalsPanel?: boolean;
   showLabsPanel?: boolean;
   showTherapiesPanel?: boolean;
+  agentId?: ClinicalAgentId;
 };
 
 type AgentReply = {
@@ -43,7 +48,12 @@ type AgentReply = {
   intent?: string;
   agent?: ClinicalAgentType;
   agentName?: string;
+  agentId?: ClinicalAgentId;
   selectedPatientId?: string;
+  showPatientOverview?: boolean;
+  showVitalsPanel?: boolean;
+  showLabsPanel?: boolean;
+  showTherapiesPanel?: boolean;
 };
 
 function LoadingSkeleton() {
@@ -66,7 +76,15 @@ function LoadingSkeleton() {
   );
 }
 
-function PrioritizationPanel({ patients, onSelectPatient }: { patients: Patient[]; onSelectPatient?: (patientId: string) => void }) {
+function PrioritizationPanel({ 
+  patients, 
+  onSelectPatient,
+  onRequestOpinion 
+}: { 
+  patients: Patient[]; 
+  onSelectPatient?: (patientId: string) => void;
+  onRequestOpinion?: (patientId: string, agentId: ClinicalAgentId) => void;
+}) {
   return (
     <div className="prioritization-panel">
       <div className="panel-header">
@@ -96,6 +114,12 @@ function PrioritizationPanel({ patients, onSelectPatient }: { patients: Patient[
                   </div>
                   <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
                     <PatientPinButton patient={p} />
+                    {onRequestOpinion && (
+                      <PatientAgentButton 
+                        patientId={p.id} 
+                        onRequestOpinion={onRequestOpinion}
+                      />
+                    )}
                     <span className={`risk-pill ${riskLevel === "alto" ? "risk-high" : riskLevel === "moderado" ? "risk-medium" : "risk-low"}`}>
                       Risco {(p.riscoMortality24h * 100).toFixed(0)}%
                     </span>
@@ -520,6 +544,7 @@ export default function HomePage() {
   // Contexto de sessão clínica (mock)
   const sessionIdRef = useRef<string>(`session-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`);
   const [currentAgent, setCurrentAgent] = useState<"default" | "cardiology" | "pneumology" | "neurology">("default");
+  const [selectedAgentId, setSelectedAgentId] = useState<"general" | "cardiology" | "pneumology" | "neurology">("general");
   const [activePatientId, setActivePatientId] = useState<string | null>(null);
   const activePatient = mockPatients.find(p => p.id === activePatientId) || null;
   const { setPreview, setOnSelectPatient } = usePreview();
@@ -566,6 +591,55 @@ export default function HomePage() {
     setPreview('patient', { patient });
   }, [setPreview]);
 
+  // Função para solicitar parecer de agente especialista
+  const handleRequestAgentOpinion = useCallback(async (patientId: string, agentId: ClinicalAgentId) => {
+    setActivePatientId(patientId);
+    
+    try {
+      const res = await fetch("/api/agent-opinion", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ patientId, agentId })
+      });
+
+      if (!res.ok) {
+        throw new Error("Erro ao solicitar parecer");
+      }
+
+      const data = await res.json();
+      const patient = mockPatients.find(p => p.id === patientId);
+      
+      if (!patient) {
+        console.error('Paciente não encontrado');
+        return;
+      }
+
+      // Adicionar mensagem do parecer no chat
+      const opinionMessage: Message = {
+        id: crypto.randomUUID(),
+        role: "agent",
+        text: data.text,
+        intent: 'AGENTE_PARECER',
+        focusedPatient: data.focusedPatient || patient,
+        agentId: data.agentId,
+        showPatientMiniPanel: data.showPatientOverview,
+        showVitalsPanel: data.showVitalsPanel,
+        showLabsPanel: data.showLabsPanel,
+        showTherapiesPanel: data.showTherapiesPanel
+      };
+      
+      setConversation((prev) => [...prev, opinionMessage]);
+    } catch (error) {
+      console.error("Erro ao solicitar parecer:", error);
+      const errorMessage: Message = {
+        id: crypto.randomUUID(),
+        role: "agent",
+        text: "Tive um problema para solicitar o parecer. Tente novamente."
+      };
+      setConversation((prev) => [...prev, errorMessage]);
+    }
+  }, [setConversation]);
+
   // Configurar handler de seleção de paciente (para cards/big numbers - abre drawer)
   useEffect(() => {
     const handleSelectPatient = (patientId: string) => {
@@ -582,17 +656,20 @@ export default function HomePage() {
     }
   }, [conversation, loading]);
 
-  async function handleSend(messageText?: string) {
+  async function handleSend(messageText?: string, agentIdParam?: ClinicalAgentId) {
     const textToSend = messageText || input.trim();
     if (!textToSend || loading) return;
 
     setLoading(true);
 
+    const agentIdToUse = agentIdParam || selectedAgentId;
+
     // Mensagem do usuário entra imediatamente no histórico
     const userMessage: Message = {
       id: crypto.randomUUID(),
       role: "user",
-      text: textToSend
+      text: textToSend,
+      agentId: agentIdToUse !== 'general' ? agentIdToUse : undefined
     };
     setConversation((prev) => [...prev, userMessage]);
     setInput("");
@@ -609,7 +686,9 @@ export default function HomePage() {
           role: "plantonista",
           unidade: "UTI Pediátrica A",
           turno: "manhã",
-          currentAgent: currentAgent
+          currentAgent: currentAgent,
+          agentId: agentIdToUse !== 'general' ? agentIdToUse : undefined,
+          patientId: activePatientId || undefined
         })
       });
 
@@ -638,7 +717,12 @@ export default function HomePage() {
         focusedPatient: data.focusedPatient,
         showIcuPanel: data.showIcuPanel,
         showLabPanel: data.showLabPanel,
-        showUnitProfilePanel: data.showUnitProfilePanel
+        showUnitProfilePanel: data.showUnitProfilePanel,
+        agentId: data.agentId,
+        showPatientMiniPanel: data.showPatientOverview,
+        showVitalsPanel: data.showVitalsPanel,
+        showLabsPanel: data.showLabsPanel,
+        showTherapiesPanel: data.showTherapiesPanel
       };
 
       setConversation((prev) => [...prev, agentMessage]);
@@ -712,7 +796,30 @@ export default function HomePage() {
                   {conversation.map((msg) => (
                   <div key={msg.id} className={`msg-container ${msg.role === "user" ? "msg-user-wrapper" : "msg-agent-wrapper"}`}>
                     <div className={`msg-bubble ${msg.role === "user" ? "msg-user" : "msg-agent"}`}>
+                      {msg.role === "user" && msg.agentId && msg.agentId !== 'general' && (
+                        <div className="msg-agent-chip">
+                          Agente: {clinicalAgents[msg.agentId].emoji} {clinicalAgents[msg.agentId].name}
+                        </div>
+                      )}
                       <div className="msg-text" style={{ whiteSpace: "pre-wrap" }}>{msg.text}</div>
+                      
+                      {/* Parecer de agente com micro dashboards */}
+                      {msg.role === "agent" && msg.intent === 'AGENTE_PARECER' && msg.focusedPatient && (
+                        <>
+                          {msg.showPatientMiniPanel && (
+                            <MiniPatientSummary patient={msg.focusedPatient} />
+                          )}
+                          {msg.showVitalsPanel && (
+                            <VitalsPanel patient={msg.focusedPatient} />
+                          )}
+                          {msg.showLabsPanel && (
+                            <LabPanel patients={[msg.focusedPatient]} />
+                          )}
+                          {msg.showTherapiesPanel && (
+                            <TherapiesPanel patient={msg.focusedPatient} />
+                          )}
+                        </>
+                      )}
                       
                       {msg.role === "agent" && msg.showIcuPanel && msg.topPatients && msg.topPatients.length > 0 && (
                         <PrioritizationPanel 
@@ -720,6 +827,7 @@ export default function HomePage() {
                           onSelectPatient={(patientId) => {
                             openPatientPreviewDrawer(patientId);
                           }}
+                          onRequestOpinion={handleRequestAgentOpinion}
                         />
                       )}
                       

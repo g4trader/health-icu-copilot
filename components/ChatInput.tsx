@@ -1,19 +1,22 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import type { ClinicalAgentType } from "@/lib/clinicalAgents";
+import type { ClinicalAgentType, ClinicalAgentId } from "@/lib/clinicalAgents";
 import type { Patient } from "@/lib/mockData";
+import { AgentSelector } from "./AgentSelector";
 
 interface ChatInputProps {
   value: string;
   onChange: (value: string) => void;
-  onSend: (message?: string) => void;
+  onSend: (message?: string, agentId?: ClinicalAgentId) => void;
   onKeyDown: (e: React.KeyboardEvent<HTMLInputElement>) => void;
   loading: boolean;
   currentAgent: ClinicalAgentType;
   onAgentChange: (agent: ClinicalAgentType) => void;
   patients?: Patient[];
   onSelectPatientFromUI?: (patientId: string) => void;
+  selectedAgentId?: ClinicalAgentId;
+  onAgentIdChange?: (agentId: ClinicalAgentId) => void;
 }
 
 export function ChatInput({
@@ -25,7 +28,9 @@ export function ChatInput({
   currentAgent,
   onAgentChange,
   patients = [],
-  onSelectPatientFromUI
+  onSelectPatientFromUI,
+  selectedAgentId = 'general',
+  onAgentIdChange
 }: ChatInputProps) {
   const [showMenu, setShowMenu] = useState(false);
   const [isPatientMenuOpen, setIsPatientMenuOpen] = useState(false);
@@ -129,6 +134,13 @@ export function ChatInput({
             </svg>
           </button>
         </div>
+
+        <AgentSelector
+          selectedAgentId={selectedAgentId}
+          onSelect={(agentId) => {
+            onAgentIdChange?.(agentId);
+          }}
+        />
 
         {showMenu && (
           <div className="chat-input-menu" ref={menuRef}>
@@ -249,7 +261,7 @@ export function ChatInput({
         <button
           className="chat-input-send-btn"
           type="button"
-          onClick={() => void onSend()}
+          onClick={() => void onSend(undefined, selectedAgentId)}
           disabled={loading || !value.trim()}
           aria-label="Enviar mensagem"
         >
