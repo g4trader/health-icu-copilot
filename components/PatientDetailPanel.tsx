@@ -168,10 +168,12 @@ export function PatientDetailPanel({ patient }: PatientDetailPanelProps) {
               <span className="vent-label">PEEP:</span>
               <span className="vent-value">{patient.ventilationParams.peep} cmH₂O</span>
             </div>
-            <div className="vent-param">
-              <span className="vent-label">Pressão de Pico:</span>
-              <span className="vent-value">{patient.ventilationParams.pressaoPico} cmH₂O</span>
-            </div>
+            {patient.ventilationParams.pressaoSuporte && (
+              <div className="vent-param">
+                <span className="vent-label">Pressão de Suporte:</span>
+                <span className="vent-value">{patient.ventilationParams.pressaoSuporte} cmH₂O</span>
+              </div>
+            )}
           </div>
         </div>
       )}
