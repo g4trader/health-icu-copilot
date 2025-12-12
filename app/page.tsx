@@ -513,9 +513,11 @@ export default function HomePage() {
   // Configurar handler de seleção de paciente
   useEffect(() => {
     const handleSelectPatient = (patientId: string) => {
+      console.log('Selecionando paciente:', patientId); // Debug
       setActivePatientId(patientId);
       const patient = mockPatients.find(p => p.id === patientId);
       if (patient) {
+        console.log('Paciente encontrado:', patient.nome); // Debug
         setPreview('patient', { patient });
         // Adicionar mensagem de sistema leve no chat
         const systemMessage: Message = {
@@ -524,11 +526,13 @@ export default function HomePage() {
           text: `Agora estou focando no paciente ${patient.leito} • ${patient.nome} (${patient.idade} ${patient.idade === 1 ? "ano" : "anos"}).`
         };
         setConversation((prev) => [...prev, systemMessage]);
+      } else {
+        console.error('Paciente não encontrado com ID:', patientId);
       }
     };
     setOnSelectPatient(handleSelectPatient);
     return () => setOnSelectPatient(undefined);
-  }, [setPreview, setOnSelectPatient]);
+  }, [setPreview, setOnSelectPatient, setConversation]);
 
   useEffect(() => {
     if (conversationEndRef.current) {

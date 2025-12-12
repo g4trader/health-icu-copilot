@@ -137,7 +137,10 @@ function VentilatedPreview() {
             key={p.id}
             type="button"
             className="preview-item preview-item-clickable"
-            onClick={() => onSelectPatient?.(p.id)}
+            onClick={(e) => {
+              e.stopPropagation();
+              onSelectPatient?.(p.id);
+            }}
           >
             <div className="preview-item-header">
               <strong>{p.leito}</strong> • {p.nome}
@@ -171,7 +174,10 @@ function VasopressorsPreview() {
               key={p.id}
               type="button"
               className="preview-item preview-item-clickable"
-              onClick={() => onSelectPatient?.(p.id)}
+              onClick={(e) => {
+                e.stopPropagation();
+                onSelectPatient?.(p.id);
+              }}
             >
               <div className="preview-item-header">
                 <strong>{p.leito}</strong> • {p.nome}
@@ -204,7 +210,10 @@ function HighRiskPreview() {
             key={p.id}
             type="button"
             className="preview-item preview-item-clickable"
-            onClick={() => onSelectPatient?.(p.id)}
+            onClick={(e) => {
+              e.stopPropagation();
+              onSelectPatient?.(p.id);
+            }}
           >
             <div className="preview-item-header">
               <strong>{p.leito}</strong> • {p.nome}
