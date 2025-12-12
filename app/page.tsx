@@ -512,19 +512,44 @@ export default function HomePage() {
     } finally {
       setLoading(false);
     }
-  }
+  }, [activePatientId, sessionIdRef, currentAgent, setConversation, setInput, loading]);
 
-  function handleKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
+  /**
+   * Função utilitária para solicitar parecer de agente especialista
+   * Dispara uma mensagem automática no chat que será processada pelo backend
+   */
+  const requestSpecialistOpinion = useCallback((agentId: ClinicalAgentId, patientId: string) => {
+    const patient = mockPatients.find(p => p.id === patientId);
+    if (!patient) {
+      console.error('Paciente não encontrado');
+      return;
+    }
+
+    const agent = clinicalAgents[agentId];
+    
+    // Construir mensagem automática para o chat
+    const message = `${agent.name}, avalie o caso do paciente ${patient.leito} - ${patient.nome} (${patient.idade} ${patient.idade === 1 ? 'ano' : 'anos'}, ${patient.diagnosticoPrincipal}) e sugira condutas ou exames complementares.`;
+
+    // Disparar mensagem usando o fluxo de envio do chat (simulando que o usuário digitou isso)
+    handleSend(message);
+  }, [handleSend]);
+
+  // Função para solicitar parecer de agente especialista (mantida para compatibilidade com PatientAgentButton)
+  const handleRequestAgentOpinion = useCallback((patientId: string, agentId: ClinicalAgentId) => {
+    requestSpecialistOpinion(agentId, patientId);
+  }, [requestSpecialistOpinion]);
+
+  const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       void handleSend();
     }
-  }
+  }, [handleSend]);
 
-  function handlePromptClick(prompt: string) {
+  const handlePromptClick = useCallback((prompt: string) => {
     // Enviar a pergunta automaticamente
     void handleSend(prompt);
-  }
+  }, [handleSend]);
 
   return (
     <div className="app-wrapper">
