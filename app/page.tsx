@@ -5,6 +5,7 @@ import { mockPatients, getTopPatients, riskLevelFromScore, mockUnitProfile, type
 import type { ClinicalAgentType } from "@/lib/clinicalAgents";
 import { ContextSnapshot } from "@/components/ContextSnapshot";
 import { AppShell } from "@/components/AppShell";
+import { ChatInput } from "@/components/ChatInput";
 
 type Message = {
   id: string;
@@ -607,90 +608,68 @@ export default function HomePage() {
 
       <AppShell>
         <section className="content">
-        {conversation.length === 0 && !loading && (
-          <div className="hero">
-            <h1 className="hero-title">Como posso ajudar a UTI pediátrica hoje?</h1>
-            <p className="hero-subtitle">
-              Faça uma pergunta sobre risco de mortalidade, prioridade de atendimento, exames laboratoriais, 
-              imagens, prescrições ou perfil da unidade.
-            </p>
-            <ContextSnapshot onPromptClick={handlePromptClick} />
-          </div>
-        )}
-
-        {conversation.length > 0 && (
-          <div className="conversation">
-            {conversation.map((msg) => (
-              <div key={msg.id} className={`msg-container ${msg.role === "user" ? "msg-user-wrapper" : "msg-agent-wrapper"}`}>
-                <div className={`msg-bubble ${msg.role === "user" ? "msg-user" : "msg-agent"}`}>
-                  <div className="msg-text" style={{ whiteSpace: "pre-wrap" }}>{msg.text}</div>
-                  
-                  {msg.role === "agent" && msg.showIcuPanel && msg.topPatients && msg.topPatients.length > 0 && (
-                    <PrioritizationPanel patients={msg.topPatients} />
-                  )}
-                  
-                  {msg.role === "agent" && msg.focusedPatient && (
-                    <PatientDetailPanel patient={msg.focusedPatient} />
-                  )}
-
-                  {msg.role === "agent" && msg.showLabPanel && msg.topPatients && msg.topPatients.length > 0 && (
-                    <LabPanel patients={msg.topPatients} />
-                  )}
-
-                  {msg.role === "agent" && msg.showUnitProfilePanel && (
-                    <UnitProfilePanel />
-                  )}
-        </div>
-              </div>
-            ))}
-
-            {loading && (
-              <div className="msg-container msg-agent-wrapper">
-                <div className="msg-bubble msg-agent">
-                  <LoadingSkeleton />
-                </div>
+          <div className="chat-container">
+            {conversation.length === 0 && !loading && (
+              <div className="hero">
+                <h1 className="hero-title">Como posso ajudar a UTI pediátrica hoje?</h1>
+                <p className="hero-subtitle">
+                  Faça uma pergunta sobre risco de mortalidade, prioridade de atendimento, exames laboratoriais, 
+                  imagens, prescrições ou perfil da unidade.
+                </p>
+                <ContextSnapshot onPromptClick={handlePromptClick} />
               </div>
             )}
 
-            <div ref={conversationEndRef} />
-          </div>
-        )}
-      </section>
-      </AppShell>
+            {conversation.length > 0 && (
+              <div className="conversation">
+                {conversation.map((msg) => (
+                  <div key={msg.id} className={`msg-container ${msg.role === "user" ? "msg-user-wrapper" : "msg-agent-wrapper"}`}>
+                    <div className={`msg-bubble ${msg.role === "user" ? "msg-user" : "msg-agent"}`}>
+                      <div className="msg-text" style={{ whiteSpace: "pre-wrap" }}>{msg.text}</div>
+                      
+                      {msg.role === "agent" && msg.showIcuPanel && msg.topPatients && msg.topPatients.length > 0 && (
+                        <PrioritizationPanel patients={msg.topPatients} />
+                      )}
+                      
+                      {msg.role === "agent" && msg.focusedPatient && (
+                        <PatientDetailPanel patient={msg.focusedPatient} />
+                      )}
 
-      <footer className="hc-chat-input">
-        <input
-          type="text"
-          placeholder="Digite sua pergunta..."
-          className="hc-input-field"
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          onKeyDown={handleKeyDown}
-          disabled={loading}
-        />
-        <button
-          className="hc-send-btn"
-          type="button"
-          onClick={() => void handleSend()}
-          disabled={loading || !input.trim()}
-          aria-label="Enviar mensagem"
-        >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            fill="none"
-            viewBox="0 0 24 24"
-            strokeWidth={2}
-            stroke="currentColor"
-            className="hc-send-icon"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              d="M6 12L3.269 3.126A59.768 59.768 0 0121.485 12 59.77 59.77 0 013.27 20.876L5.999 12zm0 0h7.5"
+                      {msg.role === "agent" && msg.showLabPanel && msg.topPatients && msg.topPatients.length > 0 && (
+                        <LabPanel patients={msg.topPatients} />
+                      )}
+
+                      {msg.role === "agent" && msg.showUnitProfilePanel && (
+                        <UnitProfilePanel />
+                      )}
+                    </div>
+                  </div>
+                ))}
+
+                {loading && (
+                  <div className="msg-container msg-agent-wrapper">
+                    <div className="msg-bubble msg-agent">
+                      <LoadingSkeleton />
+                    </div>
+                  </div>
+                )}
+
+                <div ref={conversationEndRef} />
+              </div>
+            )}
+
+            <ChatInput
+              value={input}
+              onChange={setInput}
+              onSend={handleSend}
+              onKeyDown={handleKeyDown}
+              loading={loading}
+              currentAgent={currentAgent}
+              onAgentChange={setCurrentAgent}
             />
-          </svg>
-        </button>
-      </footer>
+          </div>
+        </section>
+      </AppShell>
     </div>
   );
 }

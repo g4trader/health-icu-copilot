@@ -2,7 +2,7 @@
 
 import { ReactNode } from "react";
 import { LeftSidebar } from "./LeftSidebar";
-import { RightPreview } from "./RightPreview";
+import { PreviewDrawer } from "./PreviewDrawer";
 
 interface AppShellProps {
   children: ReactNode;
@@ -15,7 +15,7 @@ export function AppShell({ children }: AppShellProps) {
       <main className="main-chat-area">
         {children}
       </main>
-      <RightPreview />
+      <PreviewDrawer />
     </div>
   );
 }
