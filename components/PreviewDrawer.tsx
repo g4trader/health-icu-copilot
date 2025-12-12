@@ -4,6 +4,7 @@ import { usePreview, type PreviewPayload } from "./PreviewProvider";
 import { mockPatients, getTopPatients, riskLevelFromScore, calculateRiskScore } from "@/lib/mockData";
 import { getPatientsOnVentilation, getPatientsOnVasopressors, getHighRiskPatients } from "@/lib/icuSummary";
 import type { Patient } from "@/lib/mockData";
+import clsx from "clsx";
 
 export function PreviewDrawer() {
   const { previewType, previewPayload, clearPreview } = usePreview();
@@ -96,31 +97,55 @@ function AllPatientsPreview({ payload }: { payload: PreviewPayload | null }) {
       {patients.map((p) => {
         const hasVM = p.ventilationParams !== undefined;
         const hasVaso = p.medications.some(m => m.tipo === "vasopressor" && m.ativo);
-        const risk24h = (p.riscoMortality24h * 100).toFixed(0);
+        const risk24h = Math.round(p.riscoMortality24h * 100);
         return (
           <div
             key={p.id}
             className="rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-sm"
           >
-            <div className="flex items-center justify-between">
+            {/* Linha principal: leito + nome + risco */}
+            <div className="flex items-center justify-between gap-3">
               <div>
+                <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
+                  {p.leito}
+                </p>
                 <p className="text-sm font-semibold text-slate-900">
-                  {p.leito} • {p.nome}
+                  {p.nome}
                 </p>
                 <p className="text-xs text-slate-500">
                   {p.idade} anos • {p.diagnosticoPrincipal}
                 </p>
               </div>
-              <div className="text-right">
-                <p className="text-xs text-slate-500">Risco 24h</p>
-                <p className="text-sm font-semibold text-amber-600">
+              <div className="flex flex-col items-end">
+                <span className="text-[11px] font-medium uppercase tracking-wide text-slate-500">
+                  Risco 24h
+                </span>
+                <span
+                  className={clsx(
+                    'mt-1 inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold',
+                    risk24h >= 70
+                      ? 'bg-rose-50 text-rose-600'
+                      : risk24h >= 50
+                      ? 'bg-amber-50 text-amber-600'
+                      : 'bg-emerald-50 text-emerald-600'
+                  )}
+                >
                   {risk24h}%
-                </p>
+                </span>
               </div>
             </div>
-            <p className="mt-1 text-xs text-slate-500">
-              VM: {hasVM ? 'Sim' : 'Não'} • Vasopressor: {hasVaso ? 'Sim' : 'Não'}
-            </p>
+            {/* Linha secundária: VM / Vasopressor */}
+            <div className="mt-2 flex flex-wrap gap-2 text-[11px]">
+              <span className="inline-flex items-center rounded-full bg-slate-50 px-2 py-0.5 text-slate-600">
+                VM: <span className="ml-1 font-medium">{hasVM ? 'Sim' : 'Não'}</span>
+              </span>
+              <span className="inline-flex items-center rounded-full bg-slate-50 px-2 py-0.5 text-slate-600">
+                Vasopressor:{' '}
+                <span className="ml-1 font-medium">
+                  {hasVaso ? 'Sim' : 'Não'}
+                </span>
+              </span>
+            </div>
           </div>
         );
       })}
