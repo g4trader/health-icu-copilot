@@ -6,6 +6,55 @@ import { getPatientsOnVentilation, getPatientsOnVasopressors, getHighRiskPatient
 import type { Patient } from "@/lib/mockData";
 import { PatientDetailPanel } from "./PatientDetailPanel";
 import { PatientPinButton } from "./PatientPinButton";
+import { useClinicalSession } from "@/lib/ClinicalSessionContext";
+
+function PatientDrawerHeader({ patient }: { patient: Patient }) {
+  const { clearPreview } = usePreview();
+  const risk24h = Math.round(patient.riscoMortality24h * 100);
+  const riskLevel = riskLevelFromScore(patient.riscoMortality24h);
+  
+  const getRiskBadgeColor = () => {
+    if (riskLevel === "alto") return "bg-rose-50 text-rose-700 border-rose-200";
+    if (riskLevel === "moderado") return "bg-amber-50 text-amber-700 border-amber-200";
+    return "bg-emerald-50 text-emerald-700 border-emerald-200";
+  };
+
+  return (
+    <div className="drawer-header-patient">
+      <div className="drawer-header-patient-info">
+        <div className="drawer-header-patient-main">
+          <span className="drawer-header-patient-bed">{patient.leito}</span>
+          <h3 className="drawer-header-patient-name">{patient.nome}</h3>
+        </div>
+        <div className="drawer-header-patient-badges">
+          <span className={`drawer-header-risk-badge ${getRiskBadgeColor()}`}>
+            Risco 24h: {risk24h}%
+          </span>
+        </div>
+      </div>
+      <div className="drawer-header-patient-actions">
+        <PatientPinButton patient={patient} />
+        <button
+          type="button"
+          className="drawer-close-btn"
+          onClick={clearPreview}
+          aria-label="Fechar preview"
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            fill="none"
+            viewBox="0 0 24 24"
+            strokeWidth={2}
+            stroke="currentColor"
+            className="drawer-close-icon"
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
+    </div>
+  );
+}
 
 export function PreviewDrawer() {
   const { previewType, previewPayload, clearPreview } = usePreview();
@@ -19,33 +68,38 @@ export function PreviewDrawer() {
       <div className="drawer-overlay" onClick={clearPreview} />
       <aside className="preview-drawer">
         <div className="drawer-header">
-          <h3 className="drawer-title">
-            {previewType === 'icu-overview' && 'Visão Geral da UTI'}
-            {previewType === 'allPatients' && 'Todos os Pacientes da UTI'}
-            {previewType === 'ventilated' && 'Pacientes em Ventilação Mecânica'}
-            {previewType === 'vasopressors' && 'Pacientes em Droga Vasoativa'}
-            {previewType === 'high-risk' && 'Pacientes em Alto Risco (24h)'}
-            {previewType === 'patient' && previewPayload?.patient && `${(previewPayload.patient as Patient).leito} • ${(previewPayload.patient as Patient).nome}`}
-            {previewType === 'lab-results' && 'Exames Laboratoriais Recentes'}
-            {previewType === 'unit-profile' && 'Perfil Epidemiológico da Unidade'}
-          </h3>
-          <button
-            type="button"
-            className="drawer-close-btn"
-            onClick={clearPreview}
-            aria-label="Fechar preview"
-          >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              fill="none"
-              viewBox="0 0 24 24"
-              strokeWidth={2}
-              stroke="currentColor"
-              className="drawer-close-icon"
-            >
-              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
+          {previewType === 'patient' && previewPayload?.patient ? (
+            <PatientDrawerHeader patient={previewPayload.patient as Patient} />
+          ) : (
+            <>
+              <h3 className="drawer-title">
+                {previewType === 'icu-overview' && 'Visão Geral da UTI'}
+                {previewType === 'allPatients' && 'Todos os Pacientes da UTI'}
+                {previewType === 'ventilated' && 'Pacientes em Ventilação Mecânica'}
+                {previewType === 'vasopressors' && 'Pacientes em Droga Vasoativa'}
+                {previewType === 'high-risk' && 'Pacientes em Alto Risco (24h)'}
+                {previewType === 'lab-results' && 'Exames Laboratoriais Recentes'}
+                {previewType === 'unit-profile' && 'Perfil Epidemiológico da Unidade'}
+              </h3>
+              <button
+                type="button"
+                className="drawer-close-btn"
+                onClick={clearPreview}
+                aria-label="Fechar preview"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  strokeWidth={2}
+                  stroke="currentColor"
+                  className="drawer-close-icon"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </>
+          )}
         </div>
         <div className="drawer-body">
           {previewType === 'allPatients' && <AllPatientsPreview payload={previewPayload} />}
