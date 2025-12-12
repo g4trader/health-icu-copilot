@@ -22,8 +22,11 @@ export function PreviewDrawer() {
             {previewType === 'ventilated' && 'Pacientes em Ventilação Mecânica'}
             {previewType === 'vasopressors' && 'Pacientes em Droga Vasoativa'}
             {previewType === 'high-risk' && 'Pacientes em Alto Risco (24h)'}
-            {previewType === 'patient' && previewPayload?.patient && `${(previewPayload.patient as Patient).leito} • ${(previewPayload.patient as Patient).nome}`}
             {previewType === 'icu-overview' && 'Visão Geral da UTI'}
+            {previewType === 'unit-profile' && 'Perfil Epidemiológico da Unidade'}
+            {previewType === 'lab-results' && 'Exames Laboratoriais Recentes'}
+            {previewType === 'patient' && previewPayload?.patient && `${(previewPayload.patient as Patient).leito} • ${(previewPayload.patient as Patient).nome}`}
+            {!previewType && 'Preview'}
           </h3>
           <button
             type="button"

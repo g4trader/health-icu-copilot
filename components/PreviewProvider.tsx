@@ -3,13 +3,14 @@
 import { createContext, useContext, useState, ReactNode } from "react";
 
 export type PreviewType = 
-  | 'icu-overview' 
-  | 'ventilated' 
-  | 'vasopressors' 
-  | 'high-risk' 
-  | 'patient' 
+  | 'patient'
   | 'lab-results'
+  | 'icu-overview'
+  | 'ventilated'
+  | 'vasopressors'
+  | 'high-risk'
   | 'unit-profile'
+  | 'allPatients'
   | null;
 
 export interface PreviewPayload {
