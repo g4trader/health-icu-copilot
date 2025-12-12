@@ -25,7 +25,8 @@ export function PatientAgentButton({ patientId, onRequestOpinion }: PatientAgent
     }
   }, [isMenuOpen]);
 
-  const specialistAgents = Object.values(clinicalAgents).filter(a => a.id !== 'general');
+  // Incluir todos os agentes (incluindo Assistente Geral)
+  const allAgents = Object.values(clinicalAgents);
 
   return (
     <div className="patient-agent-button" ref={menuRef}>
@@ -57,7 +58,7 @@ export function PatientAgentButton({ patientId, onRequestOpinion }: PatientAgent
 
       {isMenuOpen && (
         <div className="patient-agent-menu">
-          {specialistAgents.map((agent) => (
+          {allAgents.map((agent) => (
             <button
               key={agent.id}
               type="button"

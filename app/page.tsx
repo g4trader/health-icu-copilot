@@ -374,7 +374,6 @@ export default function HomePage() {
   // Contexto de sessão clínica (mock)
   const sessionIdRef = useRef<string>(`session-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`);
   const [currentAgent, setCurrentAgent] = useState<"default" | "cardiology" | "pneumology" | "neurology">("default");
-  const [selectedAgentId, setSelectedAgentId] = useState<"general" | "cardiology" | "pneumology" | "neurology">("general");
   const [activePatientId, setActivePatientId] = useState<string | null>(null);
   const activePatient = mockPatients.find(p => p.id === activePatientId) || null;
   const { setPreview, setOnSelectPatient } = usePreview();
@@ -421,54 +420,13 @@ export default function HomePage() {
     setPreview('patient', { patient });
   }, [setPreview]);
 
-  // Função para solicitar parecer de agente especialista
-  const handleRequestAgentOpinion = useCallback(async (patientId: string, agentId: ClinicalAgentId) => {
-    setActivePatientId(patientId);
-    
-    try {
-      const res = await fetch("/api/agent-opinion", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ patientId, agentId })
-      });
+  // Declarar handleSend primeiro para usar em requestSpecialistOpinion
+  const handleSendRef = useRef<((messageText?: string) => void) | null>(null);
 
-      if (!res.ok) {
-        throw new Error("Erro ao solicitar parecer");
-      }
-
-      const data = await res.json();
-      const patient = mockPatients.find(p => p.id === patientId);
-      
-      if (!patient) {
-        console.error('Paciente não encontrado');
-        return;
-      }
-
-      // Adicionar mensagem do parecer no chat
-      const opinionMessage: Message = {
-        id: crypto.randomUUID(),
-        role: "agent",
-        text: data.text,
-        intent: 'AGENTE_PARECER',
-        focusedPatient: data.focusedPatient || patient,
-        agentId: data.agentId,
-        showPatientMiniPanel: data.showPatientOverview,
-        showVitalsPanel: data.showVitalsPanel,
-        showLabsPanel: data.showLabsPanel,
-        showTherapiesPanel: data.showTherapiesPanel
-      };
-      
-      setConversation((prev) => [...prev, opinionMessage]);
-    } catch (error) {
-      console.error("Erro ao solicitar parecer:", error);
-      const errorMessage: Message = {
-        id: crypto.randomUUID(),
-        role: "agent",
-        text: "Tive um problema para solicitar o parecer. Tente novamente."
-      };
-      setConversation((prev) => [...prev, errorMessage]);
-    }
-  }, [setConversation]);
+  // Função para solicitar parecer de agente especialista (mantida para compatibilidade com PatientAgentButton)
+  const handleRequestAgentOpinion = useCallback((patientId: string, agentId: ClinicalAgentId) => {
+    requestSpecialistOpinion(agentId, patientId);
+  }, [requestSpecialistOpinion]);
 
   // Configurar handler de seleção de paciente (para cards/big numbers - abre drawer)
   useEffect(() => {
@@ -486,20 +444,17 @@ export default function HomePage() {
     }
   }, [conversation, loading]);
 
-  async function handleSend(messageText?: string, agentIdParam?: ClinicalAgentId) {
+  async function handleSend(messageText?: string) {
     const textToSend = messageText || input.trim();
     if (!textToSend || loading) return;
 
     setLoading(true);
 
-    const agentIdToUse = agentIdParam || selectedAgentId;
-
     // Mensagem do usuário entra imediatamente no histórico
     const userMessage: Message = {
       id: crypto.randomUUID(),
       role: "user",
-      text: textToSend,
-      agentId: agentIdToUse !== 'general' ? agentIdToUse : undefined
+      text: textToSend
     };
     setConversation((prev) => [...prev, userMessage]);
     setInput("");
@@ -516,9 +471,7 @@ export default function HomePage() {
           role: "plantonista",
           unidade: "UTI Pediátrica A",
           turno: "manhã",
-          currentAgent: currentAgent,
-          agentId: agentIdToUse !== 'general' ? agentIdToUse : undefined,
-          patientId: activePatientId || undefined
+          currentAgent: currentAgent
         })
       });
 
@@ -626,18 +579,16 @@ export default function HomePage() {
                   {conversation.map((msg) => (
                   <div key={msg.id} className={`msg-container ${msg.role === "user" ? "msg-user-wrapper" : "msg-agent-wrapper"}`}>
                     <div className={`msg-bubble ${msg.role === "user" ? "msg-user" : "msg-agent"}`}>
-                      {msg.role === "user" && msg.agentId && msg.agentId !== 'general' && (
-                        <div className="msg-agent-chip">
-                          Agente: {clinicalAgents[msg.agentId].emoji} {clinicalAgents[msg.agentId].name}
-                        </div>
-                      )}
                       <div className="msg-text" style={{ whiteSpace: "pre-wrap" }}>{msg.text}</div>
                       
                       {/* Parecer de agente com micro dashboards */}
                       {msg.role === "agent" && msg.intent === 'AGENTE_PARECER' && msg.focusedPatient && (
                         <>
                           {msg.showPatientMiniPanel && (
-                            <MiniPatientSummary patient={msg.focusedPatient} />
+                            <MiniPatientSummary 
+                              patient={msg.focusedPatient}
+                              onRequestOpinion={handleRequestAgentOpinion}
+                            />
                           )}
                           {msg.showVitalsPanel && (
                             <VitalsPanel patient={msg.focusedPatient} />
@@ -669,7 +620,10 @@ export default function HomePage() {
                       {msg.role === "agent" && msg.type === 'patient-overview' && msg.focusedPatient && (
                         <>
                           {msg.showPatientMiniPanel && (
-                            <MiniPatientSummary patient={msg.focusedPatient} />
+                            <MiniPatientSummary 
+                              patient={msg.focusedPatient}
+                              onRequestOpinion={handleRequestAgentOpinion}
+                            />
                           )}
                           {msg.showVitalsPanel && (
                             <VitalsPanel patient={msg.focusedPatient} />
