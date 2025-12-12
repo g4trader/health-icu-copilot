@@ -16,7 +16,6 @@ export function PatientDetailPanel({ patient }: PatientDetailPanelProps) {
   // Buscar exames laboratoriais recentes
   const lactato = patient.labResults.find(l => l.tipo === "lactato");
   const pcr = patient.labResults.find(l => l.tipo === "pcr");
-  const creatinina = patient.labResults.find(l => l.tipo === "creatinina" || (typeof l.tipo === 'string' && l.tipo.toLowerCase().includes('creatinina')));
 
   return (
     <div className="patient-detail-panel">
@@ -116,14 +115,6 @@ export function PatientDetailPanel({ patient }: PatientDetailPanelProps) {
               <span className="lab-label">PCR:</span>
               <span className="lab-value">
                 {typeof pcr.valor === 'number' ? pcr.valor.toFixed(1) : pcr.valor} mg/L
-              </span>
-            </div>
-          )}
-          {creatinina && (
-            <div className="lab-item">
-              <span className="lab-label">Creatinina:</span>
-              <span className="lab-value">
-                {typeof creatinina.valor === 'number' ? creatinina.valor.toFixed(2) : creatinina.valor} mg/dL
               </span>
             </div>
           )}
