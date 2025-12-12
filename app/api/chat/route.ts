@@ -398,7 +398,7 @@ function handleVitalSignsIntent(): { reply: string; showIcuPanel: boolean; showL
       lines.push(`• **Febre (≥ 38.5°C):** ${febris.length} ${febris.length === 1 ? "paciente" : "pacientes"}`);
       lines.push("");
       lines.push("Dados obtidos do monitoramento contínuo. Sempre confirme com a avaliação clínica direta.");
-      return lines.join("\n");
+      return { text: lines.join("\n"), showLab: false };
     },
     () => {
       const lines: string[] = [];
@@ -416,7 +416,7 @@ function handleVitalSignsIntent(): { reply: string; showIcuPanel: boolean; showL
         }
         lines.push("");
       });
-      return lines.join("\n");
+      return { text: lines.join("\n"), showLab: true, topPatients: top3 };
     },
     () => {
       const lines: string[] = [];
@@ -436,11 +436,17 @@ function handleVitalSignsIntent(): { reply: string; showIcuPanel: boolean; showL
           lines.push("");
         }
       });
-      return lines.join("\n");
+      return { text: lines.join("\n"), showLab: false };
     }
   ];
-  const template = templates[Math.floor(Math.random() * templates.length)];
-  return { reply: template() + DISCLAIMER, showIcuPanel: false };
+  const templateIndex = Math.floor(Math.random() * templates.length);
+  const templateResult = templateIndex === 1 ? { text: templates[1](), showLab: true, topPatients: getTopPatients(3) } : { text: templates[templateIndex](), showLab: false };
+  return { 
+    reply: templateResult.text + DISCLAIMER, 
+    showIcuPanel: false,
+    showLabPanel: templateResult.showLab,
+    topPatients: templateResult.topPatients
+  };
 }
 
 /**
@@ -585,7 +591,7 @@ function handleUnitProfileIntent(): { reply: string; showIcuPanel: boolean; show
     }
   ];
   const template = templates[Math.floor(Math.random() * templates.length)];
-  return { reply: template() + DISCLAIMER, showIcuPanel: false };
+  return { reply: template() + DISCLAIMER, showIcuPanel: false, showUnitProfilePanel: true };
 }
 
 /**

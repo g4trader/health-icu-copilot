@@ -1526,3 +1526,134 @@ a {
     text-align: left;
   }
 }
+
+/* Context Snapshot Styles */
+.context-snapshot {
+  margin-top: 2rem;
+  width: 100%;
+  max-width: min(1100px, 100%);
+}
+
+.snapshot-cards {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+.snapshot-card {
+  padding: 1.25rem;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.75rem;
+  text-align: center;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.snapshot-card:hover {
+  border-color: #cbd5e1;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.snapshot-card-highlight {
+  border-color: #fecaca;
+  background: #fef2f2;
+}
+
+.snapshot-card-label {
+  font-size: 0.8rem;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 0.5rem;
+  font-weight: 500;
+}
+
+.snapshot-card-value {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #1e293b;
+  line-height: 1;
+}
+
+.snapshot-card-value-highlight {
+  color: #b91c1c;
+}
+
+.quick-prompts-section {
+  margin-top: 2rem;
+}
+
+.quick-prompts-label {
+  font-size: 0.9rem;
+  color: #475569;
+  font-weight: 500;
+  margin-bottom: 0.75rem;
+}
+
+.quick-prompts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.quick-prompt-chip {
+  padding: 0.6rem 1rem;
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 999px;
+  font-size: 0.9rem;
+  color: #1e293b;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.quick-prompt-chip:hover {
+  background: #f3f4f6;
+  border-color: #059669;
+  color: #059669;
+  transform: translateY(-1px);
+}
+
+.quick-prompt-chip:active {
+  transform: translateY(0);
+}
+
+/* Mobile responsive for Context Snapshot */
+@media (max-width: 768px) {
+  .snapshot-cards {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.75rem;
+  }
+
+  .snapshot-card {
+    padding: 1rem;
+  }
+
+  .snapshot-card-value {
+    font-size: 1.75rem;
+  }
+
+  .quick-prompts {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .quick-prompt-chip {
+    width: 100%;
+    text-align: left;
+    white-space: normal;
+    padding: 0.75rem 1rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .snapshot-cards {
+    grid-template-columns: 1fr;
+  }
+
+  .context-snapshot {
+    margin-top: 1.5rem;
+  }
+}

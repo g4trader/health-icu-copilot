@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import { mockPatients, getTopPatients, riskLevelFromScore, mockUnitProfile, type Patient } from "@/lib/mockData";
 import type { ClinicalAgentType } from "@/lib/clinicalAgents";
+import { ContextSnapshot } from "@/components/ContextSnapshot";
 
 type Message = {
   id: string;
@@ -11,6 +12,7 @@ type Message = {
   intent?: "PRIORITIZACAO" | "PACIENTE_ESPECIFICO" | "SINAIS_VITAIS" | "BALANCO_HIDRICO" | "PERFIL_UNIDADE" | "CALCULO_CLINICO" | "FALLBACK";
   topPatients?: Patient[];
   focusedPatient?: Patient;
+  showIcuPanel?: boolean;
   showLabPanel?: boolean;
   showUnitProfilePanel?: boolean;
 };
@@ -501,9 +503,9 @@ export default function HomePage() {
     }
   }, [conversation, loading]);
 
-  async function handleSend() {
-    const trimmed = input.trim();
-    if (!trimmed || loading) return;
+  async function handleSend(messageText?: string) {
+    const textToSend = messageText || input.trim();
+    if (!textToSend || loading) return;
 
     setLoading(true);
 
@@ -511,7 +513,7 @@ export default function HomePage() {
     const userMessage: Message = {
       id: crypto.randomUUID(),
       role: "user",
-      text: trimmed
+      text: textToSend
     };
     setConversation((prev) => [...prev, userMessage]);
     setInput("");
@@ -521,7 +523,7 @@ export default function HomePage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          message: trimmed,
+          message: textToSend,
           focusedPatientId: null,
           sessionId: sessionIdRef.current,
           userId: "user-mock",
@@ -550,6 +552,7 @@ export default function HomePage() {
         intent: data.intent as Message["intent"],
         topPatients: data.topPatients,
         focusedPatient: data.focusedPatient,
+        showIcuPanel: data.showIcuPanel,
         showLabPanel: data.showLabPanel,
         showUnitProfilePanel: data.showUnitProfilePanel
       };
@@ -572,6 +575,11 @@ export default function HomePage() {
       e.preventDefault();
       void handleSend();
     }
+  }
+
+  function handlePromptClick(prompt: string) {
+    // Enviar a pergunta automaticamente
+    void handleSend(prompt);
   }
 
   return (
@@ -604,6 +612,7 @@ export default function HomePage() {
               Faça uma pergunta sobre risco de mortalidade, prioridade de atendimento, exames laboratoriais, 
               imagens, prescrições ou perfil da unidade.
             </p>
+            <ContextSnapshot onPromptClick={handlePromptClick} />
           </div>
         )}
 
@@ -614,21 +623,21 @@ export default function HomePage() {
                 <div className={`msg-bubble ${msg.role === "user" ? "msg-user" : "msg-agent"}`}>
                   <div className="msg-text" style={{ whiteSpace: "pre-wrap" }}>{msg.text}</div>
                   
-                  {msg.role === "agent" && msg.intent === "PRIORITIZACAO" && msg.topPatients && msg.topPatients.length > 0 && (
+                  {msg.role === "agent" && msg.showIcuPanel && msg.topPatients && msg.topPatients.length > 0 && (
                     <PrioritizationPanel patients={msg.topPatients} />
                   )}
                   
-                  {msg.role === "agent" && msg.intent === "PACIENTE_ESPECIFICO" && msg.focusedPatient && (
+                  {msg.role === "agent" && msg.focusedPatient && (
                     <PatientDetailPanel patient={msg.focusedPatient} />
                   )}
 
-                  {msg.role === "agent" && msg.showLabPanel && msg.topPatients && (
+                  {msg.role === "agent" && msg.showLabPanel && msg.topPatients && msg.topPatients.length > 0 && (
                     <LabPanel patients={msg.topPatients} />
                   )}
 
                   {msg.role === "agent" && msg.showUnitProfilePanel && (
                     <UnitProfilePanel />
-          )}
+                  )}
         </div>
               </div>
             ))}
@@ -656,13 +665,13 @@ export default function HomePage() {
           onKeyDown={handleKeyDown}
           disabled={loading}
         />
-        <button
-          className="hc-send-btn"
-          type="button"
-          onClick={handleSend}
-          disabled={loading || !input.trim()}
-          aria-label="Enviar mensagem"
-        >
+          <button
+            className="hc-send-btn"
+            type="button"
+            onClick={() => void handleSend()}
+            disabled={loading || !input.trim()}
+            aria-label="Enviar mensagem"
+          >
           <svg
             xmlns="http://www.w3.org/2000/svg"
             fill="none"
