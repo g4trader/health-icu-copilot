@@ -464,7 +464,8 @@ export default function HomePage() {
           role: "plantonista",
           unidade: "UTI Pediátrica A",
           turno: "manhã",
-          currentAgent: currentAgent
+          currentAgent: currentAgent,
+          patientId: activePatientId || undefined
         })
       });
 

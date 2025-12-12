@@ -25,6 +25,7 @@ import {
   resolveAmbiguity
 } from "@/lib/clinicalMemory";
 import { detectAgent, getAgent, getClinicalAgent, buildAgentOpinion, type ClinicalAgentType, type ClinicalAgentId } from "@/lib/clinicalAgents";
+import { specialistOpinions, type SpecialistKey } from "@/lib/specialistOpinions";
 import { storeResearchEntry, desidentifyText } from "@/lib/researchStore";
 
 interface RequestBody {
