@@ -26,6 +26,8 @@ export function PatientContextBar({ activePatient, onClear }: PatientContextBarP
   const risk24h = Math.round(activePatient.riscoMortality24h * 100);
 
   const handleViewDetails = () => {
+    // Abre o drawer mantendo o paciente ativo (não limpa activePatientId)
+    // O activePatientId já está definido quando este componente é renderizado
     setPreview('patient', { patient: activePatient });
   };
 
