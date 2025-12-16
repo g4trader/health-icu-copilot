@@ -1,7 +1,7 @@
 "use client";
 
 import type { SpecialistOpinion } from "@/types/SpecialistOpinion";
-import { User, HeartPulse, Activity, Brain, TrendingUp, TrendingDown, Minus, AlertCircle, Clock, FileText, CheckCircle2 } from "lucide-react";
+import { User, TrendingUp, TrendingDown, Minus, AlertCircle, Clock, FileText, CheckCircle2 } from "lucide-react";
 import type { ClinicalAgentId } from "@/lib/clinicalAgents";
 import { BaseCard } from "./BaseCard";
 import { SectionHeader } from "./SectionHeader";
@@ -10,9 +10,6 @@ import { MetricChip } from "./MetricChip";
 
 const agentIcons: Record<ClinicalAgentId, typeof User> = {
   general: User,
-  cardiology: HeartPulse,
-  pneumology: Activity,
-  neurology: Brain,
 };
 
 interface AgentOpinionBlockProps {

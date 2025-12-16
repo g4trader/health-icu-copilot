@@ -9,6 +9,7 @@ import { ChatInput } from "@/components/ChatInput";
 import { PatientContextBar } from "@/components/PatientContextBar";
 import { usePreview } from "@/components/PreviewProvider";
 import { MiniPatientSummary } from "@/components/MiniPatientSummary";
+import { PatientFocusMode } from "@/components/PatientFocusMode";
 import { SpecialistOpinionMessage } from "@/components/chat/SpecialistOpinionMessage";
 import { AgentOpinionBlock } from "@/components/ui/AgentOpinionBlock";
 import { RadiologyOpinionBlock } from "@/components/ui/RadiologyOpinionBlock";
@@ -16,7 +17,6 @@ import { VitalsPanel } from "@/components/VitalsPanel";
 import { TherapiesPanel } from "@/components/TherapiesPanel";
 import { PatientDetailPanel } from "@/components/PatientDetailPanel";
 import { PatientPinButton } from "@/components/PatientPinButton";
-import { PatientAgentButton } from "@/components/PatientAgentButton";
 import { PatientOpinionBadges } from "@/components/PatientOpinionBadges";
 import { PatientListItem } from "@/components/ui/PatientListItem";
 import { useClinicalSession } from "@/lib/ClinicalSessionContext";
@@ -86,11 +86,11 @@ function LoadingSkeleton() {
 function PrioritizationPanel({ 
   patients, 
   onSelectPatient,
-  onRequestOpinion 
+  onExpandPatient
 }: { 
   patients: Patient[]; 
   onSelectPatient?: (patientId: string) => void;
-  onRequestOpinion?: (patientId: string, agentId: ClinicalAgentId | 'radiology') => void;
+  onExpandPatient?: (patientId: string) => void;
 }) {
   return (
     <div className="bg-white border border-slate-200 rounded-2xl shadow-sm p-5">
@@ -106,7 +106,7 @@ function PrioritizationPanel({
             <PatientListItem
               patient={p}
               onSelect={(patient) => onSelectPatient?.(patient.id)}
-              onRequestOpinion={onRequestOpinion}
+              onExpand={onExpandPatient}
               showActions={true}
               className="ml-6"
             />
@@ -323,9 +323,11 @@ export default function HomePage() {
   
   // Contexto de sessão clínica (mock)
   const sessionIdRef = useRef<string>(`session-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`);
-  const [currentAgent, setCurrentAgent] = useState<"default" | "cardiology" | "pneumology" | "neurology">("default");
+  const [currentAgent, setCurrentAgent] = useState<ClinicalAgentType>("default");
   const [activePatientId, setActivePatientId] = useState<string | null>(null);
+  const [expandedPatientId, setExpandedPatientId] = useState<string | null>(null);
   const activePatient = mockPatients.find(p => p.id === activePatientId) || null;
+  const expandedPatient = mockPatients.find(p => p.id === expandedPatientId) || null;
   const { setPreview, setOnSelectPatient } = usePreview();
   const { setActivePatient: setActivePatientFromContext, addOpinion } = useClinicalSession();
 
@@ -475,35 +477,6 @@ export default function HomePage() {
     }
   }, [activePatientId, sessionIdRef, currentAgent, setConversation, setInput, loading, addOpinion]);
 
-  /**
-   * Função utilitária para solicitar parecer de agente especialista ou radiologista
-   * Dispara uma mensagem automática no chat que será processada pelo backend
-   */
-  const requestSpecialistOpinion = useCallback((agentId: ClinicalAgentId | 'radiology', patientId: string) => {
-    const patient = mockPatients.find(p => p.id === patientId);
-    if (!patient) {
-      console.error('Paciente não encontrado');
-      return;
-    }
-
-    if (agentId === 'radiology') {
-      // Mensagem específica para Radiologista Virtual
-      const message = `Radiologista Virtual, analise os exames de imagem do paciente ${patient.leito} - ${patient.nome} (${patient.idade} ${patient.idade === 1 ? 'ano' : 'anos'}, ${patient.diagnosticoPrincipal}).`;
-      handleSend(message, 'radiology' as ClinicalAgentId, patientId);
-    } else {
-      const agent = clinicalAgents[agentId];
-      // Construir mensagem automática para o chat
-      const message = `${agent.name}, avalie o caso do paciente ${patient.leito} - ${patient.nome} (${patient.idade} ${patient.idade === 1 ? 'ano' : 'anos'}, ${patient.diagnosticoPrincipal}) e sugira condutas ou exames complementares.`;
-      // Disparar mensagem usando o fluxo de envio do chat (simulando que o usuário digitou isso)
-      // Passar explicitamente agentId e patientId para garantir detecção correta da intenção
-      handleSend(message, agentId, patientId);
-    }
-  }, [handleSend]);
-
-  // Função para solicitar parecer de agente especialista (mantida para compatibilidade com PatientAgentButton)
-  const handleRequestAgentOpinion = useCallback((patientId: string, agentId: ClinicalAgentId | 'radiology') => {
-    requestSpecialistOpinion(agentId, patientId);
-  }, [requestSpecialistOpinion]);
 
   const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter" && !e.shiftKey) {
@@ -581,7 +554,6 @@ export default function HomePage() {
                           {msg.showPatientMiniPanel && (
                             <MiniPatientSummary 
                               patient={msg.focusedPatient}
-                              onRequestOpinion={handleRequestAgentOpinion}
                             />
                           )}
                           {msg.showVitalsPanel && (
@@ -602,7 +574,9 @@ export default function HomePage() {
                           onSelectPatient={(patientId) => {
                             openPatientPreviewDrawer(patientId);
                           }}
-                          onRequestOpinion={handleRequestAgentOpinion}
+                          onExpandPatient={(patientId) => {
+                            setExpandedPatientId(patientId);
+                          }}
                         />
                       )}
                       
@@ -616,7 +590,6 @@ export default function HomePage() {
                           {msg.showPatientMiniPanel && (
                             <MiniPatientSummary 
                               patient={msg.focusedPatient}
-                              onRequestOpinion={handleRequestAgentOpinion}
                             />
                           )}
                           {msg.showVitalsPanel && (
@@ -641,6 +614,20 @@ export default function HomePage() {
                     </div>
                   </div>
                 ))}
+                
+                {/* Patient Focus Mode - Expandido inline (global, fora do loop de mensagens) */}
+                {expandedPatientId && expandedPatient && (
+                  <div className="msg-container msg-agent-wrapper">
+                    <PatientFocusMode
+                      patient={expandedPatient}
+                      onCollapse={() => setExpandedPatientId(null)}
+                      onRequestRadiologistOpinion={() => {
+                        // TODO: Implementar chamada ao Radiologista Virtual
+                        console.log("Request radiologist opinion for", expandedPatient.id);
+                      }}
+                    />
+                  </div>
+                )}
 
                 {loading && (
                   <div className="msg-container msg-agent-wrapper">

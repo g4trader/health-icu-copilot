@@ -2,24 +2,23 @@
 
 import type { Patient } from "@/types/Patient";
 import { PatientPinButton } from "@/components/PatientPinButton";
-import { PatientAgentButton } from "@/components/PatientAgentButton";
 import { PatientOpinionBadges } from "@/components/PatientOpinionBadges";
-import type { ClinicalAgentId } from "@/lib/clinicalAgents";
 import { riskLevelFromScore } from "@/lib/mockData";
 import { BaseCard } from "./BaseCard";
 import { SectionHeader } from "./SectionHeader";
+import { Maximize2 } from "lucide-react";
 
 interface PatientHeaderCardProps {
   patient: Patient;
-  onRequestOpinion?: (patientId: string, agentId: ClinicalAgentId | 'radiology') => void;
+  onExpand?: (patientId: string) => void;
   className?: string;
 }
 
 export function PatientHeaderCard({
-  patient,
-  onRequestOpinion,
-  className = "",
-}: PatientHeaderCardProps) {
+      patient,
+      onExpand,
+      className = "",
+    }: PatientHeaderCardProps) {
   const riskLevel = riskLevelFromScore(patient.riscoMortality24h);
   const riskPercent = Math.round(patient.riscoMortality24h * 100);
 
@@ -33,17 +32,22 @@ export function PatientHeaderCard({
       <SectionHeader
         title={`${patient.leito} • ${patient.nome}`}
         subtitle={`${patient.idade} anos • ${patient.diagnosticoPrincipal}`}
-        action={
-          <div className="flex items-center gap-2">
-            <PatientPinButton patient={patient} />
-            {onRequestOpinion && (
-              <PatientAgentButton
-                patientId={patient.id}
-                onRequestOpinion={onRequestOpinion}
-              />
-            )}
-          </div>
-        }
+            action={
+              <div className="flex items-center gap-2">
+                {onExpand && (
+                  <button
+                    type="button"
+                    onClick={() => onExpand(patient.id)}
+                    className="inline-flex items-center justify-center w-7 h-7 border border-slate-300 rounded-lg bg-white text-slate-500 hover:bg-slate-50 hover:text-slate-700 transition-colors"
+                    aria-label="Expandir perfil"
+                    title="Expandir perfil"
+                  >
+                    <Maximize2 className="w-3.5 h-3.5" />
+                  </button>
+                )}
+                <PatientPinButton patient={patient} />
+              </div>
+            }
       />
 
       <div className="mt-4 flex flex-wrap items-center gap-2">

@@ -8,13 +8,13 @@ import type { ClinicalAgentId } from "@/lib/clinicalAgents";
 interface Props {
   onSelectPatient?: (patient: Patient) => void;
   selectedPatientId?: string | null;
-  onRequestOpinion?: (patientId: string, agentId: ClinicalAgentId | 'radiology') => void;
+  onExpandPatient?: (patientId: string) => void;
 }
 
 export function PatientList({ 
   onSelectPatient, 
   selectedPatientId,
-  onRequestOpinion 
+  onExpandPatient
 }: Props) {
   const sorted = getSortedByMortalityRisk24h();
 
@@ -26,7 +26,7 @@ export function PatientList({
           patient={p as Patient}
           selected={selectedPatientId === p.id}
           onSelect={(patient) => onSelectPatient?.(patient as Patient)}
-          onRequestOpinion={onRequestOpinion}
+          onExpand={onExpandPatient}
           showActions={true}
         />
       ))}

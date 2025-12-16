@@ -1,15 +1,11 @@
 "use client";
 
 import type { SpecialistOpinion } from '@/types/SpecialistOpinion';
-import { TrendingUp, TrendingDown, Minus, AlertCircle } from 'lucide-react';
-import { User, HeartPulse, Activity, Brain } from 'lucide-react';
+import { TrendingUp, TrendingDown, Minus, AlertCircle, User } from 'lucide-react';
 import type { ClinicalAgentId } from '@/lib/clinicalAgents';
 
 const agentIcons: Record<ClinicalAgentId, typeof User> = {
   general: User,
-  cardiology: HeartPulse,
-  pneumology: Activity,
-  neurology: Brain,
 };
 
 interface SpecialistOpinionMessageProps {

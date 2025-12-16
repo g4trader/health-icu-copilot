@@ -34,7 +34,6 @@ export interface SpecialistOpinionDashboards {
 export interface SpecialistOpinion {
   agentId: ClinicalAgentId;
   agentName: string;
-  agentEmoji: string;
   patientId: string;
   patientName: string;
   patientBed: string;
@@ -46,4 +45,5 @@ export interface SpecialistOpinion {
   dashboards: SpecialistOpinionDashboards;
   timestamp: string;
 }
+
 

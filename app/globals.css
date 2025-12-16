@@ -1,3 +1,70 @@
+/* ============================================
+   DESIGN TOKENS - Health Copilot
+   ============================================ */
+
+:root {
+  /* Colors - Slate Scale */
+  --color-slate-50: #f8fafc;
+  --color-slate-100: #f1f5f9;
+  --color-slate-200: #e2e8f0;
+  --color-slate-300: #cbd5e1;
+  --color-slate-400: #94a3b8;
+  --color-slate-500: #64748b;
+  --color-slate-600: #475569;
+  --color-slate-700: #334155;
+  --color-slate-800: #1e293b;
+  --color-slate-900: #0f172a;
+  
+  /* Brand - Emerald (only for details/chips/active states) */
+  --color-emerald-50: #ecfdf5;
+  --color-emerald-100: #d1fae5;
+  --color-emerald-200: #a7f3d0;
+  --color-emerald-300: #6ee7b7;
+  --color-emerald-400: #34d399;
+  --color-emerald-500: #10b981;
+  --color-emerald-600: #059669;
+  --color-emerald-700: #047857;
+  
+  /* Borders */
+  --border-radius-sm: 0.5rem;
+  --border-radius-md: 0.75rem;
+  --border-radius-lg: 1rem;
+  --border-radius-xl: 1.5rem;
+  --border-radius-2xl: 1.5rem; /* 24px - padrão para cards */
+  --border-radius-full: 9999px;
+  
+  --border-width: 1px;
+  --border-color: var(--color-slate-200);
+  
+  /* Shadows */
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  --shadow-overlay: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  
+  /* Typography */
+  --font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-size-xs: 0.75rem;
+  --font-size-sm: 0.875rem;
+  --font-size-base: 0.9375rem;
+  --font-size-lg: 1rem;
+  --font-size-xl: 1.125rem;
+  
+  --font-weight-normal: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+  
+  --line-height-tight: 1.25;
+  --line-height-normal: 1.5;
+  --line-height-relaxed: 1.6;
+  
+  /* Spacing - Padding padrão para cards */
+  --padding-card-sm: 1rem; /* p-4 */
+  --padding-card-md: 1.25rem; /* p-5 */
+  --padding-card-lg: 1.5rem; /* p-6 */
+}
+
 *,
 *::before,
 *::after {
@@ -15,15 +82,15 @@ html,
 body {
   margin: 0;
   padding: 0;
-  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-family: var(--font-family);
   overflow-x: hidden !important;
   width: 100%;
   max-width: 100vw;
 }
 
 body {
-  background: #f8fafc; /* bg-slate-50 */
-  color: #0f172a;
+  background: var(--color-slate-50);
+  color: var(--color-slate-900);
 }
 
 #__next,
@@ -795,9 +862,9 @@ a {
 .conversation {
   display: flex;
   flex-direction: column;
-  gap: 1.5rem;
+  gap: 1.75rem;
   width: 100%;
-  padding: 1.5rem 0; /* padding removido do bottom pois o footer é fixo */
+  padding: 1.5rem 0 10rem 0; /* padding-bottom para não esconder mensagens atrás do footer fixo */
 }
 
 .msg-container {
@@ -815,33 +882,38 @@ a {
 
 .msg-bubble {
   max-width: 85%;
-  padding: 1rem 1.25rem;
-  border-radius: 1rem;
+  padding: var(--padding-card-md) 1.25rem;
+  border-radius: var(--border-radius-xl);
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
-  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  gap: 0.875rem;
+  box-shadow: var(--shadow-sm);
 }
 
 .msg-user {
   background: #ffffff;
-  color: #1e293b;
-  border: 1px solid #e2e8f0;
-  border-radius: 1rem;
+  color: var(--color-slate-900);
+  border: var(--border-width) solid var(--border-color);
+  border-radius: var(--border-radius-xl);
 }
 
 .msg-agent {
   background: #ffffff;
-  color: #334155;
-  border: 1px solid #e2e8f0;
-  border-radius: 1rem;
+  color: var(--color-slate-700);
+  border: var(--border-width) solid var(--border-color);
+  border-radius: var(--border-radius-xl);
 }
 
 .msg-text {
-  font-size: 0.9375rem;
-  line-height: 1.6;
-  color: #334155;
-  font-weight: 400;
+  font-size: var(--font-size-base);
+  line-height: var(--line-height-relaxed);
+  color: var(--color-slate-700);
+  font-weight: var(--font-weight-normal);
+}
+
+/* Separar texto de cards em mensagens do agente */
+.msg-agent .msg-text + * {
+  margin-top: 0.5rem;
 }
 
 .icu-panel-wrapper {
@@ -1543,8 +1615,8 @@ a {
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  background: #ffffff;
-  border-left: 1px solid #e5e7eb;
+  background: var(--color-slate-50);
+  border-left: var(--border-width) solid var(--border-color);
   position: relative;
   height: 100%;
 }
@@ -1560,18 +1632,21 @@ a {
 .chat-content-scrollable {
   flex: 1;
   overflow-y: auto;
+  padding-bottom: 8rem; /* Espaço para o footer fixo */
   min-height: 0;
   padding-bottom: 1rem;
 }
 
 .chat-input-footer {
   flex-shrink: 0;
-  background: #ffffff;
+  background: transparent;
   padding: 0;
   border-top: none;
   box-shadow: none;
-  position: sticky;
+  position: fixed;
   bottom: 0;
+  left: 0;
+  right: 0;
   z-index: 10;
 }
 
@@ -1579,15 +1654,15 @@ a {
   max-width: 900px;
   margin: 0 auto;
   width: 100%;
-  padding: 1rem 1.5rem 1.25rem 1.5rem;
-  border-top: none;
+  padding: 1.5rem 1.5rem;
+  background: var(--color-slate-50);
   position: relative;
 }
 
 /* Left Sidebar */
 .left-sidebar {
-  background: #f9fafb;
-  border-right: 1px solid #e5e7eb;
+  background: var(--color-slate-50);
+  border-right: var(--border-width) solid var(--border-color);
   overflow-y: auto;
   height: 100%;
   display: flex;
@@ -1595,14 +1670,14 @@ a {
 }
 
 .sidebar-content {
-  padding: 1.5rem 0.875rem;
+  padding: 1.5rem 1rem;
   flex: 1;
 }
 
 .sidebar-nav {
   display: flex;
   flex-direction: column;
-  gap: 2.5rem;
+  gap: 2rem;
 }
 
 .sidebar-section {
@@ -1635,33 +1710,30 @@ a {
 
 .sidebar-link {
   width: 100%;
-  padding: 0.6rem 0.75rem;
+  padding: 0.625rem 0.875rem;
   background: transparent;
   border: none;
-  border-radius: 0.5rem;
+  border-radius: var(--border-radius-md);
   text-align: left;
-  font-size: 0.9rem;
-  color: #1e293b;
+  font-size: var(--font-size-sm);
+  color: var(--color-slate-700);
   cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.sidebar-link {
+  transition: all 0.15s ease;
   display: flex;
   align-items: center;
   gap: 0.75rem;
 }
 
 .sidebar-link:hover:not(.sidebar-link-disabled) {
-  background: #f3f4f6;
-  color: #1e293b;
+  background: var(--color-slate-100);
+  color: var(--color-slate-900);
 }
 
 .sidebar-link-active {
   background: #ffffff;
-  color: #1e293b;
-  font-weight: 500;
-  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  color: var(--color-slate-900);
+  font-weight: var(--font-weight-medium);
+  box-shadow: var(--shadow-sm);
 }
 
 .sidebar-link-active:hover {
@@ -1669,7 +1741,7 @@ a {
 }
 
 .sidebar-link-disabled {
-  opacity: 0.5;
+  opacity: 0.4;
   cursor: not-allowed;
 }
 
@@ -1679,10 +1751,11 @@ a {
 
 /* Sidebar Footer - Usuário */
 .sidebar-footer {
-  border-top: 1px solid #e5e7eb;
-  padding: 1rem;
+  border-top: var(--border-width) solid var(--border-color);
+  padding: 1.25rem 1rem;
   margin-top: auto;
   flex-shrink: 0;
+  background: var(--color-slate-50);
 }
 
 .sidebar-user {
@@ -1697,11 +1770,11 @@ a {
   justify-content: center;
   height: 2rem;
   width: 2rem;
-  border-radius: 9999px;
-  background: #d1fae5;
-  color: #065f46;
-  font-size: 0.75rem;
-  font-weight: 600;
+  border-radius: var(--border-radius-full);
+  background: var(--color-slate-200);
+  color: var(--color-slate-600);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
   flex-shrink: 0;
 }
 
@@ -1822,10 +1895,10 @@ a {
 /* Right Preview */
 /* Chat Container */
 .chat-container {
-  max-width: 900px; /* max-w-4xl equivalente */
+  max-width: 900px;
   margin: 0 auto;
   width: 100%;
-  padding: 1.5rem 1rem; /* padding padrão */
+  padding: 1.5rem 1.5rem;
 }
 
 /* Input alinhado horizontalmente com o nome do usuário na sidebar */
@@ -1837,10 +1910,10 @@ a {
   align-items: center;
   gap: 0.5rem;
   background: #ffffff;
-  border: 1px solid #e2e8f0; /* border-slate-200 */
-  border-radius: 1.5rem;
-  padding: 0.5rem 0.75rem;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  border: var(--border-width) solid var(--border-color);
+  border-radius: var(--border-radius-2xl);
+  padding: 0.625rem 1rem;
+  box-shadow: var(--shadow-md);
   position: relative;
 }
 
@@ -1998,7 +2071,7 @@ a {
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.3); /* bg-black/30 */
+  background: rgba(0, 0, 0, 0.25);
   z-index: 998;
   animation: fadeIn 0.2s ease;
 }
@@ -2011,7 +2084,7 @@ a {
   width: 460px;
   max-width: 90vw;
   background: #ffffff;
-  box-shadow: -4px 0 16px rgba(0, 0, 0, 0.12);
+  box-shadow: -4px 0 20px rgba(0, 0, 0, 0.08);
   z-index: 999;
   display: flex;
   flex-direction: column;
@@ -2023,11 +2096,11 @@ a {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 1.25rem 1.5rem;
-  border-bottom: 1px solid #e5e7eb;
+  padding: var(--padding-card-md) 1.5rem;
+  border-bottom: var(--border-width) solid var(--border-color);
   flex-shrink: 0;
   background: #ffffff;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  box-shadow: var(--shadow-sm);
 }
 
 /* Drawer Header para Paciente (refinado) */
@@ -2127,8 +2200,8 @@ a {
 .drawer-body {
   flex: 1;
   overflow-y: auto;
-  padding: 1.5rem;
-  background: #f8fafc; /* bg-slate-50 */
+  padding: var(--padding-card-md);
+  background: var(--color-slate-50);
 }
 
 .preview-content {
@@ -2198,27 +2271,29 @@ a {
 }
 
 .preview-item {
-  padding: 1rem;
-  background: #f9fafb;
-  border: 1px solid #e5e7eb;
-  border-radius: 0.5rem;
+  padding: var(--padding-card-sm);
+  background: #ffffff;
+  border: var(--border-width) solid var(--border-color);
+  border-radius: var(--border-radius-xl);
+  box-shadow: var(--shadow-sm);
 }
 
 .preview-item-clickable {
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.15s ease;
   text-align: left;
   width: 100%;
 }
 
 .preview-item-clickable:hover {
-  background: #f3f4f6;
-  border-color: #10b981;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  background: #ffffff;
+  border-color: var(--color-slate-300);
+  box-shadow: var(--shadow-md);
+  transform: translateY(-1px);
 }
 
 .preview-item-clickable:active {
-  transform: scale(0.98);
+  transform: translateY(0);
 }
 
 .preview-item-header {
@@ -2238,12 +2313,12 @@ a {
 
 /* Prioritization Panel - Refinado */
 .prioritization-panel {
-  margin-top: 1rem;
-  padding: 1rem;
-  background: #e0f2fe; /* bg-sky-50 */
-  border: 1px solid #bae6fd;
-  border-radius: 1rem; /* rounded-2xl */
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05); /* shadow-sm */
+  margin-top: 1.5rem;
+  padding: var(--padding-card-md);
+  background: #ffffff;
+  border: var(--border-width) solid var(--border-color);
+  border-radius: var(--border-radius-2xl);
+  box-shadow: var(--shadow-sm);
 }
 
 .prioritization-panel .panel-header {
@@ -2251,9 +2326,9 @@ a {
 }
 
 .prioritization-panel .panel-title {
-  font-size: 0.875rem;
-  font-weight: 600;
-  color: #1e293b; /* text-slate-800 */
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-slate-900);
   text-transform: none;
   letter-spacing: 0;
 }
@@ -2266,12 +2341,13 @@ a {
 
 .prioritization-card {
   background: #ffffff;
-  border: 1px solid #f1f5f9; /* border-slate-100 */
-  border-radius: 1rem; /* rounded-2xl */
-  padding: 1rem;
+  border: var(--border-width) solid var(--border-color);
+  border-radius: var(--border-radius-xl);
+  padding: var(--padding-card-sm);
   display: flex;
   gap: 0.75rem;
-  transition: all 0.2s ease;
+  transition: all 0.15s ease;
+  box-shadow: var(--shadow-sm);
 }
 
 .prioritization-card-clickable {
@@ -2279,9 +2355,9 @@ a {
 }
 
 .prioritization-card-clickable:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-  border-color: #bae6fd;
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
+  border-color: var(--color-slate-300);
 }
 
 .prioritization-card-clickable:active {
@@ -2290,8 +2366,8 @@ a {
 
 .prioritization-rank {
   font-size: 1.25rem;
-  font-weight: 700;
-  color: #0ea5e9;
+  font-weight: var(--font-weight-bold);
+  color: var(--color-slate-500);
   flex-shrink: 0;
   min-width: 2rem;
 }

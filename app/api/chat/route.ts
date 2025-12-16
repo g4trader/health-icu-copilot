@@ -61,13 +61,9 @@ type Intent =
   | "BALANCO_HIDRICO"
   | "PERFIL_UNIDADE"
   | "CALCULO_CLINICO"
-  | "AGENTE_PARECER"
   | "RADIOLOGISTA_VIRTUAL"
   | "FALLBACK";
 
-/**
- * Handler para intenção de AGENTE_PARECER
- */
 /**
  * Handler para Radiologista Virtual
  */
@@ -226,23 +222,7 @@ function detectIntent(
     }
   }
   
-  // Se há agentId e patientId (ou paciente focado), é AGENTE_PARECER
-  if (agentId && agentId !== 'general' && (requestPatientId || focusedPatientId)) {
-    return "AGENTE_PARECER";
-  }
-  
-  // Detectar frases relacionadas a parecer
-  // Verificar se a mensagem contém nome de agente especialista
-  const agentNames = ['assistente geral', 'cardiologia', 'pneumologia', 'neurologia', 'cardio', 'pneumo', 'neuro'];
-  const hasAgentName = agentNames.some(name => msg.includes(name));
-  
-  if (
-    ((msg.includes("parecer") || msg.includes("opinião") || msg.includes("opiniao")) &&
-    (msg.includes("cardio") || msg.includes("pneumo") || msg.includes("neuro") || msg.includes("especialista"))) ||
-    (hasAgentName && (msg.includes("avalie") || msg.includes("parecer") || msg.includes("opinião") || msg.includes("opiniao")))
-  ) {
-    return "AGENTE_PARECER";
-  }
+  // Removido: AGENTE_PARECER não existe mais - apenas Plantonista (general) e Radiologista Virtual
 
   // PRIORITIZACAO
   if (
@@ -954,19 +934,7 @@ export async function POST(req: Request) {
         }
         break;
       }
-      case "AGENTE_PARECER": {
-        const patientIdToUse = requestPatientId || focusedId;
-        const agentIdToUse = agentIdFromBody || 'general';
-        if (!patientIdToUse) {
-          result = { 
-            reply: "Para solicitar um parecer de especialista, é necessário selecionar um paciente primeiro." + DISCLAIMER, 
-            showIcuPanel: false 
-          };
-        } else {
-          result = handleAgentOpinionIntent(patientIdToUse, agentIdToUse);
-        }
-        break;
-      }
+      // Removido: case "AGENTE_PARECER" - não existe mais, apenas Plantonista e Radiologista Virtual
       default:
         result = handleFallbackIntent();
     }

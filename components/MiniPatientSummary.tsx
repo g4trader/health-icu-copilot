@@ -2,18 +2,20 @@
 
 import type { Patient } from "@/lib/mockData";
 import { PatientHeaderCard } from "./ui/PatientHeaderCard";
-import type { ClinicalAgentId } from "@/lib/clinicalAgents";
 
 interface MiniPatientSummaryProps {
   patient: Patient;
-  onRequestOpinion?: (patientId: string, agentId: ClinicalAgentId | 'radiology') => void;
+  onExpand?: (patientId: string) => void;
 }
 
-export function MiniPatientSummary({ patient, onRequestOpinion }: MiniPatientSummaryProps) {
+export function MiniPatientSummary({ 
+  patient,
+  onExpand 
+}: MiniPatientSummaryProps) {
   return (
     <PatientHeaderCard
       patient={patient}
-      onRequestOpinion={onRequestOpinion}
+      onExpand={onExpand}
     />
   );
 }

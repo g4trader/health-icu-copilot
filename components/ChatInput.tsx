@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { FileText, Search, GraduationCap, HeartPulse, Activity, Brain } from "lucide-react";
+import { FileText, Search, GraduationCap } from "lucide-react";
 import type { ClinicalAgentType } from "@/lib/clinicalAgents";
 import type { Patient } from "@/lib/mockData";
 
@@ -54,18 +54,6 @@ export function ChatInput({
     
     // Simular ações (MVP)
     switch (action) {
-      case 'cardiology':
-        onAgentChange('cardiology');
-        onChange('Ative o agente de Cardiologia Pediátrica');
-        break;
-      case 'pneumology':
-        onAgentChange('pneumology');
-        onChange('Ative o agente de Pneumologia Pediátrica');
-        break;
-      case 'neurology':
-        onAgentChange('neurology');
-        onChange('Ative o agente de Neurologia Pediátrica');
-        break;
       default:
         // Outras ações podem disparar mensagens simuladas
         break;
@@ -158,33 +146,6 @@ export function ChatInput({
               >
                 <GraduationCap className="w-4 h-4 text-gray-500" />
                 <span>Tele-educação</span>
-              </button>
-            </div>
-            <div className="menu-section">
-              <div className="menu-title">Parecer Especializado</div>
-              <button
-                type="button"
-                className="menu-item"
-                onClick={() => handleMenuAction('cardiology')}
-              >
-                <HeartPulse className="w-4 h-4 text-gray-500" />
-                <span>Cardiologia Pediátrica</span>
-              </button>
-              <button
-                type="button"
-                className="menu-item"
-                onClick={() => handleMenuAction('pneumology')}
-              >
-                <Activity className="w-4 h-4 text-gray-500" />
-                <span>Pneumologia Pediátrica</span>
-              </button>
-              <button
-                type="button"
-                className="menu-item"
-                onClick={() => handleMenuAction('neurology')}
-              >
-                <Brain className="w-4 h-4 text-gray-500" />
-                <span>Neurologia Pediátrica</span>
               </button>
             </div>
           </div>

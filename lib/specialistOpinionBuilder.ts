@@ -126,7 +126,6 @@ export function buildSpecialistOpinion(
   return {
     agentId,
     agentName: agent.name,
-    agentEmoji: agent.emoji,
     patientId: patient.id,
     patientName: patient.nome,
     patientBed: patient.leito,

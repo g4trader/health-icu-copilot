@@ -2,16 +2,15 @@
 
 import type { Patient } from "@/types/Patient";
 import { PatientPinButton } from "@/components/PatientPinButton";
-import { PatientAgentButton } from "@/components/PatientAgentButton";
 import { PatientOpinionBadges } from "@/components/PatientOpinionBadges";
-import type { ClinicalAgentId } from "@/lib/clinicalAgents";
 import { riskLevelFromScore } from "@/lib/mockData";
+import { Maximize2 } from "lucide-react";
 
 interface PatientListItemProps {
   patient: Patient;
   selected?: boolean;
   onSelect?: (patient: Patient) => void;
-  onRequestOpinion?: (patientId: string, agentId: ClinicalAgentId | 'radiology') => void;
+  onExpand?: (patientId: string) => void;
   showActions?: boolean;
   className?: string;
 }
@@ -20,7 +19,7 @@ export function PatientListItem({
   patient,
   selected = false,
   onSelect,
-  onRequestOpinion,
+  onExpand,
   showActions = true,
   className = "",
 }: PatientListItemProps) {
@@ -77,13 +76,21 @@ export function PatientListItem({
         
         {showActions && (
           <div className="flex items-center gap-1.5 flex-shrink-0">
-            <PatientPinButton patient={patient} />
-            {onRequestOpinion && (
-              <PatientAgentButton
-                patientId={patient.id}
-                onRequestOpinion={onRequestOpinion}
-              />
+            {onExpand && (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onExpand(patient.id);
+                }}
+                className="inline-flex items-center justify-center w-7 h-7 border border-slate-300 rounded-lg bg-white text-slate-500 hover:bg-slate-50 hover:text-slate-700 transition-colors"
+                aria-label="Expandir perfil"
+                title="Expandir perfil"
+              >
+                <Maximize2 className="w-3.5 h-3.5" />
+              </button>
             )}
+            <PatientPinButton patient={patient} />
           </div>
         )}
       </div>
@@ -152,4 +159,3 @@ export function PatientListItem({
     </button>
   );
 }
-

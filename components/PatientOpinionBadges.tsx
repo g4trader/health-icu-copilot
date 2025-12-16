@@ -24,10 +24,7 @@ export function PatientOpinionBadges({ patientId, maxVisible = 2 }: PatientOpini
     const agent = clinicalAgents[agentId];
     if (!agent) return agentId;
     // Retornar nome curto para badge
-    if (agentId === 'cardiology') return 'Cardio';
-    if (agentId === 'pneumology') return 'Pneumo';
-    if (agentId === 'neurology') return 'Neuro';
-    return 'Geral';
+    return 'Plantonista';
   };
 
   return (
@@ -45,4 +42,5 @@ export function PatientOpinionBadges({ patientId, maxVisible = 2 }: PatientOpini
     </div>
   );
 }
+
 
