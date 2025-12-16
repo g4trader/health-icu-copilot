@@ -942,6 +942,18 @@ export async function POST(req: Request) {
       case "CALCULO_CLINICO":
         result = handleClinicalCalculationIntent(message, focusedId);
         break;
+      case "RADIOLOGISTA_VIRTUAL": {
+        const patientIdToUse = requestPatientId || focusedId;
+        if (!patientIdToUse) {
+          result = { 
+            reply: "Para solicitar um parecer radiológico, é necessário selecionar um paciente primeiro." + DISCLAIMER, 
+            showIcuPanel: false 
+          };
+        } else {
+          result = handleRadiologyIntent(patientIdToUse);
+        }
+        break;
+      }
       case "AGENTE_PARECER": {
         const patientIdToUse = requestPatientId || focusedId;
         const agentIdToUse = agentIdFromBody || 'general';
