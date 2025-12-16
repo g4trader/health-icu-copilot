@@ -127,6 +127,7 @@ function PrioritizationPanel({
                   </div>
                 </div>
                 <div className="prioritization-diagnosis">{p.diagnosticoPrincipal}</div>
+                <PatientOpinionBadges patientId={p.id} />
                 <div className="prioritization-vitals">
                   <div className="vital-item">
                     <span className="vital-label">MAP:</span>
