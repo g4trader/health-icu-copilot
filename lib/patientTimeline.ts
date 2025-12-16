@@ -259,3 +259,114 @@ export function formatRelativeTime(timestamp: Date): string {
   });
 }
 
+/**
+ * Calcula score de relevância de um evento para o resumo
+ */
+function calculateEventScore(event: TimelineEvent): number {
+  let score = 0;
+  
+  // Severidade
+  if (event.severity === 'critical') score += 100;
+  else if (event.severity === 'warning') score += 50;
+  else if (event.severity === 'normal') score += 10;
+  
+  // Tipo (pesos diferentes)
+  const typeWeights: Record<TimelineEventType, number> = {
+    'therapy': 30, // Ventilação, vasopressor têm alta relevância
+    'imaging': 25,
+    'lab': 25,
+    'vitals': 20,
+    'note': 15,
+    'admission': 5, // Admissão é menos relevante em 24h
+  };
+  
+  score += typeWeights[event.type] || 0;
+  
+  // Eventos relacionados a exames/imagens têm peso extra
+  if (event.relatedExamId) {
+    score += 10;
+  }
+  
+  return score;
+}
+
+/**
+ * Remove duplicatas semânticas simples (ex: dois labs seguidos do mesmo tipo)
+ */
+function deduplicateEvents(events: TimelineEvent[]): TimelineEvent[] {
+  const seen = new Set<string>();
+  const deduplicated: TimelineEvent[] = [];
+  
+  for (const event of events) {
+    // Criar chave semântica baseada no tipo e título simplificado
+    const semanticKey = `${event.type}-${event.title.toLowerCase().substring(0, 20)}`;
+    
+    if (!seen.has(semanticKey)) {
+      seen.add(semanticKey);
+      deduplicated.push(event);
+    } else {
+      // Se já existe, substituir pelo mais recente ou mais crítico
+      const existingIndex = deduplicated.findIndex(
+        e => `${e.type}-${e.title.toLowerCase().substring(0, 20)}` === semanticKey
+      );
+      
+      if (existingIndex >= 0) {
+        const existing = deduplicated[existingIndex];
+        // Manter o mais crítico ou mais recente
+        if (
+          (event.severity === 'critical' && existing.severity !== 'critical') ||
+          (event.timestamp > existing.timestamp && event.severity === existing.severity)
+        ) {
+          deduplicated[existingIndex] = event;
+        }
+      }
+    }
+  }
+  
+  return deduplicated;
+}
+
+/**
+ * Retorna os 3 eventos mais relevantes das últimas 24h para o resumo
+ */
+export function getPatientTimelineSummary(patientId: string): TimelineEvent[] {
+  // Obter timeline completa
+  const allEvents = getPatientTimeline(patientId);
+  
+  // Determinar "agora" de forma determinística (usar seed para normalizar)
+  const seed = patientId.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+  const now = new Date();
+  // Normalizar para determinismo: usar horário fixo baseado no seed
+  now.setHours(9 + (seed % 8), 0, 0, 0); // Entre 9h e 16h
+  
+  // Filtrar eventos das últimas 24h
+  const twentyFourHoursAgo = new Date(now);
+  twentyFourHoursAgo.setHours(twentyFourHoursAgo.getHours() - 24);
+  
+  const recentEvents = allEvents.filter(event => event.timestamp >= twentyFourHoursAgo);
+  
+  // Se não houver eventos suficientes em 24h, usar os mais recentes disponíveis
+  const eventsToProcess = recentEvents.length >= 3 ? recentEvents : allEvents.slice(0, 10);
+  
+  // Deduplicar eventos semânticos
+  const deduplicated = deduplicateEvents(eventsToProcess);
+  
+  // Calcular score e ordenar
+  const scored = deduplicated.map(event => ({
+    event,
+    score: calculateEventScore(event),
+  }));
+  
+  scored.sort((a, b) => {
+    // Ordenar por score (maior primeiro)
+    if (b.score !== a.score) {
+      return b.score - a.score;
+    }
+    // Em empate, preferir mais recente
+    return b.event.timestamp.getTime() - a.event.timestamp.getTime();
+  });
+  
+  // Retornar top 3 (ou menos se não houver)
+  return scored.slice(0, 3).map(item => item.event);
+}
+

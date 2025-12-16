@@ -26,6 +26,7 @@ import { MetricChip } from "./ui/MetricChip";
 import { PatientPinButton } from "./PatientPinButton";
 import { riskLevelFromScore, calculateSOFA } from "@/lib/mockData";
 import { PatientTimeline } from "./PatientTimeline";
+import { PatientTimelineSummary } from "./PatientTimelineSummary";
 
 interface PatientFocusModeProps {
   patient: Patient;
@@ -158,6 +159,9 @@ export function PatientFocusMode({
             </div>
           </section>
         )}
+
+        {/* Resumo das últimas 24h */}
+        <PatientTimelineSummary patientId={patient.id} />
 
         {/* 3. Sinais vitais (micro dashboard) */}
         <section>
