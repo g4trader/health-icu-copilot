@@ -3,6 +3,7 @@
 import { useClinicalSession } from "@/lib/ClinicalSessionContext";
 import { usePreview } from "@/components/PreviewProvider";
 import { mockPatients } from "@/lib/mockData";
+import { PatientOpinionBadges } from "@/components/PatientOpinionBadges";
 
 export function LeftSidebar() {
   const { pinnedPatients, setActivePatient } = useClinicalSession();
@@ -86,9 +87,12 @@ export function LeftSidebar() {
                           {pinned.bedId?.replace('UTI ', '') ?? patient.leito.replace('UTI ', '')}
                         </div>
                         <div className="sidebar-pinned-info">
-                          <span className="sidebar-pinned-name">
-                            {pinned.name}
-                          </span>
+                          <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", flexWrap: "wrap" }}>
+                            <span className="sidebar-pinned-name">
+                              {pinned.name}
+                            </span>
+                            <PatientOpinionBadges patientId={pinned.id} maxVisible={1} />
+                          </div>
                           <span className="sidebar-pinned-meta">
                             Risco 24h: {Math.round((patient.riscoMortality24h * 100))}%
                           </span>

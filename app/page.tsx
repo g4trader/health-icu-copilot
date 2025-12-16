@@ -15,6 +15,7 @@ import { TherapiesPanel } from "@/components/TherapiesPanel";
 import { PatientDetailPanel } from "@/components/PatientDetailPanel";
 import { PatientPinButton } from "@/components/PatientPinButton";
 import { PatientAgentButton } from "@/components/PatientAgentButton";
+import { PatientOpinionBadges } from "@/components/PatientOpinionBadges";
 import { useClinicalSession } from "@/lib/ClinicalSessionContext";
 
 type Message = {

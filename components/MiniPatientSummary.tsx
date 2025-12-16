@@ -3,6 +3,7 @@
 import type { Patient } from "@/lib/mockData";
 import { PatientPinButton } from "./PatientPinButton";
 import { PatientAgentButton } from "./PatientAgentButton";
+import { PatientOpinionBadges } from "./PatientOpinionBadges";
 import type { ClinicalAgentId } from "@/lib/clinicalAgents";
 
 interface MiniPatientSummaryProps {
@@ -45,6 +46,7 @@ export function MiniPatientSummary({ patient, onRequestOpinion }: MiniPatientSum
           </span>
         </div>
         </div>
+        <PatientOpinionBadges patientId={patient.id} />
       </div>
     </div>
   );
