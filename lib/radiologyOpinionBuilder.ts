@@ -2,13 +2,73 @@ import type { Patient } from '@/types/Patient';
 import type { RadiologyOpinion, ExamType } from '@/types/RadiologyOpinion';
 
 /**
+ * Detecta automaticamente o tipo de exame mais apropriado baseado no diagnóstico do paciente
+ */
+function detectAppropriateExamType(patient: Patient): ExamType {
+  const diag = patient.diagnosticoPrincipal.toLowerCase();
+  
+  // Diagnósticos respiratórios → Radiografia/Tomografia de Tórax
+  if (
+    diag.includes('bronquiolite') ||
+    diag.includes('pneumonia') ||
+    diag.includes('insuficiência respiratória') ||
+    diag.includes('insuficiencia respiratoria') ||
+    diag.includes('respiratório') ||
+    diag.includes('respiratorio')
+  ) {
+    return 'chest-xray';
+  }
+  
+  // Diagnósticos neurológicos → TC de Crânio
+  if (
+    diag.includes('convulsão') ||
+    diag.includes('convulsao') ||
+    diag.includes('encefalopatia') ||
+    diag.includes('trauma craniano') ||
+    diag.includes('neurológico') ||
+    diag.includes('neurologico') ||
+    diag.includes('hemorragia cerebral')
+  ) {
+    return 'head-ct';
+  }
+  
+  // Diagnósticos cardíacos → ECG/Radiografia de Tórax
+  if (
+    diag.includes('cardiopatia') ||
+    diag.includes('insuficiência cardíaca') ||
+    diag.includes('insuficiencia cardiaca') ||
+    diag.includes('cardíaco') ||
+    diag.includes('cardiaco') ||
+    diag.includes('arritmia')
+  ) {
+    return 'ecg';
+  }
+  
+  // Diagnósticos abdominais → TC de Abdome
+  if (
+    diag.includes('abdomen') ||
+    diag.includes('abdominal') ||
+    diag.includes('peritonite') ||
+    diag.includes('apendicite')
+  ) {
+    return 'abdominal-ct';
+  }
+  
+  // Padrão: Radiografia de Tórax (mais comum em UTI pediátrica)
+  return 'chest-xray';
+}
+
+/**
  * Gera parecer radiológico determinístico baseado no paciente
  * Mesmo paciente sempre retorna o mesmo parecer
+ * Se examType não for fornecido, detecta automaticamente o exame mais apropriado
  */
 export function buildRadiologyOpinion(
   patient: Patient,
-  examType: ExamType = 'chest-xray'
+  examType?: ExamType
 ): RadiologyOpinion {
+  // Se não especificado, detectar automaticamente o tipo de exame mais apropriado
+  const selectedExamType = examType || detectAppropriateExamType(patient);
   const examTypeLabels: Record<ExamType, string> = {
     'chest-xray': 'Radiografia de Tórax',
     'head-ct': 'Tomografia Computadorizada de Crânio',
@@ -289,11 +349,11 @@ export function buildRadiologyOpinion(
   };
 
   const patientOpinions = opinions[patient.id] || {};
-  const examOpinion = patientOpinions[examType] || defaultOpinion;
+  const examOpinion = patientOpinions[selectedExamType] || defaultOpinion;
 
   return {
-    examType,
-    examTypeLabel: examTypeLabels[examType],
+    examType: selectedExamType,
+    examTypeLabel: examTypeLabels[selectedExamType],
     patientId: patient.id,
     patientName: patient.nome,
     patientBed: patient.leito,

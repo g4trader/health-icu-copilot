@@ -82,11 +82,11 @@ function handleRadiologyIntent(patientId: string): {
     };
   }
 
-  // Gerar parecer radiológico determinístico (sempre chest-xray como padrão)
-  const radiologyOpinion = buildRadiologyOpinion(patient, 'chest-xray');
+  // Gerar parecer radiológico determinístico (detecta automaticamente o tipo de exame mais apropriado)
+  const radiologyOpinion = buildRadiologyOpinion(patient);
 
   return {
-    reply: `Parecer radiológico para ${patient.leito} • ${patient.nome}: ${radiologyOpinion.examTypeLabel}`,
+    reply: `Parecer radiológico gerado para ${patient.leito} • ${patient.nome}.`,
     showIcuPanel: false,
     focusedPatient: patient,
     radiologyOpinion,

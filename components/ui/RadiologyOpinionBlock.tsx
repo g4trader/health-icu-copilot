@@ -28,7 +28,7 @@ export function RadiologyOpinionBlock({ opinion }: RadiologyOpinionBlockProps) {
           </div>
           <div className="flex-1 min-w-0">
             <h3 className="text-slate-900 font-semibold text-base mb-1">
-              Radiologista Virtual
+              Parecer do Radiologista Virtual
             </h3>
             <p className="text-slate-600 text-sm">
               {opinion.examTypeLabel} • {opinion.patientBed} • {opinion.patientName}

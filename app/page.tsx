@@ -622,8 +622,12 @@ export default function HomePage() {
                       patient={expandedPatient}
                       onCollapse={() => setExpandedPatientId(null)}
                       onRequestRadiologistOpinion={() => {
-                        // TODO: Implementar chamada ao Radiologista Virtual
-                        console.log("Request radiologist opinion for", expandedPatient.id);
+                        // Enviar mensagem para acionar o Radiologista Virtual
+                        void handleSend(
+                          `Radiologista Virtual, analise os exames de imagem do paciente ${expandedPatient.leito} - ${expandedPatient.nome}.`,
+                          'radiology',
+                          expandedPatient.id
+                        );
                       }}
                     />
                   </div>
