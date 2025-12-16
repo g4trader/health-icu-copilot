@@ -72,12 +72,17 @@ export function PatientListItem({
             </span>
           </div>
 
-          {/* Linha 2: Idade • Diagnóstico */}
+          {/* Linha 2: Idade */}
           <div className="text-sm text-slate-600">
-            {patient.idade} {patient.idade === 1 ? "ano" : "anos"} • {patient.diagnosticoPrincipal}
+            {patient.idade} {patient.idade === 1 ? "ano" : "anos"}
           </div>
 
-          {/* Linha 3: Risco 24h */}
+          {/* Linha 3: Diagnóstico */}
+          <div className="text-sm text-slate-600">
+            {patient.diagnosticoPrincipal}
+          </div>
+
+          {/* Linha 4: Risco 24h */}
           <div>
             <div
               className={`
@@ -99,7 +104,7 @@ export function PatientListItem({
             </div>
           </div>
 
-          {/* Linha 4: VM e Vasopressor */}
+          {/* Linha 5: VM e Vasopressor */}
           <div className="text-sm text-slate-600">
             VM: {hasVM ? "Sim" : "Não"} • Vasopressor: {hasVaso ? "Sim" : "Não"}
           </div>
