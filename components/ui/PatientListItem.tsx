@@ -2,7 +2,6 @@
 
 import type { Patient } from "@/types/Patient";
 import { PatientPinButton } from "@/components/PatientPinButton";
-import { PatientOpinionBadges } from "@/components/PatientOpinionBadges";
 import { riskLevelFromScore } from "@/lib/mockData";
 import { Maximize2 } from "lucide-react";
 
