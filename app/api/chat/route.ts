@@ -227,7 +227,7 @@ function detectIntent(
   }
   
   // Se há agentId e patientId (ou paciente focado), é AGENTE_PARECER
-  if (agentId && agentId !== 'general' && agentId !== 'radiology' && (requestPatientId || focusedPatientId)) {
+  if (agentId && agentId !== 'general' && (requestPatientId || focusedPatientId)) {
     return "AGENTE_PARECER";
   }
   
