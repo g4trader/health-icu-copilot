@@ -51,7 +51,7 @@ export function PatientListItem({
       onClick={() => onSelect?.(patient)}
       className={`
         w-full
-        p-3
+        p-4
         bg-white
         border rounded-2xl
         shadow-sm
@@ -62,31 +62,31 @@ export function PatientListItem({
         ${className}
       `}
     >
-      <div className="flex items-start justify-between gap-2">
-        <div className="flex-1 min-w-0">
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex-1 min-w-0 space-y-2">
           {/* Linha 1: UTI 01 • Sophia */}
-          <div className="flex items-center gap-1.5 mb-1.5">
+          <div className="flex items-center gap-1.5">
             <span className="text-slate-600 text-sm font-medium">{patient.leito}</span>
             <span className="text-slate-400">•</span>
-            <span className="text-slate-900 font-semibold text-sm">
+            <span className="text-slate-900 font-semibold text-base">
               {patient.nome}
             </span>
           </div>
 
-          {/* Linha 2: 3a • Leito 01 | ⚠️ Risco 68% VM Vaso Lactato ↑ 3.8 | D4 UTI */}
-          <div className="flex items-center gap-1.5 flex-wrap text-xs">
-            <span className="text-slate-600">{patient.idade}a</span>
-            <span className="text-slate-400">•</span>
-            <span className="text-slate-600">Leito {patient.leito}</span>
-            <span className="text-slate-400">|</span>
-            
-            {/* Risco - visualmente dominante */}
+          {/* Linha 2: Idade • Diagnóstico */}
+          <div className="text-sm text-slate-600">
+            {patient.idade} {patient.idade === 1 ? "ano" : "anos"} • {patient.diagnosticoPrincipal}
+          </div>
+
+          {/* Linha 3: Risco 24h */}
+          <div>
             <div
               className={`
-                px-2 py-0.5
-                rounded
+                inline-flex
+                px-2.5 py-1
+                rounded-lg
                 border
-                text-xs font-bold tabular-nums
+                text-sm font-semibold tabular-nums
                 ${
                   riskVariant === "danger"
                     ? "bg-rose-50 text-rose-700 border-rose-200"
@@ -96,34 +96,18 @@ export function PatientListItem({
                 }
               `}
             >
-              ⚠️ Risco {riskPercent}%
+              Risco 24h: {riskPercent}%
             </div>
-            
-            {hasVM && (
-              <span className="text-slate-700 font-medium">VM</span>
-            )}
-            
-            {hasVaso && (
-              <span className="text-slate-700 font-medium">Vaso</span>
-            )}
-            
-            {/* Lactato e dias UTI */}
-            {lactatoValue && (
-              <>
-                <span className="text-slate-600 font-medium tabular-nums">
-                  Lactato {lactatoTrend} {lactatoValue.toFixed(1)}
-                </span>
-                <span className="text-slate-400">|</span>
-              </>
-            )}
-            <span className="text-slate-600">
-              D{patient.diasDeUTI} UTI
-            </span>
+          </div>
+
+          {/* Linha 4: VM e Vasopressor */}
+          <div className="text-sm text-slate-600">
+            VM: {hasVM ? "Sim" : "Não"} • Vasopressor: {hasVaso ? "Sim" : "Não"}
           </div>
         </div>
         
         {showActions && (
-          <div className="flex items-center gap-1 flex-shrink-0">
+          <div className="flex items-start gap-2 flex-shrink-0 pt-1">
             {onExpand && (
               <button
                 type="button"
@@ -131,11 +115,11 @@ export function PatientListItem({
                   e.stopPropagation();
                   onExpand(patient.id);
                 }}
-                className="inline-flex items-center justify-center w-7 h-7 border border-slate-300 rounded-lg bg-white text-slate-500 hover:bg-slate-50 hover:text-slate-700 transition-colors"
+                className="inline-flex items-center justify-center w-8 h-8 border border-slate-300 rounded-lg bg-white text-slate-500 hover:bg-slate-50 hover:text-slate-700 transition-colors"
                 aria-label="Expandir perfil"
                 title="Expandir perfil"
               >
-                <Maximize2 className="w-3.5 h-3.5" />
+                <Maximize2 className="w-4 h-4" />
               </button>
             )}
             <div onClick={(e) => e.stopPropagation()}>
