@@ -259,27 +259,10 @@ export function AgentOpinionBlock({ opinion }: AgentOpinionBlockProps) {
         </div>
       </div>
 
-      {/* Footer Actions */}
-      <div className="mt-6 pt-4 border-t border-slate-200 flex items-center justify-end gap-2">
-        <button
-          type="button"
-          className="px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors"
-        >
-          Exportar
-        </button>
-        <button
-          type="button"
-          className="px-4 py-2 text-sm font-medium text-white bg-emerald-600 rounded-lg hover:bg-emerald-700 transition-colors"
-        >
-          Aplicar sugestões
-        </button>
-      </div>
-
       {/* Disclaimer */}
-      <div className="mt-4 pt-4 border-t border-slate-100">
-        <p className="text-xs text-slate-500 italic">
-          ⚠️ Este é um parecer automatizado com dados simulados. Sempre confirme
-          condutas com a equipe médica e protocolos locais.
+      <div className="mt-6 pt-4 border-t border-slate-100">
+        <p className="text-xs text-slate-500">
+          Parecer automatizado com dados simulados. Sempre confirme condutas com a equipe médica e protocolos locais.
         </p>
       </div>
     </BaseCard>

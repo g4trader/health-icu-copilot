@@ -820,25 +820,28 @@ a {
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
 }
 
 .msg-user {
-  background: #a7f3d0;
-  color: #064e3b;
-  border: 1px solid #6ee7b7;
-  border-radius: 1rem 1rem 0.25rem 1rem;
+  background: #ffffff;
+  color: #1e293b;
+  border: 1px solid #e2e8f0;
+  border-radius: 1rem;
 }
 
 .msg-agent {
-  background: #e0f2fe;
-  color: #0c4a6e;
-  border: 1px solid #bae6fd;
-  border-radius: 0.25rem 1rem 1rem 1rem;
+  background: #ffffff;
+  color: #334155;
+  border: 1px solid #e2e8f0;
+  border-radius: 1rem;
 }
 
 .msg-text {
-  font-size: 0.95rem;
-  line-height: 1.7;
+  font-size: 0.9375rem;
+  line-height: 1.6;
+  color: #334155;
+  font-weight: 400;
 }
 
 .icu-panel-wrapper {
@@ -1558,24 +1561,27 @@ a {
   flex: 1;
   overflow-y: auto;
   min-height: 0;
+  padding-bottom: 1rem;
 }
 
 .chat-input-footer {
   flex-shrink: 0;
   background: #ffffff;
   padding: 0;
-  /* Remover qualquer border-top/shadow que gere "barra cinza" */
   border-top: none;
   box-shadow: none;
+  position: sticky;
+  bottom: 0;
+  z-index: 10;
 }
 
 .chat-input-footer-inner {
-  max-width: 900px; /* max-w-4xl equivalente, alinhado com chat-container */
+  max-width: 900px;
   margin: 0 auto;
   width: 100%;
-  padding: 0.75rem 1rem 1rem 2.75rem; /* pt-3 pb-4 equivalente, alinhamento horizontal mantido */
-  /* Remover border-top se houver */
+  padding: 1rem 1.5rem 1.25rem 1.5rem;
   border-top: none;
+  position: relative;
 }
 
 /* Left Sidebar */
@@ -1589,14 +1595,14 @@ a {
 }
 
 .sidebar-content {
-  padding: 1.5rem 1rem;
+  padding: 1.5rem 0.875rem;
   flex: 1;
 }
 
 .sidebar-nav {
   display: flex;
   flex-direction: column;
-  gap: 2rem;
+  gap: 2.5rem;
 }
 
 .sidebar-section {
@@ -1647,18 +1653,19 @@ a {
 }
 
 .sidebar-link:hover:not(.sidebar-link-disabled) {
-  background: #f9fafb;
+  background: #f3f4f6;
   color: #1e293b;
 }
 
 .sidebar-link-active {
-  background: #f1f5f9;
+  background: #ffffff;
   color: #1e293b;
   font-weight: 500;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
 }
 
 .sidebar-link-active:hover {
-  background: #e2e8f0;
+  background: #ffffff;
 }
 
 .sidebar-link-disabled {
