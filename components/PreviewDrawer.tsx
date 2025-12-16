@@ -6,7 +6,7 @@ import { getPatientsOnVentilation, getPatientsOnVasopressors, getHighRiskPatient
 import type { Patient } from "@/lib/mockData";
 import { PatientDetailPanel } from "./PatientDetailPanel";
 import { PatientPinButton } from "./PatientPinButton";
-import { PatientListItem } from "./ui/PatientListItem";
+import { PatientCard } from "./patients/PatientCard";
 import { useClinicalSession } from "@/lib/ClinicalSessionContext";
 import type { ClinicalAgentId } from "@/lib/clinicalAgents";
 import { RadiologyReportDetails } from "./ui/RadiologyReportDetails";
@@ -159,13 +159,13 @@ function AllPatientsPreview({ payload }: { payload: PreviewPayload | null }) {
 
   return (
     <div className="preview-content">
-      <div className="space-y-4">
+      <div className="flex flex-col gap-4 p-4">
         {patients.map((p) => (
-          <PatientListItem
+          <PatientCard
             key={p.id}
             patient={p}
-            onSelect={(patient) => onSelectPatient?.(patient.id)}
-            showActions={true}
+            showPin={true}
+            onSelect={(patientId) => onSelectPatient?.(patientId)}
           />
         ))}
       </div>
@@ -179,13 +179,13 @@ function VentilatedPreview() {
 
   return (
     <div className="preview-content">
-      <div className="space-y-4">
+      <div className="flex flex-col gap-4 p-4">
         {ventilated.map((p) => (
-          <PatientListItem
+          <PatientCard
             key={p.id}
             patient={p}
-            onSelect={(patient) => onSelectPatient?.(patient.id)}
-            showActions={true}
+            showPin={true}
+            onSelect={(patientId) => onSelectPatient?.(patientId)}
           />
         ))}
       </div>
@@ -201,13 +201,13 @@ function VasopressorsPreview() {
 
   return (
     <div className="preview-content">
-      <div className="space-y-4">
+      <div className="flex flex-col gap-4 p-4">
         {onVaso.map((p) => (
-          <PatientListItem
+          <PatientCard
             key={p.id}
             patient={p}
-            onSelect={(patient) => onSelectPatient?.(patient.id)}
-            showActions={true}
+            showPin={true}
+            onSelect={(patientId) => onSelectPatient?.(patientId)}
           />
         ))}
       </div>
@@ -224,13 +224,13 @@ function HighRiskPreview() {
 
   return (
     <div className="preview-content">
-      <div className="space-y-4">
+      <div className="flex flex-col gap-4 p-4">
         {highRisk.map((p) => (
-          <PatientListItem
+          <PatientCard
             key={p.id}
             patient={p}
-            onSelect={(patient) => onSelectPatient?.(patient.id)}
-            showActions={true}
+            showPin={true}
+            onSelect={(patientId) => onSelectPatient?.(patientId)}
           />
         ))}
       </div>

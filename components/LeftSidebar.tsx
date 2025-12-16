@@ -5,7 +5,7 @@ import { User, Scan, BarChart3, GraduationCap } from "lucide-react";
 import { useClinicalSession } from "@/lib/ClinicalSessionContext";
 import { usePreview } from "@/components/PreviewProvider";
 import { mockPatients } from "@/lib/mockData";
-import { PatientListItem } from "./ui/PatientListItem";
+import { PatientCard } from "./patients/PatientCard";
 
 type SidebarMode = "plantonista" | "radiologista" | "dados-locais" | "educacao";
 
@@ -100,17 +100,17 @@ export function LeftSidebar() {
                 Fixe pacientes importantes para acompanhar aqui.
               </p>
             ) : (
-              <div className="space-y-4">
+              <div className="flex flex-col gap-3">
                 {pinnedPatients.map((pinned) => {
                   const patient = mockPatients.find(p => p.id === pinned.id);
                   if (!patient) return null;
                   
                   return (
-                    <PatientListItem
+                    <PatientCard
                       key={pinned.id}
                       patient={patient}
-                      onSelect={(p) => handleSelectPatient(p.id)}
-                      showActions={true}
+                      showPin={true}
+                      onSelect={(patientId) => handleSelectPatient(patientId)}
                     />
                   );
                 })}

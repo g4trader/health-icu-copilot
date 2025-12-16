@@ -18,7 +18,7 @@ import { TherapiesPanel } from "@/components/TherapiesPanel";
 import { PatientDetailPanel } from "@/components/PatientDetailPanel";
 import { PatientPinButton } from "@/components/PatientPinButton";
 import { PatientOpinionBadges } from "@/components/PatientOpinionBadges";
-import { PatientListItem } from "@/components/ui/PatientListItem";
+import { PatientCard } from "@/components/patients/PatientCard";
 import { useClinicalSession } from "@/lib/ClinicalSessionContext";
 
 type Message = {
@@ -103,10 +103,10 @@ function PrioritizationPanel({
             <div className="absolute -left-2 top-4 flex items-center justify-center w-6 h-6 bg-slate-100 border border-slate-300 rounded-full text-xs font-semibold text-slate-700 z-10">
               {idx + 1}
             </div>
-            <PatientListItem
+            <PatientCard
               patient={p}
-              onSelect={(patient) => onSelectPatient?.(patient.id)}
-              showActions={true}
+              onSelect={(patientId) => onSelectPatient?.(patientId)}
+              showPin={true}
               className="ml-6"
             />
           </div>

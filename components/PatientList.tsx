@@ -2,7 +2,7 @@
 
 import { getSortedByMortalityRisk24h } from "@/lib/mockData";
 import type { Patient } from "@/lib/mockData";
-import { PatientListItem } from "./ui/PatientListItem";
+import { PatientCard } from "./patients/PatientCard";
 import type { ClinicalAgentId } from "@/lib/clinicalAgents";
 
 interface Props {
@@ -19,14 +19,17 @@ export function PatientList({
   const sorted = getSortedByMortalityRisk24h();
 
   return (
-    <div className="space-y-4">
+    <div className="flex flex-col gap-4">
       {sorted.map((p) => (
-        <PatientListItem
+        <PatientCard
           key={p.id}
           patient={p as Patient}
           selected={selectedPatientId === p.id}
-          onSelect={(patient) => onSelectPatient?.(patient as Patient)}
-          showActions={true}
+          onSelect={(patientId) => {
+            const patient = sorted.find(pat => pat.id === patientId);
+            if (patient) onSelectPatient?.(patient as Patient);
+          }}
+          showPin={true}
         />
       ))}
     </div>

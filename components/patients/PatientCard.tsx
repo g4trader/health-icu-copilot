@@ -3,27 +3,30 @@
 import type { Patient } from "@/types/Patient";
 import { PatientPinButton } from "@/components/PatientPinButton";
 
-interface PatientListItemProps {
+interface PatientCardProps {
   patient: Patient;
+  showPin?: boolean;
+  isPinned?: boolean;
+  onTogglePin?: (patientId: string) => void;
+  onSelect?: (patientId: string) => void;
+  variant?: 'default';
   selected?: boolean;
-  onSelect?: (patient: Patient) => void;
-  onExpand?: (patientId: string) => void;
-  showActions?: boolean;
   className?: string;
 }
 
 /**
- * Componente master para cards de paciente
- * UI idêntica ao print: card alto, respirado, rounded-2xl, border-slate-200, shadow-sm
- * Pin no canto superior direito
+ * Componente único master para cards de paciente
+ * UI idêntica ao print: rounded-2xl, border-slate-200, shadow-sm, bg-white
+ * Pin no canto superior direito, texto alinhado à esquerda, boa respiração
  */
-export function PatientListItem({
+export function PatientCard({
   patient,
-  selected = false,
+  showPin = true,
   onSelect,
-  showActions = true,
+  selected = false,
+  variant = 'default',
   className = "",
-}: PatientListItemProps) {
+}: PatientCardProps) {
   const riskPercent = Math.round(patient.riscoMortality24h * 100);
   
   const hasVM = !!patient.ventilationParams;
@@ -32,7 +35,7 @@ export function PatientListItem({
   );
 
   const handleCardClick = () => {
-    onSelect?.(patient);
+    onSelect?.(patient.id);
   };
 
   return (
@@ -55,22 +58,22 @@ export function PatientListItem({
       `}
     >
       {/* PIN no canto superior direito */}
-      {showActions && (
-        <div className="absolute top-4 right-4">
+      {showPin && (
+        <div className="absolute top-4 right-4" onClick={(e) => e.stopPropagation()}>
           <PatientPinButton patient={patient} />
         </div>
       )}
 
-      <div className={showActions ? "pr-12" : ""}>
+      <div className={showPin ? "pr-12" : ""}>
         <div className="space-y-3">
-          {/* Linha 1: UTI 01 • Sophia */}
+          {/* Linha 1 (header): UTI XX • Nome */}
           <div>
             <span className="text-slate-900 font-semibold text-lg">
               {patient.leito} • {patient.nome}
             </span>
           </div>
 
-          {/* Linha 2: Idade • Diagnóstico */}
+          {/* Linha 2: idade • diagnóstico completo */}
           <div className="text-sm text-slate-600 leading-relaxed">
             {patient.idade} {patient.idade === 1 ? "ano" : "anos"} • {patient.diagnosticoPrincipal}
           </div>
@@ -80,7 +83,7 @@ export function PatientListItem({
             Risco 24h: {riskPercent}%
           </div>
 
-          {/* Linha 4: VM e Vasopressor */}
+          {/* Linha 4: VM • Vasopressor */}
           <div className="text-sm text-slate-600">
             VM: {hasVM ? "Sim" : "Não"} • Vasopressor: {hasVaso ? "Sim" : "Não"}
           </div>
