@@ -8,7 +8,7 @@ import type { ClinicalAgentId } from "@/lib/clinicalAgents";
 interface Props {
   onSelectPatient?: (patient: Patient) => void;
   selectedPatientId?: string | null;
-  onRequestOpinion?: (patientId: string, agentId: ClinicalAgentId) => void;
+  onRequestOpinion?: (patientId: string, agentId: ClinicalAgentId | 'radiology') => void;
 }
 
 export function PatientList({ 

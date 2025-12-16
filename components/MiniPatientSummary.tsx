@@ -6,7 +6,7 @@ import type { ClinicalAgentId } from "@/lib/clinicalAgents";
 
 interface MiniPatientSummaryProps {
   patient: Patient;
-  onRequestOpinion?: (patientId: string, agentId: ClinicalAgentId) => void;
+  onRequestOpinion?: (patientId: string, agentId: ClinicalAgentId | 'radiology') => void;
 }
 
 export function MiniPatientSummary({ patient, onRequestOpinion }: MiniPatientSummaryProps) {

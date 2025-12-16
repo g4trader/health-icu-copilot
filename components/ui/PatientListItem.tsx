@@ -11,7 +11,7 @@ interface PatientListItemProps {
   patient: Patient;
   selected?: boolean;
   onSelect?: (patient: Patient) => void;
-  onRequestOpinion?: (patientId: string, agentId: ClinicalAgentId) => void;
+  onRequestOpinion?: (patientId: string, agentId: ClinicalAgentId | 'radiology') => void;
   showActions?: boolean;
   className?: string;
 }
