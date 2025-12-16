@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { FileText, Search, GraduationCap } from "lucide-react";
+import { FileText, GraduationCap } from "lucide-react";
 import type { ClinicalAgentType } from "@/lib/clinicalAgents";
 import type { Patient } from "@/lib/mockData";
 
@@ -128,24 +128,16 @@ export function ChatInput({
                 className="menu-item"
                 onClick={() => handleMenuAction('document')}
               >
-                <FileText className="w-4 h-4 text-gray-500" />
+                <FileText className="w-4 h-4 text-slate-500" />
                 <span>Enviar documento</span>
-              </button>
-              <button
-                type="button"
-                className="menu-item"
-                onClick={() => handleMenuAction('literature')}
-              >
-                <Search className="w-4 h-4 text-gray-500" />
-                <span>Investigar literatura médica</span>
               </button>
               <button
                 type="button"
                 className="menu-item"
                 onClick={() => handleMenuAction('education')}
               >
-                <GraduationCap className="w-4 h-4 text-gray-500" />
-                <span>Tele-educação</span>
+                <GraduationCap className="w-4 h-4 text-slate-500" />
+                <span>UpToDate</span>
               </button>
             </div>
           </div>
