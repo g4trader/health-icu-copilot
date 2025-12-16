@@ -26,6 +26,8 @@ import {
 } from "@/lib/clinicalMemory";
 import { detectAgent, getAgent, getClinicalAgent, buildAgentOpinion, type ClinicalAgentType, type ClinicalAgentId } from "@/lib/clinicalAgents";
 import { specialistOpinions, type SpecialistKey } from "@/lib/specialistOpinions";
+import { buildSpecialistOpinion } from "@/lib/specialistOpinionBuilder";
+import type { SpecialistOpinion } from "@/types/SpecialistOpinion";
 import { storeResearchEntry, desidentifyText } from "@/lib/researchStore";
 
 interface RequestBody {
@@ -72,6 +74,7 @@ function handleAgentOpinionIntent(patientId: string, agentId: ClinicalAgentId): 
   showVitalsPanel?: boolean;
   showLabsPanel?: boolean;
   showTherapiesPanel?: boolean;
+  specialistOpinion?: SpecialistOpinion;
 } {
   const patient = mockPatients.find(p => p.id === patientId);
   if (!patient) {
@@ -82,12 +85,30 @@ function handleAgentOpinionIntent(patientId: string, agentId: ClinicalAgentId): 
     };
   }
 
-  // Tentar buscar parecer mockado primeiro
+  // Tentar construir parecer estruturado primeiro
+  const structuredOpinion = buildSpecialistOpinion(patient, agentId);
+  
+  if (structuredOpinion) {
+    // Retornar parecer estruturado (o frontend deve renderizar como SpecialistOpinionMessage)
+    return {
+      reply: structuredOpinion.summary, // Texto de fallback
+      showIcuPanel: false,
+      agentId,
+      focusedPatient: patient,
+      showPatientOverview: true,
+      showVitalsPanel: true,
+      showLabsPanel: true,
+      showTherapiesPanel: true,
+      specialistOpinion: structuredOpinion, // Dados estruturados
+    };
+  }
+  
+  // Fallback: buscar parecer textual mockado
   const specialistKey = agentId as SpecialistKey;
   const mockOpinion = specialistOpinions[specialistKey]?.[patientId];
 
   if (mockOpinion) {
-    // Usar parecer mockado
+    // Usar parecer mockado textual
     const footer = '\n\n---\n*Health Copilot+ v1.0.0* | Dados: Simulados | Parecer de agente de subespecialidade. Este conteúdo é apenas apoio à decisão e não substitui avaliação médica presencial.';
     
     return {
@@ -823,6 +844,7 @@ export async function POST(req: Request) {
       showVitalsPanel?: boolean;
       showLabsPanel?: boolean;
       showTherapiesPanel?: boolean;
+      specialistOpinion?: SpecialistOpinion;
     };
 
     switch (intent) {
@@ -974,7 +996,8 @@ export async function POST(req: Request) {
       showPatientOverview: result.showPatientOverview,
       showVitalsPanel: result.showVitalsPanel,
       showLabsPanel: result.showLabsPanel,
-      showTherapiesPanel: result.showTherapiesPanel
+      showTherapiesPanel: result.showTherapiesPanel,
+      specialistOpinion: result.specialistOpinion
     });
   } catch (error) {
     return NextResponse.json(

@@ -13,3 +13,5 @@ export interface LabResult {
   critico: boolean; // se está fora dos valores normais
 }
 
+
+

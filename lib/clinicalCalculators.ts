@@ -119,3 +119,5 @@ export function calculateDoseByBSA(bsa: number, doseMgPerM2: number): number {
   return Math.round((bsa * doseMgPerM2) * 100) / 100;
 }
 
+
+

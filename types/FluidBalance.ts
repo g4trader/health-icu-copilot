@@ -13,3 +13,5 @@ export interface FluidBalance {
   ultimaAtualizacao: string; // ISO string
 }
 
+
+

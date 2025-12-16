@@ -13,3 +13,5 @@ export interface VitalSigns {
   pressaoIntracraniana?: number; // mmHg (quando aplicável)
 }
 
+
+

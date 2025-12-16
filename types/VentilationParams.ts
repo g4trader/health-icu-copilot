@@ -13,3 +13,5 @@ export interface VentilationParams {
   ultimaAtualizacao: string; // ISO string
 }
 
+
+

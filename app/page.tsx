@@ -9,6 +9,7 @@ import { ChatInput } from "@/components/ChatInput";
 import { PatientContextBar } from "@/components/PatientContextBar";
 import { usePreview } from "@/components/PreviewProvider";
 import { MiniPatientSummary } from "@/components/MiniPatientSummary";
+import { SpecialistOpinionMessage } from "@/components/chat/SpecialistOpinionMessage";
 import { VitalsPanel } from "@/components/VitalsPanel";
 import { TherapiesPanel } from "@/components/TherapiesPanel";
 import { PatientDetailPanel } from "@/components/PatientDetailPanel";
@@ -33,6 +34,7 @@ type Message = {
   showLabsPanel?: boolean;
   showTherapiesPanel?: boolean;
   agentId?: ClinicalAgentId;
+  specialistOpinion?: import('@/types/SpecialistOpinion').SpecialistOpinion;
 };
 
 type AgentReply = {
@@ -52,6 +54,7 @@ type AgentReply = {
   showVitalsPanel?: boolean;
   showLabsPanel?: boolean;
   showTherapiesPanel?: boolean;
+  specialistOpinion?: import('@/types/SpecialistOpinion').SpecialistOpinion;
 };
 
 function LoadingSkeleton() {
@@ -503,7 +506,8 @@ export default function HomePage() {
         showPatientMiniPanel: data.showPatientOverview,
         showVitalsPanel: data.showVitalsPanel,
         showLabsPanel: data.showLabsPanel,
-        showTherapiesPanel: data.showTherapiesPanel
+        showTherapiesPanel: data.showTherapiesPanel,
+        specialistOpinion: data.specialistOpinion
       };
 
       setConversation((prev) => [...prev, agentMessage]);
@@ -605,8 +609,13 @@ export default function HomePage() {
                     <div className={`msg-bubble ${msg.role === "user" ? "msg-user" : "msg-agent"}`}>
                       <div className="msg-text" style={{ whiteSpace: "pre-wrap" }}>{msg.text}</div>
                       
-                      {/* Parecer de agente com micro dashboards */}
-                      {msg.role === "agent" && msg.intent === 'AGENTE_PARECER' && msg.focusedPatient && (
+                      {/* Parecer de agente com visual premium */}
+                      {msg.role === "agent" && msg.intent === 'AGENTE_PARECER' && msg.specialistOpinion && (
+                        <SpecialistOpinionMessage opinion={msg.specialistOpinion} />
+                      )}
+                      
+                      {/* Fallback: Parecer de agente com micro dashboards (formato antigo) */}
+                      {msg.role === "agent" && msg.intent === 'AGENTE_PARECER' && !msg.specialistOpinion && msg.focusedPatient && (
                         <>
                           {msg.showPatientMiniPanel && (
                             <MiniPatientSummary 
