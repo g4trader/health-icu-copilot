@@ -1,7 +1,7 @@
 "use client";
 
 import type { RadiologyReportSummary } from "@/types/RadiologyOpinion";
-import { Scan, Clock, ExternalLink } from "lucide-react";
+import { Scan, ExternalLink } from "lucide-react";
 import { BaseCard } from "./BaseCard";
 import { usePreview } from "../PreviewProvider";
 
@@ -34,10 +34,7 @@ export function RadiologyReportCard({ summary, fullReport }: RadiologyReportCard
                 {summary.examTypeLabel}
               </span>
               <span>{summary.patientBed} • {summary.patientName}</span>
-              <div className="flex items-center gap-1">
-                <Clock className="w-3 h-3" />
-                <span>{new Date(summary.timestamp).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}</span>
-              </div>
+              <span className="text-xs text-slate-500">{summary.dateMock}</span>
             </div>
           </div>
         </div>

@@ -27,6 +27,7 @@ import { PatientPinButton } from "./PatientPinButton";
 import { riskLevelFromScore, calculateSOFA } from "@/lib/mockData";
 import { PatientTimeline } from "./PatientTimeline";
 import { PatientTimelineSummary } from "./PatientTimelineSummary";
+import { getPatientTimeline } from "@/lib/patientTimeline";
 
 interface PatientFocusModeProps {
   patient: Patient;
@@ -228,20 +229,78 @@ export function PatientFocusMode({
         {/* 5. Imagem (resumo) */}
         <section>
           <SectionHeader title="Exames de imagem" />
-          <div className="mt-3 p-8 border border-slate-200 rounded-xl bg-slate-50 flex flex-col items-center justify-center gap-3">
-            <Scan className="w-12 h-12 text-slate-400" />
-            <p className="text-sm text-slate-600 text-center">
-              Nenhum exame de imagem disponível no momento
-            </p>
-            {onRequestRadiologistOpinion && (
-              <button
-                type="button"
-                onClick={onRequestRadiologistOpinion}
-                className="mt-2 px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors"
-              >
-                Solicitar análise do Radiologista Virtual
-              </button>
-            )}
+          <div className="mt-3">
+            {(() => {
+              // Buscar último exame de imagem na timeline
+              const timelineEvents = getPatientTimeline(patient.id);
+              const lastImagingEvent = timelineEvents
+                .filter(e => e.type === 'imaging')
+                .sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime())[0];
+              
+              if (lastImagingEvent) {
+                const examTypeLabel = lastImagingEvent.title.includes('RX') || lastImagingEvent.title.includes('Radiografia') ? 'RX' :
+                                    lastImagingEvent.title.includes('TC') || lastImagingEvent.title.includes('Tomografia') ? 'TC' :
+                                    lastImagingEvent.title.includes('ECO') || lastImagingEvent.title.includes('Ecocardiograma') ? 'ECO' :
+                                    'Imagem';
+                
+                return (
+                  <div className="p-4 bg-white border border-slate-200 rounded-2xl shadow-sm">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex items-start gap-3 flex-1">
+                        <div className="p-2 bg-slate-50 border border-slate-200 rounded-lg">
+                          <Scan className="w-4 h-4 text-slate-600" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className="px-2 py-0.5 bg-slate-100 text-slate-700 border border-slate-200 rounded text-xs font-semibold">
+                              {examTypeLabel}
+                            </span>
+                            <span className="text-xs text-slate-500">
+                              {new Date(lastImagingEvent.timestamp).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}
+                            </span>
+                          </div>
+                          <p className="text-sm font-semibold text-slate-900">
+                            {lastImagingEvent.title}
+                          </p>
+                          {lastImagingEvent.description && (
+                            <p className="text-xs text-slate-600 mt-1">
+                              {lastImagingEvent.description}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                      {lastImagingEvent.relatedExamId && onRequestRadiologistOpinion && (
+                        <button
+                          type="button"
+                          onClick={onRequestRadiologistOpinion}
+                          className="px-3 py-1.5 text-xs font-medium text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors flex-shrink-0"
+                        >
+                          Ver laudo
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                );
+              }
+              
+              return (
+                <div className="p-6 bg-white border border-slate-200 rounded-2xl shadow-sm flex flex-col items-center justify-center gap-3">
+                  <Scan className="w-10 h-10 text-slate-400" />
+                  <p className="text-sm text-slate-600">
+                    Nenhum exame de imagem disponível
+                  </p>
+                  {onRequestRadiologistOpinion && (
+                    <button
+                      type="button"
+                      onClick={onRequestRadiologistOpinion}
+                      className="px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors"
+                    >
+                      Solicitar análise do Radiologista Virtual
+                    </button>
+                  )}
+                </div>
+              );
+            })()}
           </div>
         </section>
 
@@ -251,7 +310,7 @@ export function PatientFocusMode({
           <div className="mt-3 space-y-4">
             {/* Ventilação mecânica */}
             {hasVM && patient.ventilationParams && (
-              <div className="p-4 bg-slate-50 border border-slate-200 rounded-lg">
+              <div className="p-4 bg-white border border-slate-200 rounded-2xl shadow-sm">
                 <div className="flex items-center gap-2 mb-2">
                   <Wind className="w-4 h-4 text-slate-500" />
                   <h4 className="text-sm font-semibold text-slate-900">Ventilação Mecânica</h4>
@@ -275,7 +334,7 @@ export function PatientFocusMode({
             
             {/* Drogas vasoativas */}
             {hasVaso && vasopressors.length > 0 && (
-              <div className="p-4 bg-slate-50 border border-slate-200 rounded-lg">
+              <div className="p-4 bg-white border border-slate-200 rounded-2xl shadow-sm">
                 <div className="flex items-center gap-2 mb-2">
                   <HeartPulse className="w-4 h-4 text-slate-500" />
                   <h4 className="text-sm font-semibold text-slate-900">Drogas Vasoativas</h4>
@@ -293,7 +352,7 @@ export function PatientFocusMode({
             
             {/* Antibióticos */}
             {hasAntibiotic && antibiotics.length > 0 && (
-              <div className="p-4 bg-slate-50 border border-slate-200 rounded-lg">
+              <div className="p-4 bg-white border border-slate-200 rounded-2xl shadow-sm">
                 <div className="flex items-center gap-2 mb-2">
                   <Pill className="w-4 h-4 text-slate-500" />
                   <h4 className="text-sm font-semibold text-slate-900">Antibioticoterapia</h4>
@@ -317,7 +376,7 @@ export function PatientFocusMode({
         {/* 8. Parecer do Plantonista */}
         <section>
           <SectionHeader title="Parecer do Plantonista" />
-          <div className="mt-3 p-4 bg-slate-50 border border-slate-200 rounded-lg">
+          <div className="mt-3 p-4 bg-white border border-slate-200 rounded-2xl shadow-sm">
             <p className="text-sm text-slate-700 leading-relaxed">
               Paciente {patient.nome} ({patient.idade} anos, {patient.peso.toFixed(1)} kg), leito {patient.leito}, 
               com diagnóstico principal de {patient.diagnosticoPrincipal}. 

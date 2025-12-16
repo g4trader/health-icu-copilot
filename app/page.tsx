@@ -319,7 +319,7 @@ export default function HomePage() {
   const [conversation, setConversation] = useState<Message[]>([]);
   const [loading, setLoading] = useState(false);
   const [input, setInput] = useState("");
-  const conversationEndRef = useRef<HTMLDivElement>(null);
+  const messageRefs = useRef<Map<string, HTMLDivElement>>(new Map());
   
   // Contexto de sessão clínica (mock)
   const sessionIdRef = useRef<string>(`session-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`);
@@ -383,9 +383,22 @@ export default function HomePage() {
     return () => setOnSelectPatient(undefined);
   }, [setOnSelectPatient, openPatientPreviewDrawer]);
 
+  // Scroll para o topo da última mensagem do agente quando uma nova resposta é renderizada
   useEffect(() => {
-    if (conversationEndRef.current) {
-      conversationEndRef.current.scrollIntoView({ behavior: "smooth" });
+    if (conversation.length > 0 && !loading) {
+      const lastMessage = conversation[conversation.length - 1];
+      if (lastMessage.role === "agent") {
+        const messageRef = messageRefs.current.get(lastMessage.id);
+        if (messageRef) {
+          // Pequeno delay para garantir que o DOM foi atualizado
+          setTimeout(() => {
+            messageRef.scrollIntoView({ 
+              behavior: "smooth", 
+              block: "start" 
+            });
+          }, 100);
+        }
+      }
     }
   }, [conversation, loading]);
 
@@ -535,7 +548,17 @@ export default function HomePage() {
                     onClear={() => setActivePatientId(null)} 
                   />
                   {conversation.map((msg) => (
-                  <div key={msg.id} className={`msg-container ${msg.role === "user" ? "msg-user-wrapper" : "msg-agent-wrapper"}`}>
+                  <div 
+                    key={msg.id} 
+                    ref={(el) => {
+                      if (el) {
+                        messageRefs.current.set(msg.id, el);
+                      } else {
+                        messageRefs.current.delete(msg.id);
+                      }
+                    }}
+                    className={`msg-container ${msg.role === "user" ? "msg-user-wrapper" : "msg-agent-wrapper"}`}
+                  >
                     <div className={`msg-bubble ${msg.role === "user" ? "msg-user" : "msg-agent"}`}>
                       <div className="msg-text" style={{ whiteSpace: "pre-wrap" }}>{msg.text}</div>
                       
@@ -641,8 +664,6 @@ export default function HomePage() {
                     </div>
                   </div>
                 )}
-
-                  <div ref={conversationEndRef} />
           </div>
               )}
             </div>
