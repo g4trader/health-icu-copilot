@@ -380,7 +380,7 @@ export default function HomePage() {
   const [activePatientId, setActivePatientId] = useState<string | null>(null);
   const activePatient = mockPatients.find(p => p.id === activePatientId) || null;
   const { setPreview, setOnSelectPatient } = usePreview();
-  const { setActivePatient: setActivePatientFromContext } = useClinicalSession();
+  const { setActivePatient: setActivePatientFromContext, addOpinion } = useClinicalSession();
 
   // Sincronizar activePatientId com o contexto
   useEffect(() => {
@@ -511,6 +511,11 @@ export default function HomePage() {
       };
 
       setConversation((prev) => [...prev, agentMessage]);
+      
+      // Registrar parecer se for de especialista
+      if (data.agentId && data.agentId !== 'general' && data.focusedPatient) {
+        addOpinion(data.focusedPatient.id, data.agentId);
+      }
     } catch (error) {
       const agentMessage: Message = {
         id: crypto.randomUUID(),
@@ -521,7 +526,7 @@ export default function HomePage() {
     } finally {
       setLoading(false);
     }
-  }, [activePatientId, sessionIdRef, currentAgent, setConversation, setInput, loading]);
+  }, [activePatientId, sessionIdRef, currentAgent, setConversation, setInput, loading, addOpinion]);
 
   /**
    * Função utilitária para solicitar parecer de agente especialista

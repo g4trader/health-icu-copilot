@@ -1564,6 +1564,9 @@ a {
   flex-shrink: 0;
   background: #ffffff;
   padding: 0;
+  /* Remover qualquer border-top/shadow que gere "barra cinza" */
+  border-top: none;
+  box-shadow: none;
 }
 
 .chat-input-footer-inner {
@@ -1571,6 +1574,8 @@ a {
   margin: 0 auto;
   width: 100%;
   padding: 0.75rem 1rem 1rem 2.75rem; /* pt-3 pb-4 equivalente, alinhamento horizontal mantido */
+  /* Remover border-top se houver */
+  border-top: none;
 }
 
 /* Left Sidebar */
@@ -3580,4 +3585,30 @@ a {
   color: #64748b;
   line-height: 1.5;
   font-style: italic;
+}
+
+/* Patient Opinion Badges */
+.patient-opinion-badges {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.patient-opinion-badge {
+  display: inline-block;
+  padding: 0.25rem 0.5rem;
+  background: #e0f2fe;
+  color: #0c4a6e;
+  border-radius: 0.375rem;
+  font-size: 0.6875rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.025em;
+}
+
+.patient-opinion-badge-more {
+  background: #f1f5f9;
+  color: #475569;
 }
