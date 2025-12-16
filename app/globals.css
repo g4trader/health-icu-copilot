@@ -1646,9 +1646,28 @@ a {
   gap: 0.75rem;
 }
 
-.sidebar-link:hover {
+.sidebar-link:hover:not(.sidebar-link-disabled) {
   background: #f9fafb;
   color: #1e293b;
+}
+
+.sidebar-link-active {
+  background: #f1f5f9;
+  color: #1e293b;
+  font-weight: 500;
+}
+
+.sidebar-link-active:hover {
+  background: #e2e8f0;
+}
+
+.sidebar-link-disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.sidebar-link-disabled:hover {
+  background: transparent;
 }
 
 /* Sidebar Footer - Usuário */

@@ -1,15 +1,49 @@
 "use client";
 
-import { MessageSquare, GraduationCap, User, HeartPulse, Activity, Brain } from "lucide-react";
+import { useState } from "react";
+import { User, Scans, BarChart3, GraduationCap } from "lucide-react";
 import { useClinicalSession } from "@/lib/ClinicalSessionContext";
 import { usePreview } from "@/components/PreviewProvider";
 import { mockPatients } from "@/lib/mockData";
-import { PatientOpinionBadges } from "@/components/PatientOpinionBadges";
 import { PatientListItem } from "./ui/PatientListItem";
 
+type SidebarMode = "plantonista" | "radiologista" | "dados-locais" | "educacao";
+
+interface SidebarItem {
+  id: SidebarMode;
+  label: string;
+  icon: typeof User;
+  requiresPatient?: boolean;
+}
+
 export function LeftSidebar() {
-  const { pinnedPatients, setActivePatient } = useClinicalSession();
+  const { pinnedPatients, setActivePatient, activePatientId } = useClinicalSession();
   const { setPreview } = usePreview();
+  const [activeMode, setActiveMode] = useState<SidebarMode>("plantonista");
+
+  const sidebarItems: SidebarItem[] = [
+    {
+      id: "plantonista",
+      label: "Plantonista",
+      icon: User,
+    },
+    {
+      id: "radiologista",
+      label: "Radiologista virtual",
+      icon: Scans,
+      requiresPatient: true,
+    },
+    {
+      id: "dados-locais",
+      label: "Dados locais da UTI",
+      icon: BarChart3,
+    },
+    {
+      id: "educacao",
+      label: "Educação",
+      icon: GraduationCap,
+    },
+  ];
 
   const handleSelectPatient = (patientId: string) => {
     setActivePatient(patientId);
@@ -19,55 +53,42 @@ export function LeftSidebar() {
     }
   };
 
+  const handleModeSelect = (mode: SidebarMode) => {
+    // Se o modo requer paciente e não há paciente selecionado, não faz nada
+    const item = sidebarItems.find(i => i.id === mode);
+    if (item?.requiresPatient && !activePatientId) {
+      return;
+    }
+    setActiveMode(mode);
+    // TODO: Implementar lógica de mudança de modo no chat
+  };
+
   return (
     <aside className="left-sidebar">
       <div className="sidebar-content">
         <nav className="sidebar-nav">
           <div className="sidebar-section">
-            <h3 className="sidebar-title">Menu</h3>
             <ul className="sidebar-list">
-              <li className="sidebar-item">
-                <button className="sidebar-link" type="button">
-                  <MessageSquare className="w-4 h-4 text-gray-500" />
-                  <span>Conversas salvas</span>
-                </button>
-              </li>
-              <li className="sidebar-item">
-                <button className="sidebar-link" type="button">
-                  <GraduationCap className="w-4 h-4 text-gray-500" />
-                  <span>Educação / Tele-educação</span>
-                </button>
-              </li>
-            </ul>
-          </div>
-
-          <div className="sidebar-section">
-            <h3 className="sidebar-title">Agentes</h3>
-            <ul className="sidebar-list">
-              <li className="sidebar-item">
-                <button className="sidebar-link" type="button">
-                  <User className="w-4 h-4 text-gray-500" />
-                  <span>Assistente Geral</span>
-                </button>
-              </li>
-              <li className="sidebar-item">
-                <button className="sidebar-link" type="button">
-                  <HeartPulse className="w-4 h-4 text-gray-500" />
-                  <span>Cardiologia Pediátrica</span>
-                </button>
-              </li>
-              <li className="sidebar-item">
-                <button className="sidebar-link" type="button">
-                  <Activity className="w-4 h-4 text-gray-500" />
-                  <span>Pneumologia Pediátrica</span>
-                </button>
-              </li>
-              <li className="sidebar-item">
-                <button className="sidebar-link" type="button">
-                  <Brain className="w-4 h-4 text-gray-500" />
-                  <span>Neurologia Pediátrica</span>
-                </button>
-              </li>
+              {sidebarItems.map((item) => {
+                const Icon = item.icon;
+                const isActive = activeMode === item.id;
+                const isDisabled = item.requiresPatient && !activePatientId;
+                
+                return (
+                  <li key={item.id} className="sidebar-item">
+                    <button
+                      className={`sidebar-link ${isActive ? "sidebar-link-active" : ""} ${isDisabled ? "sidebar-link-disabled" : ""}`}
+                      type="button"
+                      onClick={() => handleModeSelect(item.id)}
+                      disabled={isDisabled}
+                      title={isDisabled ? "Selecione um paciente primeiro" : undefined}
+                    >
+                      <Icon className="w-4 h-4 text-slate-500" />
+                      <span>{item.label}</span>
+                    </button>
+                  </li>
+                );
+              })}
             </ul>
           </div>
 
