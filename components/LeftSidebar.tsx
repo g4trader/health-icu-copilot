@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { User, Scans, BarChart3, GraduationCap } from "lucide-react";
+import { User, Scan, BarChart3, GraduationCap } from "lucide-react";
 import { useClinicalSession } from "@/lib/ClinicalSessionContext";
 import { usePreview } from "@/components/PreviewProvider";
 import { mockPatients } from "@/lib/mockData";
@@ -30,7 +30,7 @@ export function LeftSidebar() {
     {
       id: "radiologista",
       label: "Radiologista virtual",
-      icon: Scans,
+      icon: Scan,
       requiresPatient: true,
     },
     {
