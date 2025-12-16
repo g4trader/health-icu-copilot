@@ -209,12 +209,27 @@ function detectIntent(
   agentId?: ClinicalAgentId,
   requestPatientId?: string
 ): Intent {
+  const msg = message.toLowerCase().trim();
+  
+  // Detectar Radiologista Virtual primeiro (tem prioridade)
+  if (
+    agentId === 'radiology' ||
+    msg.includes("radiologista") || 
+    msg.includes("raio") || 
+    msg.includes("imagem") ||
+    msg.includes("rx") ||
+    msg.includes("tomografia") ||
+    msg.includes("tc ")
+  ) {
+    if (requestPatientId || focusedPatientId) {
+      return "RADIOLOGISTA_VIRTUAL";
+    }
+  }
+  
   // Se há agentId e patientId (ou paciente focado), é AGENTE_PARECER
-  if (agentId && agentId !== 'general' && (requestPatientId || focusedPatientId)) {
+  if (agentId && agentId !== 'general' && agentId !== 'radiology' && (requestPatientId || focusedPatientId)) {
     return "AGENTE_PARECER";
   }
-
-  const msg = message.toLowerCase().trim();
   
   // Detectar frases relacionadas a parecer
   // Verificar se a mensagem contém nome de agente especialista
