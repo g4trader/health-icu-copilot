@@ -90,7 +90,7 @@ function PrioritizationPanel({
 }: { 
   patients: Patient[]; 
   onSelectPatient?: (patientId: string) => void;
-  onRequestOpinion?: (patientId: string, agentId: ClinicalAgentId) => void;
+  onRequestOpinion?: (patientId: string, agentId: ClinicalAgentId | 'radiology') => void;
 }) {
   return (
     <div className="bg-white border border-slate-200 rounded-2xl shadow-sm p-5">
