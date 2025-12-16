@@ -1640,9 +1640,15 @@ a {
   transition: all 0.2s ease;
 }
 
+.sidebar-link {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
 .sidebar-link:hover {
-  background: #f1f5f9;
-  color: #059669;
+  background: #f9fafb;
+  color: #1e293b;
 }
 
 /* Sidebar Footer - Usuário */
@@ -2850,12 +2856,7 @@ a {
 }
 
 .patient-agent-menu-item:hover {
-  background: #f1f5f9;
-}
-
-.patient-agent-menu-emoji {
-  font-size: 1rem;
-  flex-shrink: 0;
+  background: #f9fafb;
 }
 
 .patient-agent-menu-name {
@@ -3335,11 +3336,6 @@ a {
   gap: 0.75rem;
 }
 
-.specialist-opinion-emoji {
-  font-size: 1.5rem;
-  line-height: 1;
-}
-
 .specialist-opinion-agent-name {
   font-weight: 600;
   color: #1e293b;
@@ -3420,10 +3416,6 @@ a {
   line-height: 1.5;
 }
 
-.specialist-opinion-risk-icon {
-  flex-shrink: 0;
-  margin-top: 0.125rem;
-}
 
 .specialist-opinion-exams {
   display: flex;

@@ -1,5 +1,6 @@
 "use client";
 
+import { MessageSquare, GraduationCap, User, HeartPulse, Activity, Brain } from "lucide-react";
 import { useClinicalSession } from "@/lib/ClinicalSessionContext";
 import { usePreview } from "@/components/PreviewProvider";
 import { mockPatients } from "@/lib/mockData";
@@ -26,12 +27,14 @@ export function LeftSidebar() {
             <ul className="sidebar-list">
               <li className="sidebar-item">
                 <button className="sidebar-link" type="button">
-                  💬 Conversas salvas
+                  <MessageSquare className="w-4 h-4 text-gray-500" />
+                  <span>Conversas salvas</span>
                 </button>
               </li>
               <li className="sidebar-item">
                 <button className="sidebar-link" type="button">
-                  📚 Educação / Tele-educação
+                  <GraduationCap className="w-4 h-4 text-gray-500" />
+                  <span>Educação / Tele-educação</span>
                 </button>
               </li>
             </ul>
@@ -42,22 +45,26 @@ export function LeftSidebar() {
             <ul className="sidebar-list">
               <li className="sidebar-item">
                 <button className="sidebar-link" type="button">
-                  👨‍⚕️ Assistente Geral
+                  <User className="w-4 h-4 text-gray-500" />
+                  <span>Assistente Geral</span>
                 </button>
               </li>
               <li className="sidebar-item">
                 <button className="sidebar-link" type="button">
-                  ❤️ Cardiologia Pediátrica
+                  <HeartPulse className="w-4 h-4 text-gray-500" />
+                  <span>Cardiologia Pediátrica</span>
                 </button>
               </li>
               <li className="sidebar-item">
                 <button className="sidebar-link" type="button">
-                  🫁 Pneumologia Pediátrica
+                  <Activity className="w-4 h-4 text-gray-500" />
+                  <span>Pneumologia Pediátrica</span>
                 </button>
               </li>
               <li className="sidebar-item">
                 <button className="sidebar-link" type="button">
-                  🧠 Neurologia Pediátrica
+                  <Brain className="w-4 h-4 text-gray-500" />
+                  <span>Neurologia Pediátrica</span>
                 </button>
               </li>
             </ul>

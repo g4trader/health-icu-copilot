@@ -1,7 +1,16 @@
 "use client";
 
 import type { SpecialistOpinion } from '@/types/SpecialistOpinion';
-import { PiTrendUp, PiTrendDown, PiMinus } from 'react-icons/pi';
+import { TrendingUp, TrendingDown, Minus, AlertCircle } from 'lucide-react';
+import { User, HeartPulse, Activity, Brain } from 'lucide-react';
+import type { ClinicalAgentId } from '@/lib/clinicalAgents';
+
+const agentIcons: Record<ClinicalAgentId, typeof User> = {
+  general: User,
+  cardiology: HeartPulse,
+  pneumology: Activity,
+  neurology: Brain,
+};
 
 interface SpecialistOpinionMessageProps {
   opinion: SpecialistOpinion;
@@ -16,10 +25,12 @@ export function SpecialistOpinionMessage({ opinion }: SpecialistOpinionMessagePr
   };
 
   const TrendIcon = ({ trend }: { trend: 'up' | 'down' | 'stable' }) => {
-    if (trend === 'up') return <PiTrendUp className="inline-block w-4 h-4 text-rose-600" />;
-    if (trend === 'down') return <PiTrendDown className="inline-block w-4 h-4 text-emerald-600" />;
-    return <PiMinus className="inline-block w-4 h-4 text-slate-400" />;
+    if (trend === 'up') return <TrendingUp className="inline-block w-4 h-4 text-gray-500" />;
+    if (trend === 'down') return <TrendingDown className="inline-block w-4 h-4 text-gray-500" />;
+    return <Minus className="inline-block w-4 h-4 text-gray-400" />;
   };
+
+  const AgentIcon = agentIcons[opinion.agentId] || User;
 
   return (
     <div className="specialist-opinion-message">
@@ -27,7 +38,7 @@ export function SpecialistOpinionMessage({ opinion }: SpecialistOpinionMessagePr
       <div className="specialist-opinion-header">
         <div className="specialist-opinion-header-main">
           <div className="specialist-opinion-agent">
-            <span className="specialist-opinion-emoji">{opinion.agentEmoji}</span>
+            <AgentIcon className="w-5 h-5 text-gray-500" />
             <div>
               <div className="specialist-opinion-agent-name">{opinion.agentName}</div>
               <div className="specialist-opinion-patient">
@@ -57,7 +68,7 @@ export function SpecialistOpinionMessage({ opinion }: SpecialistOpinionMessagePr
             <ul className="specialist-opinion-risks">
               {opinion.risks.map((risk, idx) => (
                 <li key={idx} className="specialist-opinion-risk-item">
-                  <span className="specialist-opinion-risk-icon">⚠️</span>
+                  <AlertCircle className="w-4 h-4 text-gray-500 flex-shrink-0" />
                   {risk}
                 </li>
               ))}

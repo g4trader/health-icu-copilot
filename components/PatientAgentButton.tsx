@@ -1,7 +1,15 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
+import { User, HeartPulse, Activity, Brain } from "lucide-react";
 import { clinicalAgents, type ClinicalAgentId } from "@/lib/clinicalAgents";
+
+const agentIcons: Record<ClinicalAgentId, typeof User> = {
+  general: User,
+  cardiology: HeartPulse,
+  pneumology: Activity,
+  neurology: Brain,
+};
 
 interface PatientAgentButtonProps {
   patientId: string;
@@ -58,21 +66,24 @@ export function PatientAgentButton({ patientId, onRequestOpinion }: PatientAgent
 
       {isMenuOpen && (
         <div className="patient-agent-menu">
-          {allAgents.map((agent) => (
-            <button
-              key={agent.id}
-              type="button"
-              className="patient-agent-menu-item"
-              onClick={(e) => {
-                e.stopPropagation();
-                onRequestOpinion(patientId, agent.id);
-                setIsMenuOpen(false);
-              }}
-            >
-              <span className="patient-agent-menu-emoji">{agent.emoji}</span>
-              <span className="patient-agent-menu-name">{agent.name}</span>
-            </button>
-          ))}
+          {allAgents.map((agent) => {
+            const Icon = agentIcons[agent.id];
+            return (
+              <button
+                key={agent.id}
+                type="button"
+                className="patient-agent-menu-item"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onRequestOpinion(patientId, agent.id);
+                  setIsMenuOpen(false);
+                }}
+              >
+                <Icon className="w-4 h-4 text-gray-500" />
+                <span className="patient-agent-menu-name">{agent.name}</span>
+              </button>
+            );
+          })}
         </div>
       )}
     </div>

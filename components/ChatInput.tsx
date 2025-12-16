@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
+import { FileText, Search, GraduationCap, HeartPulse, Activity, Brain } from "lucide-react";
 import type { ClinicalAgentType } from "@/lib/clinicalAgents";
 import type { Patient } from "@/lib/mockData";
 
@@ -139,21 +140,24 @@ export function ChatInput({
                 className="menu-item"
                 onClick={() => handleMenuAction('document')}
               >
-                📄 Enviar documento
+                <FileText className="w-4 h-4 text-gray-500" />
+                <span>Enviar documento</span>
               </button>
               <button
                 type="button"
                 className="menu-item"
                 onClick={() => handleMenuAction('literature')}
               >
-                📚 Investigar literatura médica
+                <Search className="w-4 h-4 text-gray-500" />
+                <span>Investigar literatura médica</span>
               </button>
               <button
                 type="button"
                 className="menu-item"
                 onClick={() => handleMenuAction('education')}
               >
-                🎓 Tele-educação
+                <GraduationCap className="w-4 h-4 text-gray-500" />
+                <span>Tele-educação</span>
               </button>
             </div>
             <div className="menu-section">
@@ -163,21 +167,24 @@ export function ChatInput({
                 className="menu-item"
                 onClick={() => handleMenuAction('cardiology')}
               >
-                ❤️ Cardiologia Pediátrica
+                <HeartPulse className="w-4 h-4 text-gray-500" />
+                <span>Cardiologia Pediátrica</span>
               </button>
               <button
                 type="button"
                 className="menu-item"
                 onClick={() => handleMenuAction('pneumology')}
               >
-                🫁 Pneumologia Pediátrica
+                <Activity className="w-4 h-4 text-gray-500" />
+                <span>Pneumologia Pediátrica</span>
               </button>
               <button
                 type="button"
                 className="menu-item"
                 onClick={() => handleMenuAction('neurology')}
               >
-                🧠 Neurologia Pediátrica
+                <Brain className="w-4 h-4 text-gray-500" />
+                <span>Neurologia Pediátrica</span>
               </button>
             </div>
           </div>
