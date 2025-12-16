@@ -11,7 +11,7 @@ import { SectionHeader } from "./SectionHeader";
 
 interface PatientHeaderCardProps {
   patient: Patient;
-  onRequestOpinion?: (patientId: string, agentId: ClinicalAgentId) => void;
+  onRequestOpinion?: (patientId: string, agentId: ClinicalAgentId | 'radiology') => void;
   className?: string;
 }
 
