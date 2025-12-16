@@ -11,6 +11,7 @@ import { usePreview } from "@/components/PreviewProvider";
 import { MiniPatientSummary } from "@/components/MiniPatientSummary";
 import { SpecialistOpinionMessage } from "@/components/chat/SpecialistOpinionMessage";
 import { AgentOpinionBlock } from "@/components/ui/AgentOpinionBlock";
+import { RadiologyOpinionBlock } from "@/components/ui/RadiologyOpinionBlock";
 import { VitalsPanel } from "@/components/VitalsPanel";
 import { TherapiesPanel } from "@/components/TherapiesPanel";
 import { PatientDetailPanel } from "@/components/PatientDetailPanel";
@@ -35,9 +36,10 @@ type Message = {
   showPatientMiniPanel?: boolean;
   showVitalsPanel?: boolean;
   showLabsPanel?: boolean;
-  showTherapiesPanel?: boolean;
-  agentId?: ClinicalAgentId;
+        showTherapiesPanel?: boolean;
+  agentId?: ClinicalAgentId | 'radiology';
   specialistOpinion?: import('@/types/SpecialistOpinion').SpecialistOpinion;
+  radiologyOpinion?: import('@/types/RadiologyOpinion').RadiologyOpinion;
 };
 
 type AgentReply = {
@@ -58,6 +60,7 @@ type AgentReply = {
   showLabsPanel?: boolean;
   showTherapiesPanel?: boolean;
   specialistOpinion?: import('@/types/SpecialistOpinion').SpecialistOpinion;
+  radiologyOpinion?: import('@/types/RadiologyOpinion').RadiologyOpinion;
 };
 
 function LoadingSkeleton() {
@@ -384,7 +387,7 @@ export default function HomePage() {
     }
   }, [conversation, loading]);
 
-  const handleSend = useCallback(async (messageText?: string, agentIdParam?: ClinicalAgentId, patientIdParam?: string) => {
+  const handleSend = useCallback(async (messageText?: string, agentIdParam?: ClinicalAgentId | 'radiology', patientIdParam?: string) => {
     const textToSend = messageText || input.trim();
     if (!textToSend || loading) return;
 
@@ -473,28 +476,32 @@ export default function HomePage() {
   }, [activePatientId, sessionIdRef, currentAgent, setConversation, setInput, loading, addOpinion]);
 
   /**
-   * Função utilitária para solicitar parecer de agente especialista
+   * Função utilitária para solicitar parecer de agente especialista ou radiologista
    * Dispara uma mensagem automática no chat que será processada pelo backend
    */
-  const requestSpecialistOpinion = useCallback((agentId: ClinicalAgentId, patientId: string) => {
+  const requestSpecialistOpinion = useCallback((agentId: ClinicalAgentId | 'radiology', patientId: string) => {
     const patient = mockPatients.find(p => p.id === patientId);
     if (!patient) {
       console.error('Paciente não encontrado');
       return;
     }
 
-    const agent = clinicalAgents[agentId];
-    
-    // Construir mensagem automática para o chat
-    const message = `${agent.name}, avalie o caso do paciente ${patient.leito} - ${patient.nome} (${patient.idade} ${patient.idade === 1 ? 'ano' : 'anos'}, ${patient.diagnosticoPrincipal}) e sugira condutas ou exames complementares.`;
-
-    // Disparar mensagem usando o fluxo de envio do chat (simulando que o usuário digitou isso)
-    // Passar explicitamente agentId e patientId para garantir detecção correta da intenção
-    handleSend(message, agentId, patientId);
+    if (agentId === 'radiology') {
+      // Mensagem específica para Radiologista Virtual
+      const message = `Radiologista Virtual, analise os exames de imagem do paciente ${patient.leito} - ${patient.nome} (${patient.idade} ${patient.idade === 1 ? 'ano' : 'anos'}, ${patient.diagnosticoPrincipal}).`;
+      handleSend(message, 'radiology' as ClinicalAgentId, patientId);
+    } else {
+      const agent = clinicalAgents[agentId];
+      // Construir mensagem automática para o chat
+      const message = `${agent.name}, avalie o caso do paciente ${patient.leito} - ${patient.nome} (${patient.idade} ${patient.idade === 1 ? 'ano' : 'anos'}, ${patient.diagnosticoPrincipal}) e sugira condutas ou exames complementares.`;
+      // Disparar mensagem usando o fluxo de envio do chat (simulando que o usuário digitou isso)
+      // Passar explicitamente agentId e patientId para garantir detecção correta da intenção
+      handleSend(message, agentId, patientId);
+    }
   }, [handleSend]);
 
   // Função para solicitar parecer de agente especialista (mantida para compatibilidade com PatientAgentButton)
-  const handleRequestAgentOpinion = useCallback((patientId: string, agentId: ClinicalAgentId) => {
+  const handleRequestAgentOpinion = useCallback((patientId: string, agentId: ClinicalAgentId | 'radiology') => {
     requestSpecialistOpinion(agentId, patientId);
   }, [requestSpecialistOpinion]);
 
@@ -557,6 +564,11 @@ export default function HomePage() {
                   <div key={msg.id} className={`msg-container ${msg.role === "user" ? "msg-user-wrapper" : "msg-agent-wrapper"}`}>
                     <div className={`msg-bubble ${msg.role === "user" ? "msg-user" : "msg-agent"}`}>
                       <div className="msg-text" style={{ whiteSpace: "pre-wrap" }}>{msg.text}</div>
+                      
+                      {/* Parecer de Radiologista Virtual */}
+                      {msg.role === "agent" && (msg.intent === 'RADIOLOGISTA_VIRTUAL' || msg.radiologyOpinion) && msg.radiologyOpinion && (
+                        <RadiologyOpinionBlock opinion={msg.radiologyOpinion} />
+                      )}
                       
                       {/* Parecer de agente com visual premium */}
                       {msg.role === "agent" && msg.intent === 'AGENTE_PARECER' && msg.specialistOpinion && (

@@ -40,7 +40,7 @@ export function LeftSidebar() {
     },
     {
       id: "educacao",
-      label: "Educação",
+      label: "UpToDate",
       icon: GraduationCap,
     },
   ];

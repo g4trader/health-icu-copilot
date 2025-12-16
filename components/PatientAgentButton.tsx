@@ -1,19 +1,28 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { User, HeartPulse, Activity, Brain } from "lucide-react";
+import { User, HeartPulse, Activity, Brain, Scan } from "lucide-react";
 import { clinicalAgents, type ClinicalAgentId } from "@/lib/clinicalAgents";
 
-const agentIcons: Record<ClinicalAgentId, typeof User> = {
+type AgentOptionId = ClinicalAgentId | 'radiology';
+
+const agentIcons: Record<AgentOptionId, typeof User> = {
   general: User,
   cardiology: HeartPulse,
   pneumology: Activity,
   neurology: Brain,
+  radiology: Scan,
 };
 
 interface PatientAgentButtonProps {
   patientId: string;
-  onRequestOpinion: (patientId: string, agentId: ClinicalAgentId) => void;
+  onRequestOpinion: (patientId: string, agentId: ClinicalAgentId | 'radiology') => void;
+}
+
+interface AgentOption {
+  id: AgentOptionId;
+  name: string;
+  icon: typeof User;
 }
 
 export function PatientAgentButton({ patientId, onRequestOpinion }: PatientAgentButtonProps) {
@@ -33,8 +42,15 @@ export function PatientAgentButton({ patientId, onRequestOpinion }: PatientAgent
     }
   }, [isMenuOpen]);
 
-  // Incluir todos os agentes (incluindo Assistente Geral)
-  const allAgents = Object.values(clinicalAgents);
+  // Incluir todos os agentes clínicos + Radiologista Virtual
+  const allAgents: AgentOption[] = [
+    ...Object.values(clinicalAgents),
+    {
+      id: 'radiology',
+      name: 'Radiologista Virtual',
+      icon: Scan,
+    }
+  ];
 
   return (
     <div className="patient-agent-button" ref={menuRef}>
@@ -75,7 +91,7 @@ export function PatientAgentButton({ patientId, onRequestOpinion }: PatientAgent
                 className="patient-agent-menu-item"
                 onClick={(e) => {
                   e.stopPropagation();
-                  onRequestOpinion(patientId, agent.id);
+                  onRequestOpinion(patientId, agent.id as ClinicalAgentId | 'radiology');
                   setIsMenuOpen(false);
                 }}
               >

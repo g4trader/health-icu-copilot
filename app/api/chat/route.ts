@@ -28,6 +28,8 @@ import { detectAgent, getAgent, getClinicalAgent, buildAgentOpinion, type Clinic
 import { specialistOpinions, type SpecialistKey } from "@/lib/specialistOpinions";
 import { buildSpecialistOpinion } from "@/lib/specialistOpinionBuilder";
 import type { SpecialistOpinion } from "@/types/SpecialistOpinion";
+import { buildRadiologyOpinion } from "@/lib/radiologyOpinionBuilder";
+import type { RadiologyOpinion } from "@/types/RadiologyOpinion";
 import { storeResearchEntry, desidentifyText } from "@/lib/researchStore";
 
 interface RequestBody {
@@ -60,11 +62,42 @@ type Intent =
   | "PERFIL_UNIDADE"
   | "CALCULO_CLINICO"
   | "AGENTE_PARECER"
+  | "RADIOLOGISTA_VIRTUAL"
   | "FALLBACK";
 
 /**
  * Handler para intenção de AGENTE_PARECER
  */
+/**
+ * Handler para Radiologista Virtual
+ */
+function handleRadiologyIntent(patientId: string): {
+  reply: string;
+  showIcuPanel: boolean;
+  focusedPatient?: PatientType;
+  radiologyOpinion?: RadiologyOpinion;
+  intent?: string;
+} {
+  const patient = mockPatients.find(p => p.id === patientId);
+  if (!patient) {
+    return {
+      reply: "Paciente não encontrado. Selecione um paciente para solicitar parecer radiológico." + DISCLAIMER,
+      showIcuPanel: false,
+    };
+  }
+
+  // Gerar parecer radiológico determinístico (sempre chest-xray como padrão)
+  const radiologyOpinion = buildRadiologyOpinion(patient, 'chest-xray');
+
+  return {
+    reply: `Parecer radiológico para ${patient.leito} • ${patient.nome}: ${radiologyOpinion.examTypeLabel}`,
+    showIcuPanel: false,
+    focusedPatient: patient,
+    radiologyOpinion,
+    intent: 'RADIOLOGISTA_VIRTUAL',
+  };
+}
+
 function handleAgentOpinionIntent(patientId: string, agentId: ClinicalAgentId): { 
   reply: string; 
   showIcuPanel: boolean;
