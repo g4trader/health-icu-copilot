@@ -213,7 +213,7 @@ function detectIntent(
   
   // Detectar Radiologista Virtual primeiro (tem prioridade)
   if (
-    agentId === 'radiology' ||
+    (agentId as string) === 'radiology' ||
     msg.includes("radiologista") || 
     msg.includes("raio") || 
     msg.includes("imagem") ||
