@@ -159,7 +159,7 @@ function AllPatientsPreview({ payload }: { payload: PreviewPayload | null }) {
 
   return (
     <div className="preview-content">
-      <div className="space-y-3">
+      <div className="space-y-4">
         {patients.map((p) => (
           <PatientListItem
             key={p.id}
@@ -179,7 +179,7 @@ function VentilatedPreview() {
 
   return (
     <div className="preview-content">
-      <div className="space-y-3">
+      <div className="space-y-4">
         {ventilated.map((p) => (
           <PatientListItem
             key={p.id}
@@ -201,7 +201,7 @@ function VasopressorsPreview() {
 
   return (
     <div className="preview-content">
-      <div className="space-y-3">
+      <div className="space-y-4">
         {onVaso.map((p) => (
           <PatientListItem
             key={p.id}
@@ -224,7 +224,7 @@ function HighRiskPreview() {
 
   return (
     <div className="preview-content">
-      <div className="space-y-3">
+      <div className="space-y-4">
         {highRisk.map((p) => (
           <PatientListItem
             key={p.id}

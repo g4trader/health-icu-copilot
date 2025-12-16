@@ -1859,14 +1859,14 @@ a {
   margin-top: 0.125rem;
 }
 
-/* Botão PIN */
+/* Botão PIN - Outline monocromático, discreto */
 .patient-pin-button {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 2rem;
-  height: 2rem;
-  border: 1px solid #cbd5e1;
+  width: 2.5rem;
+  height: 2.5rem;
+  border: 1px solid #e2e8f0;
   border-radius: 9999px;
   background: #ffffff;
   color: #94a3b8;
@@ -1876,15 +1876,15 @@ a {
 }
 
 .patient-pin-button:hover {
-  color: #059669;
-  border-color: #86efac;
-  background: #f0fdf4;
+  color: #475569;
+  border-color: #cbd5e1;
+  background: #f8fafc;
 }
 
 .patient-pin-button.pinned {
-  color: #059669;
-  border-color: #34d399;
-  background: #d1fae5;
+  color: #475569;
+  border-color: #e2e8f0;
+  background: #f1f5f9;
 }
 
 .patient-pin-button svg {

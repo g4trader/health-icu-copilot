@@ -100,7 +100,7 @@ export function LeftSidebar() {
                 Fixe pacientes importantes para acompanhar aqui.
               </p>
             ) : (
-              <div className="space-y-2">
+              <div className="space-y-4">
                 {pinnedPatients.map((pinned) => {
                   const patient = mockPatients.find(p => p.id === pinned.id);
                   if (!patient) return null;

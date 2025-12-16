@@ -2,8 +2,6 @@
 
 import type { Patient } from "@/types/Patient";
 import { PatientPinButton } from "@/components/PatientPinButton";
-import { riskLevelFromScore } from "@/lib/mockData";
-import { Maximize2 } from "lucide-react";
 
 interface PatientListItemProps {
   patient: Patient;
@@ -14,106 +12,80 @@ interface PatientListItemProps {
   className?: string;
 }
 
+/**
+ * Componente master para cards de paciente
+ * UI idêntica ao print: card alto, respirado, rounded-2xl, border-slate-200, shadow-sm
+ * Pin no canto superior direito
+ */
 export function PatientListItem({
   patient,
   selected = false,
   onSelect,
-  onExpand,
   showActions = true,
   className = "",
 }: PatientListItemProps) {
-  const riskLevel = riskLevelFromScore(patient.riscoMortality24h);
   const riskPercent = Math.round(patient.riscoMortality24h * 100);
   
   const hasVM = !!patient.ventilationParams;
   const hasVaso = patient.medications.some(
     (m) => m.tipo === "vasopressor" && m.ativo
   );
-  const hasAntibiotic = patient.medications.some(
-    (m) => m.tipo === "antibiotico" && m.ativo
-  );
 
-  const riskVariant =
-    riskLevel === "alto"
-      ? "danger"
-      : riskLevel === "moderado"
-      ? "warning"
-      : "default";
-
-  const lactato = patient.labResults.find((l) => l.tipo === "lactato");
-  const lactatoValue = lactato && typeof lactato.valor === "number" ? lactato.valor : null;
-  const lactatoTrend = lactato?.tendencia === "subindo" ? "↑" : lactato?.tendencia === "caindo" ? "↓" : "";
+  const handleCardClick = () => {
+    onSelect?.(patient);
+  };
 
   return (
-    <button
-      type="button"
-      onClick={() => onSelect?.(patient)}
+    <div
+      onClick={handleCardClick}
       className={`
         w-full
-        p-3
+        p-5
         bg-white
-        border rounded-lg
-        border-slate-300
+        border rounded-2xl
+        border-slate-200
+        shadow-sm
         text-left
         transition-all
-        hover:border-slate-400
+        hover:shadow-md hover:border-slate-300
+        cursor-pointer
+        relative
         ${selected ? "border-emerald-500 shadow-md ring-2 ring-emerald-100" : ""}
         ${className}
       `}
     >
-      <div className="space-y-1.5">
-        {/* Linha 1: UTI 01•Sophia */}
-        <div className="flex items-center gap-0.5">
-          <span className="text-slate-700 text-sm font-medium">{patient.leito}</span>
-          <span className="text-slate-700">•</span>
-          <span className="text-slate-900 font-semibold text-sm">
-            {patient.nome}
-          </span>
-        </div>
-
-        {/* Linha 2: Idade */}
-        <div className="text-sm text-slate-700">
-          {patient.idade} {patient.idade === 1 ? "ano" : "anos"}
-        </div>
-
-        {/* Linha 3: Diagnóstico */}
-        <div className="text-sm text-slate-700">
-          {patient.diagnosticoPrincipal}
-        </div>
-
-        {/* Linha 4: Risco 24h */}
-        <div className="text-sm text-slate-700">
-          Risco 24h: {riskPercent}%
-        </div>
-
-        {/* Linha 5: VM e Vasopressor */}
-        <div className="text-sm text-slate-700">
-          VM: {hasVM ? "Sim" : "Não"} • Vasopressor: {hasVaso ? "Sim" : "Não"}
-        </div>
-      </div>
-      
-      {/* PIN no centro inferior */}
+      {/* PIN no canto superior direito */}
       {showActions && (
-        <div className="flex justify-center items-center gap-2 mt-3 pt-2 border-t border-slate-200">
-          {onExpand && (
-            <button
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                onExpand(patient.id);
-              }}
-              className="inline-flex items-center justify-center w-7 h-7 border border-slate-300 rounded-lg bg-white text-slate-500 hover:bg-slate-50 hover:text-slate-700 transition-colors"
-              aria-label="Expandir perfil"
-              title="Expandir perfil"
-            >
-              <Maximize2 className="w-3.5 h-3.5" />
-            </button>
-          )}
-          <div onClick={(e) => e.stopPropagation()}>
-            <PatientPinButton patient={patient} />
-          </div>
+        <div className="absolute top-4 right-4">
+          <PatientPinButton patient={patient} />
         </div>
       )}
-    </button>
+
+      <div className={showActions ? "pr-12" : ""}>
+        <div className="space-y-3">
+          {/* Linha 1: UTI 01 • Sophia */}
+          <div>
+            <span className="text-slate-900 font-semibold text-lg">
+              {patient.leito} • {patient.nome}
+            </span>
+          </div>
+
+          {/* Linha 2: Idade • Diagnóstico */}
+          <div className="text-sm text-slate-600 leading-relaxed">
+            {patient.idade} {patient.idade === 1 ? "ano" : "anos"} • {patient.diagnosticoPrincipal}
+          </div>
+
+          {/* Linha 3: Risco 24h */}
+          <div className="text-sm text-slate-600">
+            Risco 24h: {riskPercent}%
+          </div>
+
+          {/* Linha 4: VM e Vasopressor */}
+          <div className="text-sm text-slate-600">
+            VM: {hasVM ? "Sim" : "Não"} • Vasopressor: {hasVaso ? "Sim" : "Não"}
+          </div>
+        </div>
+      </div>
+    </div>
   );
 }

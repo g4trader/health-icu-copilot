@@ -19,14 +19,13 @@ export function PatientList({
   const sorted = getSortedByMortalityRisk24h();
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-4">
       {sorted.map((p) => (
         <PatientListItem
           key={p.id}
           patient={p as Patient}
           selected={selectedPatientId === p.id}
           onSelect={(patient) => onSelectPatient?.(patient as Patient)}
-          onExpand={onExpandPatient}
           showActions={true}
         />
       ))}
