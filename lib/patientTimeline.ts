@@ -327,9 +327,21 @@ function deduplicateEvents(events: TimelineEvent[]): TimelineEvent[] {
 }
 
 /**
+ * Labels de tipo para exibição
+ */
+export const eventTypeLabels: Record<TimelineEventType, string> = {
+  admission: 'Admissão',
+  vitals: 'Sinais Vitais',
+  lab: 'Laboratório',
+  imaging: 'Imagem',
+  therapy: 'Terapia',
+  note: 'Nota',
+};
+
+/**
  * Retorna os 3 eventos mais relevantes das últimas 24h para o resumo
  */
-export function getPatientTimelineSummary(patientId: string): TimelineEvent[] {
+export function getPatientTimelineSummary(patientId: string): { events: TimelineEvent[]; isFallback: boolean } {
   // Obter timeline completa
   const allEvents = getPatientTimeline(patientId);
   
@@ -344,9 +356,10 @@ export function getPatientTimelineSummary(patientId: string): TimelineEvent[] {
   twentyFourHoursAgo.setHours(twentyFourHoursAgo.getHours() - 24);
   
   const recentEvents = allEvents.filter(event => event.timestamp >= twentyFourHoursAgo);
+  const isFallback = recentEvents.length < 3;
   
   // Se não houver eventos suficientes em 24h, usar os mais recentes disponíveis
-  const eventsToProcess = recentEvents.length >= 3 ? recentEvents : allEvents.slice(0, 10);
+  const eventsToProcess = isFallback ? allEvents.slice(0, 10) : recentEvents;
   
   // Deduplicar eventos semânticos
   const deduplicated = deduplicateEvents(eventsToProcess);
@@ -366,7 +379,32 @@ export function getPatientTimelineSummary(patientId: string): TimelineEvent[] {
     return b.event.timestamp.getTime() - a.event.timestamp.getTime();
   });
   
-  // Retornar top 3 (ou menos se não houver)
-  return scored.slice(0, 3).map(item => item.event);
+  // Selecionar top 3
+  const topEvents = scored.slice(0, 3).map(item => item.event);
+  
+  // Ordenação final: por severidade (critical > warning > normal) e depois timestamp desc
+  const severityOrder: Record<NonNullable<TimelineEvent['severity']>, number> = {
+    critical: 3,
+    warning: 2,
+    normal: 1,
+  };
+  
+  topEvents.sort((a, b) => {
+    const aSeverity = a.severity || 'normal';
+    const bSeverity = b.severity || 'normal';
+    
+    // Primeiro por severidade
+    if (severityOrder[aSeverity] !== severityOrder[bSeverity]) {
+      return severityOrder[bSeverity] - severityOrder[aSeverity];
+    }
+    
+    // Depois por timestamp desc (mais recente primeiro)
+    return b.timestamp.getTime() - a.timestamp.getTime();
+  });
+  
+  return {
+    events: topEvents,
+    isFallback,
+  };
 }
 
