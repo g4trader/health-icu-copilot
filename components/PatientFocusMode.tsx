@@ -25,6 +25,7 @@ import { MetricTile } from "./ui/MetricTile";
 import { MetricChip } from "./ui/MetricChip";
 import { PatientPinButton } from "./PatientPinButton";
 import { riskLevelFromScore, calculateSOFA } from "@/lib/mockData";
+import { PatientTimeline } from "./PatientTimeline";
 
 interface PatientFocusModeProps {
   patient: Patient;
@@ -306,7 +307,10 @@ export function PatientFocusMode({
           </div>
         </section>
 
-        {/* 7. Parecer do Plantonista */}
+        {/* 7. Linha do Tempo Clínica */}
+        <PatientTimeline patient={patient} />
+
+        {/* 8. Parecer do Plantonista */}
         <section>
           <SectionHeader title="Parecer do Plantonista" />
           <div className="mt-3 p-4 bg-slate-50 border border-slate-200 rounded-lg">
