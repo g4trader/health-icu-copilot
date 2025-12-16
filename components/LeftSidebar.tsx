@@ -5,6 +5,7 @@ import { useClinicalSession } from "@/lib/ClinicalSessionContext";
 import { usePreview } from "@/components/PreviewProvider";
 import { mockPatients } from "@/lib/mockData";
 import { PatientOpinionBadges } from "@/components/PatientOpinionBadges";
+import { PatientListItem } from "./ui/PatientListItem";
 
 export function LeftSidebar() {
   const { pinnedPatients, setActivePatient } = useClinicalSession();
@@ -78,37 +79,21 @@ export function LeftSidebar() {
                 Fixe pacientes importantes para acompanhar aqui.
               </p>
             ) : (
-              <ul className="sidebar-list">
+              <div className="space-y-2">
                 {pinnedPatients.map((pinned) => {
                   const patient = mockPatients.find(p => p.id === pinned.id);
                   if (!patient) return null;
                   
                   return (
-                    <li key={pinned.id} className="sidebar-item">
-                      <button
-                        type="button"
-                        className="sidebar-pinned-patient"
-                        onClick={() => handleSelectPatient(pinned.id)}
-                      >
-                        <div className="sidebar-pinned-avatar">
-                          {pinned.bedId?.replace('UTI ', '') ?? patient.leito.replace('UTI ', '')}
-                        </div>
-                        <div className="sidebar-pinned-info">
-                          <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", flexWrap: "wrap" }}>
-                            <span className="sidebar-pinned-name">
-                              {pinned.name}
-                            </span>
-                            <PatientOpinionBadges patientId={pinned.id} maxVisible={1} />
-                          </div>
-                          <span className="sidebar-pinned-meta">
-                            Risco 24h: {Math.round((patient.riscoMortality24h * 100))}%
-                          </span>
-                        </div>
-                      </button>
-                    </li>
+                    <PatientListItem
+                      key={pinned.id}
+                      patient={patient}
+                      onSelect={(p) => handleSelectPatient(p.id)}
+                      showActions={true}
+                    />
                   );
                 })}
-              </ul>
+              </div>
             )}
           </div>
         </nav>

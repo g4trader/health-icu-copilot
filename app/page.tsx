@@ -10,12 +10,14 @@ import { PatientContextBar } from "@/components/PatientContextBar";
 import { usePreview } from "@/components/PreviewProvider";
 import { MiniPatientSummary } from "@/components/MiniPatientSummary";
 import { SpecialistOpinionMessage } from "@/components/chat/SpecialistOpinionMessage";
+import { AgentOpinionBlock } from "@/components/ui/AgentOpinionBlock";
 import { VitalsPanel } from "@/components/VitalsPanel";
 import { TherapiesPanel } from "@/components/TherapiesPanel";
 import { PatientDetailPanel } from "@/components/PatientDetailPanel";
 import { PatientPinButton } from "@/components/PatientPinButton";
 import { PatientAgentButton } from "@/components/PatientAgentButton";
 import { PatientOpinionBadges } from "@/components/PatientOpinionBadges";
+import { PatientListItem } from "@/components/ui/PatientListItem";
 import { useClinicalSession } from "@/lib/ClinicalSessionContext";
 
 type Message = {
@@ -88,85 +90,25 @@ function PrioritizationPanel({
   onRequestOpinion?: (patientId: string, agentId: ClinicalAgentId) => void;
 }) {
   return (
-    <div className="prioritization-panel">
-      <div className="panel-header">
-        <h3 className="panel-title">TOP {patients.length} Pacientes por Prioridade</h3>
+    <div className="bg-white border border-slate-200 rounded-2xl shadow-sm p-5">
+      <div className="mb-4">
+        <h3 className="text-slate-900 font-semibold text-base">TOP {patients.length} Pacientes por Prioridade</h3>
       </div>
-      <div className="prioritization-list">
-        {patients.map((p, idx) => {
-          const riskLevel = riskLevelFromScore(p.riscoMortality24h);
-          const lactato = p.labResults.find(l => l.tipo === "lactato");
-          const lactatoValue = lactato && typeof lactato.valor === "number" ? lactato.valor : 0;
-          
-          return (
-            <button
-              key={p.id}
-              type="button"
-              className="prioritization-card prioritization-card-clickable"
-              onClick={() => onSelectPatient?.(p.id)}
-            >
-              <div className="prioritization-rank">#{idx + 1}</div>
-              <div className="prioritization-content">
-                <div className="prioritization-header">
-                  <div>
-                    <div className="prioritization-name">{p.leito} • {p.nome}</div>
-                    <div className="prioritization-meta">
-                      {p.idade} {p.idade === 1 ? "ano" : "anos"} • {p.peso?.toFixed(1) || "N/A"} kg
-                    </div>
-                  </div>
-                  <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
-                    <PatientPinButton patient={p} />
-                    {onRequestOpinion && (
-                      <PatientAgentButton 
-                        patientId={p.id} 
-                        onRequestOpinion={onRequestOpinion}
-                      />
-                    )}
-                    <span className={`risk-pill ${riskLevel === "alto" ? "risk-high" : riskLevel === "moderado" ? "risk-medium" : "risk-low"}`}>
-                      Risco {(p.riscoMortality24h * 100).toFixed(0)}%
-                    </span>
-                  </div>
-                </div>
-                <div className="prioritization-diagnosis">{p.diagnosticoPrincipal}</div>
-                <PatientOpinionBadges patientId={p.id} />
-                <div className="prioritization-vitals">
-                  <div className="vital-item">
-                    <span className="vital-label">MAP:</span>
-                    <span className={p.vitalSigns.pressaoArterialMedia < 65 ? "vital-critical" : ""}>
-                      {p.vitalSigns.pressaoArterialMedia} mmHg
-                    </span>
-                  </div>
-                  <div className="vital-item">
-                    <span className="vital-label">FC:</span>
-                    <span>{p.vitalSigns.frequenciaCardiaca} bpm</span>
-                  </div>
-                  <div className="vital-item">
-                    <span className="vital-label">SpO2:</span>
-                    <span className={p.vitalSigns.saturacaoO2 < 92 ? "vital-critical" : ""}>
-                      {p.vitalSigns.saturacaoO2}%
-                    </span>
-                  </div>
-                  {lactatoValue > 0 && (
-                    <div className="vital-item">
-                      <span className="vital-label">Lactato:</span>
-                      <span className={lactatoValue >= 3 ? "vital-critical" : ""}>
-                        {lactatoValue.toFixed(1)} mmol/L
-                      </span>
-                    </div>
-                  )}
-                </div>
-                <div className="prioritization-support">
-                  {p.medications.some(m => m.tipo === "vasopressor" && m.ativo) && (
-                    <span className="support-badge vasopressor">Vasopressor</span>
-                  )}
-                  {p.ventilationParams && (
-                    <span className="support-badge ventilation">VM</span>
-                  )}
-                </div>
-              </div>
-            </button>
-          );
-        })}
+      <div className="space-y-3">
+        {patients.map((p, idx) => (
+          <div key={p.id} className="relative">
+            <div className="absolute -left-2 top-4 flex items-center justify-center w-6 h-6 bg-slate-100 border border-slate-300 rounded-full text-xs font-semibold text-slate-700 z-10">
+              {idx + 1}
+            </div>
+            <PatientListItem
+              patient={p}
+              onSelect={(patient) => onSelectPatient?.(patient.id)}
+              onRequestOpinion={onRequestOpinion}
+              showActions={true}
+              className="ml-6"
+            />
+          </div>
+        ))}
       </div>
     </div>
   );
@@ -618,7 +560,7 @@ export default function HomePage() {
                       
                       {/* Parecer de agente com visual premium */}
                       {msg.role === "agent" && msg.intent === 'AGENTE_PARECER' && msg.specialistOpinion && (
-                        <SpecialistOpinionMessage opinion={msg.specialistOpinion} />
+                        <AgentOpinionBlock opinion={msg.specialistOpinion} />
                       )}
                       
                       {/* Fallback: Parecer de agente com micro dashboards (formato antigo) */}

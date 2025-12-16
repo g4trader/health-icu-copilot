@@ -6,7 +6,9 @@ import { getPatientsOnVentilation, getPatientsOnVasopressors, getHighRiskPatient
 import type { Patient } from "@/lib/mockData";
 import { PatientDetailPanel } from "./PatientDetailPanel";
 import { PatientPinButton } from "./PatientPinButton";
+import { PatientListItem } from "./ui/PatientListItem";
 import { useClinicalSession } from "@/lib/ClinicalSessionContext";
+import type { ClinicalAgentId } from "@/lib/clinicalAgents";
 
 function PatientDrawerHeader({ patient }: { patient: Patient }) {
   const { clearPreview } = usePreview();
@@ -205,30 +207,14 @@ function VentilatedPreview() {
 
   return (
     <div className="preview-content">
-      <div className="preview-list">
+      <div className="space-y-3">
         {ventilated.map((p) => (
-          <button
+          <PatientListItem
             key={p.id}
-            type="button"
-            className="preview-item preview-item-clickable"
-            onClick={(e) => {
-              e.stopPropagation();
-              onSelectPatient?.(p.id);
-            }}
-          >
-            <div className="preview-item-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <div>
-                <strong>{p.leito}</strong> • {p.nome}
-              </div>
-              <PatientPinButton patient={p} />
-            </div>
-            <div className="preview-item-details">
-              {p.ventilationParams && (
-                <div>VM: {p.ventilationParams.modo}, FiO2 {p.ventilationParams.fiO2}%, PEEP {p.ventilationParams.peep} cmH2O</div>
-              )}
-              <div>Risco 24h: {(p.riscoMortality24h * 100).toFixed(0)}%</div>
-            </div>
-          </button>
+            patient={p}
+            onSelect={(patient) => onSelectPatient?.(patient.id)}
+            showActions={true}
+          />
         ))}
       </div>
     </div>
@@ -243,33 +229,15 @@ function VasopressorsPreview() {
 
   return (
     <div className="preview-content">
-      <div className="preview-list">
-        {onVaso.map((p) => {
-          const vaso = p.medications.find(m => m.tipo === "vasopressor" && m.ativo);
-          return (
-            <button
-              key={p.id}
-              type="button"
-              className="preview-item preview-item-clickable"
-              onClick={(e) => {
-                e.stopPropagation();
-                onSelectPatient?.(p.id);
-              }}
-            >
-              <div className="preview-item-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <div>
-                  <strong>{p.leito}</strong> • {p.nome}
-                </div>
-                <PatientPinButton patient={p} />
-              </div>
-              <div className="preview-item-details">
-                {vaso && <div>Vasopressor: {vaso.nome} {vaso.dose}</div>}
-                <div>MAP: {p.vitalSigns.pressaoArterialMedia} mmHg</div>
-                <div>Risco 24h: {(p.riscoMortality24h * 100).toFixed(0)}%</div>
-              </div>
-            </button>
-          );
-        })}
+      <div className="space-y-3">
+        {onVaso.map((p) => (
+          <PatientListItem
+            key={p.id}
+            patient={p}
+            onSelect={(patient) => onSelectPatient?.(patient.id)}
+            showActions={true}
+          />
+        ))}
       </div>
     </div>
   );
@@ -284,30 +252,14 @@ function HighRiskPreview() {
 
   return (
     <div className="preview-content">
-      <div className="preview-list">
+      <div className="space-y-3">
         {highRisk.map((p) => (
-          <button
+          <PatientListItem
             key={p.id}
-            type="button"
-            className="preview-item preview-item-clickable"
-            onClick={(e) => {
-              e.stopPropagation();
-              onSelectPatient?.(p.id);
-            }}
-          >
-            <div className="preview-item-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <div>
-                <strong>{p.leito}</strong> • {p.nome}
-              </div>
-              <PatientPinButton patient={p} />
-            </div>
-            <div className="preview-item-details">
-              <div>Risco 24h: {(p.riscoMortality24h * 100).toFixed(0)}%</div>
-              <div>Diagnóstico: {p.diagnosticoPrincipal}</div>
-              {p.ventilationParams && <div>VM: Sim</div>}
-              {p.medications.some(m => m.tipo === "vasopressor" && m.ativo) && <div>Vasopressor: Sim</div>}
-            </div>
-          </button>
+            patient={p}
+            onSelect={(patient) => onSelectPatient?.(patient.id)}
+            showActions={true}
+          />
         ))}
       </div>
     </div>
