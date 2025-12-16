@@ -237,23 +237,23 @@ export function AgentOpinionBlock({ opinion }: AgentOpinionBlockProps) {
             </div>
           </div>
 
-          {/* Alerts */}
+          {/* Observações - Removido visual chamativo, apenas texto sutil */}
           {dashboards.alerts.length > 0 && (
             <div>
-              <h4 className="text-xs font-semibold uppercase tracking-wide text-slate-600 mb-3">
-                Alertas
+              <h4 className="text-xs font-semibold uppercase tracking-wide text-slate-600 mb-2">
+                Observações
               </h4>
-              <div className="space-y-1.5">
+              <ul className="space-y-1.5">
                 {dashboards.alerts.map((alert, idx) => (
-                  <div
+                  <li
                     key={idx}
-                    className="flex items-start gap-2 p-2 bg-rose-50 border border-rose-200 rounded-lg"
+                    className="flex items-start gap-2 text-xs text-slate-600"
                   >
-                    <AlertCircle className="w-3.5 h-3.5 text-rose-600 flex-shrink-0 mt-0.5" />
-                    <span className="text-xs text-rose-700">{alert}</span>
-                  </div>
+                    <span className="text-slate-400 mt-0.5">•</span>
+                    <span>{alert}</span>
+                  </li>
                 ))}
-              </div>
+              </ul>
             </div>
           )}
         </div>
