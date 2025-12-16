@@ -28,8 +28,8 @@ import { detectAgent, getAgent, getClinicalAgent, buildAgentOpinion, type Clinic
 import { specialistOpinions, type SpecialistKey } from "@/lib/specialistOpinions";
 import { buildSpecialistOpinion } from "@/lib/specialistOpinionBuilder";
 import type { SpecialistOpinion } from "@/types/SpecialistOpinion";
-import { buildRadiologyOpinion } from "@/lib/radiologyOpinionBuilder";
-import type { RadiologyOpinion } from "@/types/RadiologyOpinion";
+import { buildRadiologyReport, buildRadiologyOpinion } from "@/lib/radiologyOpinionBuilder";
+import type { RadiologyOpinion, RadiologyReport } from "@/types/RadiologyOpinion";
 import { storeResearchEntry, desidentifyText } from "@/lib/researchStore";
 
 interface RequestBody {
@@ -71,7 +71,7 @@ function handleRadiologyIntent(patientId: string): {
   reply: string;
   showIcuPanel: boolean;
   focusedPatient?: PatientType;
-  radiologyOpinion?: RadiologyOpinion;
+  radiologyReport?: RadiologyReport;
   intent?: string;
 } {
   const patient = mockPatients.find(p => p.id === patientId);
@@ -83,13 +83,13 @@ function handleRadiologyIntent(patientId: string): {
   }
 
   // Gerar parecer radiológico determinístico (detecta automaticamente o tipo de exame mais apropriado)
-  const radiologyOpinion = buildRadiologyOpinion(patient);
+  const radiologyReport = buildRadiologyReport(patient);
 
   return {
     reply: `Parecer radiológico gerado para ${patient.leito} • ${patient.nome}.`,
     showIcuPanel: false,
     focusedPatient: patient,
-    radiologyOpinion,
+    radiologyReport,
     intent: 'RADIOLOGISTA_VIRTUAL',
   };
 }

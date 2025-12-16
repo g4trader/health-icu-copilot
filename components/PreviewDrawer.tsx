@@ -9,6 +9,7 @@ import { PatientPinButton } from "./PatientPinButton";
 import { PatientListItem } from "./ui/PatientListItem";
 import { useClinicalSession } from "@/lib/ClinicalSessionContext";
 import type { ClinicalAgentId } from "@/lib/clinicalAgents";
+import { RadiologyReportDetails } from "./ui/RadiologyReportDetails";
 
 function PatientDrawerHeader({ patient }: { patient: Patient }) {
   const { clearPreview } = usePreview();
@@ -82,6 +83,7 @@ export function PreviewDrawer() {
                 {previewType === 'high-risk' && 'Pacientes em Alto Risco (24h)'}
                 {previewType === 'lab-results' && 'Exames Laboratoriais Recentes'}
                 {previewType === 'unit-profile' && 'Perfil Epidemiológico da Unidade'}
+                {previewType === 'radiology-report' && 'Laudo Radiológico'}
               </h3>
               <button
                 type="button"
@@ -110,6 +112,9 @@ export function PreviewDrawer() {
           {previewType === 'high-risk' && <HighRiskPreview />}
           {previewType === 'patient' && previewPayload?.patient && (
             <PatientDetailPanel patient={previewPayload.patient as Patient} />
+          )}
+          {previewType === 'radiology-report' && previewPayload?.report && (
+            <RadiologyReportDetails report={previewPayload.report as import("@/types/RadiologyOpinion").RadiologyReportFull} />
           )}
           {previewType === 'icu-overview' && <IcuOverviewPreview />}
         </div>

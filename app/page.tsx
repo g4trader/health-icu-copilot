@@ -12,7 +12,7 @@ import { MiniPatientSummary } from "@/components/MiniPatientSummary";
 import { PatientFocusMode } from "@/components/PatientFocusMode";
 import { SpecialistOpinionMessage } from "@/components/chat/SpecialistOpinionMessage";
 import { AgentOpinionBlock } from "@/components/ui/AgentOpinionBlock";
-import { RadiologyOpinionBlock } from "@/components/ui/RadiologyOpinionBlock";
+import { RadiologyReportCard } from "@/components/ui/RadiologyReportCard";
 import { VitalsPanel } from "@/components/VitalsPanel";
 import { TherapiesPanel } from "@/components/TherapiesPanel";
 import { PatientDetailPanel } from "@/components/PatientDetailPanel";
@@ -39,7 +39,7 @@ type Message = {
         showTherapiesPanel?: boolean;
   agentId?: ClinicalAgentId | 'radiology';
   specialistOpinion?: import('@/types/SpecialistOpinion').SpecialistOpinion;
-  radiologyOpinion?: import('@/types/RadiologyOpinion').RadiologyOpinion;
+  radiologyReport?: import('@/types/RadiologyOpinion').RadiologyReport;
 };
 
 type AgentReply = {
@@ -60,7 +60,7 @@ type AgentReply = {
   showLabsPanel?: boolean;
   showTherapiesPanel?: boolean;
   specialistOpinion?: import('@/types/SpecialistOpinion').SpecialistOpinion;
-  radiologyOpinion?: import('@/types/RadiologyOpinion').RadiologyOpinion;
+  radiologyReport?: import('@/types/RadiologyOpinion').RadiologyReport;
 };
 
 function LoadingSkeleton() {
@@ -456,7 +456,8 @@ export default function HomePage() {
         showVitalsPanel: data.showVitalsPanel,
         showLabsPanel: data.showLabsPanel,
         showTherapiesPanel: data.showTherapiesPanel,
-        specialistOpinion: data.specialistOpinion
+        specialistOpinion: data.specialistOpinion,
+        radiologyReport: data.radiologyReport
       };
 
       setConversation((prev) => [...prev, agentMessage]);
@@ -539,8 +540,8 @@ export default function HomePage() {
                       <div className="msg-text" style={{ whiteSpace: "pre-wrap" }}>{msg.text}</div>
                       
                       {/* Parecer de Radiologista Virtual */}
-                      {msg.role === "agent" && (msg.intent === 'RADIOLOGISTA_VIRTUAL' || msg.radiologyOpinion) && msg.radiologyOpinion && (
-                        <RadiologyOpinionBlock opinion={msg.radiologyOpinion} />
+                      {msg.role === "agent" && (msg.intent === 'RADIOLOGISTA_VIRTUAL' || msg.radiologyReport) && msg.radiologyReport && (
+                        <RadiologyReportCard summary={msg.radiologyReport.summary} fullReport={msg.radiologyReport.full} />
                       )}
                       
                       {/* Parecer de agente com visual premium */}

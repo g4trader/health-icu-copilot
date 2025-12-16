@@ -11,6 +11,7 @@ export type PreviewType =
   | 'high-risk'
   | 'unit-profile'
   | 'allPatients'
+  | 'radiology-report'
   | null;
 
 export interface PreviewPayload {
