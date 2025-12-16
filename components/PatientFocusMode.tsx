@@ -28,6 +28,8 @@ import { riskLevelFromScore, calculateSOFA } from "@/lib/mockData";
 import { PatientTimeline } from "./PatientTimeline";
 import { PatientTimelineSummary } from "./PatientTimelineSummary";
 import { getPatientTimeline } from "@/lib/patientTimeline";
+import { VitalSignsChart } from "./ui/VitalSignsChart";
+import { LabSparkline } from "./ui/LabSparkline";
 
 interface PatientFocusModeProps {
   patient: Patient;
@@ -164,64 +166,73 @@ export function PatientFocusMode({
         {/* Resumo das últimas 24h */}
         <PatientTimelineSummary patientId={patient.id} />
 
-        {/* 3. Sinais vitais (micro dashboard) */}
+        {/* 3. Sinais vitais (gráficos) */}
         <section>
           <SectionHeader title="Sinais vitais" />
-          <div className="mt-3 grid grid-cols-2 md:grid-cols-3 gap-2">
-            <MetricTile
-              label="MAP"
-              value={vs.pressaoArterialMedia}
-              unit="mmHg"
-              critical={vs.pressaoArterialMedia < 65}
-            />
-            <MetricTile
-              label="FC"
-              value={vs.frequenciaCardiaca}
-              unit="bpm"
-            />
-            <MetricTile
-              label="SpO₂"
-              value={vs.saturacaoO2}
-              unit="%"
-              critical={vs.saturacaoO2 < 92}
-            />
-            <MetricTile
-              label="FR"
-              value={vs.frequenciaRespiratoria}
-              unit="rpm"
-            />
-            <MetricTile
-              label="Temp"
-              value={vs.temperatura.toFixed(1)}
-              unit="°C"
-            />
-            <MetricTile
-              label="Diurese"
-              value={patient.fluidBalance.diurese.toFixed(1)}
-              unit="mL/kg/h"
-            />
+          <div className="mt-3 space-y-3">
+            <VitalSignsChart patient={patient} metric="fc" />
+            <VitalSignsChart patient={patient} metric="spo2" />
+            <VitalSignsChart patient={patient} metric="fr" />
+            {/* Métricas adicionais */}
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+              <MetricTile
+                label="MAP"
+                value={vs.pressaoArterialMedia}
+                unit="mmHg"
+                critical={vs.pressaoArterialMedia < 65}
+              />
+              <MetricTile
+                label="Temp"
+                value={vs.temperatura.toFixed(1)}
+                unit="°C"
+              />
+              <MetricTile
+                label="Diurese"
+                value={patient.fluidBalance.diurese.toFixed(1)}
+                unit="mL/kg/h"
+              />
+            </div>
           </div>
         </section>
 
-        {/* 4. Laboratórios com tendência */}
+        {/* 4. Laboratórios com sparklines */}
         {patient.labResults.length > 0 && (
           <section>
             <SectionHeader title="Exames laboratoriais" />
             <div className="mt-3 space-y-2">
-              {patient.labResults.slice(0, 5).map((lab, idx) => {
-                const value = typeof lab.valor === "number" ? lab.valor : parseFloat(String(lab.valor));
-                
-                return (
-                  <MetricTile
-                    key={idx}
-                    label={lab.tipo === "lactato" ? "Lactato" : lab.tipo === "pcr" ? "PCR" : lab.tipo}
-                    value={value.toFixed(lab.tipo === "lactato" ? 1 : 0)}
-                    unit={lab.unidade}
-                    trend={lab.tendencia === "subindo" ? "up" : lab.tendencia === "caindo" ? "down" : "stable"}
-                    critical={lab.tipo === "lactato" && value >= 3}
-                  />
-                );
-              })}
+              {patient.labResults
+                .filter(lab => lab.tipo === "lactato" || lab.tipo === "pcr")
+                .map((lab, idx) => {
+                  const value = typeof lab.valor === "number" ? lab.valor : parseFloat(String(lab.valor));
+                  
+                  return (
+                    <div
+                      key={idx}
+                      className="p-3 bg-white border border-slate-200 rounded-2xl shadow-sm flex items-center justify-between"
+                    >
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="text-sm font-medium text-slate-900">
+                            {lab.tipo === "lactato" ? "Lactato" : lab.tipo === "pcr" ? "PCR" : lab.nome}
+                          </span>
+                          <span
+                            className={`text-sm font-semibold tabular-nums ${
+                              lab.tipo === "lactato" && value >= 3
+                                ? "text-rose-600"
+                                : "text-slate-700"
+                            }`}
+                          >
+                            {value.toFixed(lab.tipo === "lactato" ? 1 : 0)} {lab.unidade}
+                          </span>
+                        </div>
+                        <div className="text-xs text-slate-500">
+                          Ref: {lab.referencia || "—"}
+                        </div>
+                      </div>
+                      <LabSparkline lab={lab} />
+                    </div>
+                  );
+                })}
             </div>
           </section>
         )}
@@ -247,7 +258,7 @@ export function PatientFocusMode({
                   <div className="p-4 bg-white border border-slate-200 rounded-2xl shadow-sm">
                     <div className="flex items-start justify-between gap-3">
                       <div className="flex items-start gap-3 flex-1">
-                        <div className="p-2 bg-slate-50 border border-slate-200 rounded-lg">
+                        <div className="p-2 bg-white border border-slate-200 rounded-lg">
                           <Scan className="w-4 h-4 text-slate-600" />
                         </div>
                         <div className="flex-1 min-w-0">

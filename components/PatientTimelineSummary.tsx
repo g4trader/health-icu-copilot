@@ -75,7 +75,7 @@ export function PatientTimelineSummary({ patientId }: PatientTimelineSummaryProp
               className={`flex items-start gap-3 py-2 ${isClickable ? 'cursor-pointer hover:bg-slate-50 rounded-lg px-2 -mx-2 transition-colors' : ''}`}
               onClick={isClickable ? () => handleEventClick(event) : undefined}
             >
-              <div className="p-1.5 bg-slate-50 border border-slate-200 rounded-lg flex-shrink-0">
+              <div className="p-1.5 bg-white border border-slate-200 rounded-lg flex-shrink-0">
                 <Icon className="w-3.5 h-3.5 text-slate-600" />
               </div>
               
