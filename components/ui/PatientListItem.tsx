@@ -50,88 +50,70 @@ export function PatientListItem({
       onClick={() => onSelect?.(patient)}
       className={`
         w-full
-        p-4
+        p-3
         bg-white
-        border rounded-2xl
-        shadow-sm
+        border rounded-lg
+        border-slate-300
         text-left
         transition-all
-        hover:shadow-md hover:border-slate-300
-        ${selected ? "border-emerald-500 shadow-md ring-2 ring-emerald-100" : "border-slate-200"}
+        hover:border-slate-400
+        ${selected ? "border-emerald-500 shadow-md ring-2 ring-emerald-100" : ""}
         ${className}
       `}
     >
-      <div className="flex items-start justify-between gap-3">
-        <div className="flex-1 min-w-0 space-y-2">
-          {/* Linha 1: UTI 01 • Sophia */}
-          <div className="flex items-center gap-1.5">
-            <span className="text-slate-600 text-sm font-medium">{patient.leito}</span>
-            <span className="text-slate-400">•</span>
-            <span className="text-slate-900 font-semibold text-base">
-              {patient.nome}
-            </span>
-          </div>
+      <div className="space-y-1.5">
+        {/* Linha 1: UTI 01•Sophia */}
+        <div className="flex items-center gap-0.5">
+          <span className="text-slate-700 text-sm font-medium">{patient.leito}</span>
+          <span className="text-slate-700">•</span>
+          <span className="text-slate-900 font-semibold text-sm">
+            {patient.nome}
+          </span>
+        </div>
 
-          {/* Linha 2: Idade */}
-          <div className="text-sm text-slate-600">
-            {patient.idade} {patient.idade === 1 ? "ano" : "anos"}
-          </div>
+        {/* Linha 2: Idade */}
+        <div className="text-sm text-slate-700">
+          {patient.idade} {patient.idade === 1 ? "ano" : "anos"}
+        </div>
 
-          {/* Linha 3: Diagnóstico */}
-          <div className="text-sm text-slate-600">
-            {patient.diagnosticoPrincipal}
-          </div>
+        {/* Linha 3: Diagnóstico */}
+        <div className="text-sm text-slate-700">
+          {patient.diagnosticoPrincipal}
+        </div>
 
-          {/* Linha 4: Risco 24h */}
-          <div>
-            <div
-              className={`
-                inline-flex
-                px-2.5 py-1
-                rounded-lg
-                border
-                text-sm font-semibold tabular-nums
-                ${
-                  riskVariant === "danger"
-                    ? "bg-rose-50 text-rose-700 border-rose-200"
-                    : riskVariant === "warning"
-                    ? "bg-amber-50 text-amber-700 border-amber-200"
-                    : "bg-slate-100 text-slate-700 border-slate-200"
-                }
-              `}
+        {/* Linha 4: Risco 24h */}
+        <div className="text-sm text-slate-700">
+          Risco 24h: {riskPercent}%
+        </div>
+
+        {/* Linha 5: VM e Vasopressor */}
+        <div className="text-sm text-slate-700">
+          VM: {hasVM ? "Sim" : "Não"} • Vasopressor: {hasVaso ? "Sim" : "Não"}
+        </div>
+      </div>
+      
+      {/* PIN no centro inferior */}
+      {showActions && (
+        <div className="flex justify-center items-center gap-2 mt-3 pt-2 border-t border-slate-200">
+          {onExpand && (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                onExpand(patient.id);
+              }}
+              className="inline-flex items-center justify-center w-7 h-7 border border-slate-300 rounded-lg bg-white text-slate-500 hover:bg-slate-50 hover:text-slate-700 transition-colors"
+              aria-label="Expandir perfil"
+              title="Expandir perfil"
             >
-              Risco 24h: {riskPercent}%
-            </div>
-          </div>
-
-          {/* Linha 5: VM e Vasopressor */}
-          <div className="text-sm text-slate-600">
-            VM: {hasVM ? "Sim" : "Não"} • Vasopressor: {hasVaso ? "Sim" : "Não"}
+              <Maximize2 className="w-3.5 h-3.5" />
+            </button>
+          )}
+          <div onClick={(e) => e.stopPropagation()}>
+            <PatientPinButton patient={patient} />
           </div>
         </div>
-        
-        {showActions && (
-          <div className="flex items-start gap-2 flex-shrink-0 pt-1">
-            {onExpand && (
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onExpand(patient.id);
-                }}
-                className="inline-flex items-center justify-center w-8 h-8 border border-slate-300 rounded-lg bg-white text-slate-500 hover:bg-slate-50 hover:text-slate-700 transition-colors"
-                aria-label="Expandir perfil"
-                title="Expandir perfil"
-              >
-                <Maximize2 className="w-4 h-4" />
-              </button>
-            )}
-            <div onClick={(e) => e.stopPropagation()}>
-              <PatientPinButton patient={patient} />
-            </div>
-          </div>
-        )}
-      </div>
+      )}
     </button>
   );
 }
