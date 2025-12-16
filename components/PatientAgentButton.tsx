@@ -44,7 +44,11 @@ export function PatientAgentButton({ patientId, onRequestOpinion }: PatientAgent
 
   // Incluir todos os agentes clínicos + Radiologista Virtual
   const allAgents: AgentOption[] = [
-    ...Object.values(clinicalAgents),
+    ...Object.values(clinicalAgents).map(agent => ({
+      id: agent.id,
+      name: agent.name,
+      icon: agentIcons[agent.id],
+    })),
     {
       id: 'radiology',
       name: 'Radiologista Virtual',
