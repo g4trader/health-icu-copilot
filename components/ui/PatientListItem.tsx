@@ -64,24 +64,27 @@ export function PatientListItem({
     >
       <div className="flex items-start justify-between gap-2">
         <div className="flex-1 min-w-0">
-          {/* Linha 1: Nome • Idade • Leito */}
-          <div className="flex items-center gap-1.5 mb-2">
+          {/* Linha 1: UTI 01 • Sophia */}
+          <div className="flex items-center gap-1.5 mb-1.5">
+            <span className="text-slate-600 text-sm font-medium">{patient.leito}</span>
+            <span className="text-slate-400">•</span>
             <span className="text-slate-900 font-semibold text-sm">
               {patient.nome}
             </span>
-            <span className="text-slate-400">•</span>
-            <span className="text-slate-600 text-sm">{patient.idade}a</span>
-            <span className="text-slate-400">•</span>
-            <span className="text-slate-600 text-sm font-medium">{patient.leito}</span>
           </div>
 
-          {/* Linha 2: Risco (dominante) + Badges + Info */}
-          <div className="flex items-center gap-2 flex-wrap">
+          {/* Linha 2: 3a • Leito 01 | ⚠️ Risco 68% VM Vaso Lactato ↑ 3.8 | D4 UTI */}
+          <div className="flex items-center gap-1.5 flex-wrap text-xs">
+            <span className="text-slate-600">{patient.idade}a</span>
+            <span className="text-slate-400">•</span>
+            <span className="text-slate-600">Leito {patient.leito}</span>
+            <span className="text-slate-400">|</span>
+            
             {/* Risco - visualmente dominante */}
             <div
               className={`
-                px-2.5 py-1
-                rounded-lg
+                px-2 py-0.5
+                rounded
                 border
                 text-xs font-bold tabular-nums
                 ${
@@ -97,27 +100,23 @@ export function PatientListItem({
             </div>
             
             {hasVM && (
-              <span className="px-2 py-0.5 rounded border border-slate-200 bg-slate-50 text-slate-700 text-xs font-medium uppercase">
-                VM
-              </span>
+              <span className="text-slate-700 font-medium">VM</span>
             )}
             
             {hasVaso && (
-              <span className="px-2 py-0.5 rounded border border-slate-200 bg-slate-50 text-slate-700 text-xs font-medium uppercase">
-                Vaso
-              </span>
+              <span className="text-slate-700 font-medium">Vaso</span>
             )}
             
             {/* Lactato e dias UTI */}
             {lactatoValue && (
               <>
-                <span className="text-slate-600 text-xs font-medium tabular-nums">
+                <span className="text-slate-600 font-medium tabular-nums">
                   Lactato {lactatoTrend} {lactatoValue.toFixed(1)}
                 </span>
                 <span className="text-slate-400">|</span>
               </>
             )}
-            <span className="text-slate-600 text-xs">
+            <span className="text-slate-600">
               D{patient.diasDeUTI} UTI
             </span>
           </div>

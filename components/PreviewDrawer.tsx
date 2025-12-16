@@ -157,50 +157,17 @@ function AllPatientsPreview({ payload }: { payload: PreviewPayload | null }) {
   const patients = (payload?.patients || mockPatients) as Patient[];
   const { onSelectPatient } = usePreview();
 
-  // Debug: verificar estrutura dos dados
-  if (patients && patients.length > 0) {
-    console.log('AllPatientsPreview - Primeiro paciente:', patients[0]);
-    console.log('AllPatientsPreview - Primeiro paciente ID:', patients[0]?.id);
-  }
-
   return (
     <div className="preview-content">
-      <div className="preview-list">
-        {patients.map((p) => {
-          const hasVM = p.ventilationParams !== undefined;
-          const hasVaso = p.medications.some(m => m.tipo === "vasopressor" && m.ativo);
-          const risk24h = Math.round(p.riscoMortality24h * 100);
-          const patientId = p.id;
-          
-          return (
-            <button
-              key={patientId || Math.random()}
-              type="button"
-              className="preview-item preview-item-clickable"
-              onClick={(e) => {
-                e.stopPropagation();
-                console.log('Click no paciente:', { paciente: p, id: patientId, hasId: !!patientId }); // Debug
-                if (patientId) {
-                  onSelectPatient?.(patientId);
-                } else {
-                  console.error('Paciente sem ID!', p);
-                }
-              }}
-            >
-              <div className="preview-item-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <div>
-                  <strong>{p.leito}</strong> • {p.nome}
-                </div>
-                <PatientPinButton patient={p} />
-              </div>
-              <div className="preview-item-details">
-                <div>{p.idade} anos • {p.diagnosticoPrincipal}</div>
-                <div>Risco 24h: {risk24h}%</div>
-                <div>VM: {hasVM ? 'Sim' : 'Não'} • Vasopressor: {hasVaso ? 'Sim' : 'Não'}</div>
-              </div>
-            </button>
-          );
-        })}
+      <div className="space-y-3">
+        {patients.map((p) => (
+          <PatientListItem
+            key={p.id}
+            patient={p}
+            onSelect={(patient) => onSelectPatient?.(patient.id)}
+            showActions={true}
+          />
+        ))}
       </div>
     </div>
   );
