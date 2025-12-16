@@ -25,7 +25,7 @@ type Message = {
   id: string;
   role: "user" | "agent";
   text: string;
-  intent?: "PRIORITIZACAO" | "PACIENTE_ESPECIFICO" | "SINAIS_VITAIS" | "BALANCO_HIDRICO" | "PERFIL_UNIDADE" | "CALCULO_CLINICO" | "AGENTE_PARECER" | "FALLBACK";
+  intent?: "PRIORITIZACAO" | "PACIENTE_ESPECIFICO" | "SINAIS_VITAIS" | "BALANCO_HIDRICO" | "PERFIL_UNIDADE" | "CALCULO_CLINICO" | "AGENTE_PARECER" | "RADIOLOGISTA_VIRTUAL" | "FALLBACK";
   topPatients?: Patient[];
   focusedPatient?: Patient;
   showIcuPanel?: boolean;
