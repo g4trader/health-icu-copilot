@@ -1127,45 +1127,20 @@ export async function POST(req: Request) {
 
     const duracaoProcessamento = Date.now() - startTime;
 
-    // Chamar LLM Plantonista quando apropriado
+    // Extrair dados do LLM do result se já foram calculados no intent handler
     let llmAnswer: LlmPatientAnswer | null = null;
     let focusPayload: import("@/types/PatientFocusPayload").PatientFocusPayload | null = null;
     let microDashboardsV2: import("@/types/MicroDashboardV2").MicroDashboard[] | null = null;
     let timelineHighlights: import("@/types/LlmPatientAnswer").TimelineHighlight[] | null = null;
     let plainTextAnswer: string | null = null;
 
-    const isPlantonistaAgent = 
-      agent.name === "Plantonista" || 
-      selectedAgent === "default" || 
-      selectedAgent === "plantonista" ||
-      role === "plantonista";
-
-    if (isPlantonistaAgent && (focusedId || result.focusedPatient)) {
-      const patientIdToUse = focusedId || result.focusedPatient?.id;
-      if (patientIdToUse) {
-        const patient = mockPatients.find(p => p.id === patientIdToUse);
-        if (patient) {
-          try {
-            const dailyStatus = getDailyStatus(patientIdToUse);
-            const unitProfile: UnitProfile | null = mockUnitProfile ?? null;
-
-            llmAnswer = await callPlantonistaAgent({
-              question: message,
-              patient: patient,
-              dailyStatus: dailyStatus,
-              unitProfile: unitProfile
-            });
-
-            focusPayload = llmAnswer.focusSummary ?? null;
-            microDashboardsV2 = llmAnswer.microDashboards ?? null;
-            timelineHighlights = llmAnswer.timelineHighlights ?? null;
-            plainTextAnswer = llmAnswer.plainTextAnswer ?? null;
-          } catch (error) {
-            console.error("Error calling Plantonista LLM:", error);
-            // Continue sem dados do LLM - fallback para resposta determinística
-          }
-        }
-      }
+    // Extrair dados do LLM do result se já foram calculados no intent handler
+    if ((result as any).llmAnswer) {
+      llmAnswer = (result as any).llmAnswer;
+      focusPayload = llmAnswer?.focusSummary ?? null;
+      microDashboardsV2 = llmAnswer?.microDashboards ?? null;
+      timelineHighlights = llmAnswer?.timelineHighlights ?? null;
+      plainTextAnswer = llmAnswer?.plainTextAnswer ?? null;
     }
 
     // Log de auditoria
