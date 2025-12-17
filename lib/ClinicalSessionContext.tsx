@@ -51,6 +51,13 @@ export function ClinicalSessionProvider({ children }: { children: ReactNode }) {
   };
 
   const setActivePatient = (patientId: string | undefined) => {
+    // Validação: se patientId fornecido, verificar se é válido (ex: "p1", "p2", etc.)
+    // IDs válidos são strings curtas começando com "p" seguido de número
+    if (patientId && !/^p\d+$/.test(patientId)) {
+      console.warn(`[ClinicalSessionContext] ID de paciente inválido: ${patientId}. Esperado formato "p1", "p2", etc.`);
+      // Não definir se o ID for inválido
+      return;
+    }
     setActivePatientId(patientId);
   };
 

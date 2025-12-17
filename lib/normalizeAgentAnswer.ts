@@ -27,10 +27,34 @@ export function normalizeAgentAnswer(data: any): PlantonistaAnswerContent {
 
   const topPatients: Patient[] = data.topPatients ?? [];
 
-  const focusPayload: PatientFocusPayload | null =
+  // Extrair focusPayload, garantindo que patientId seja o ID correto do paciente
+  let focusPayload: PatientFocusPayload | null =
     data.focusPayload ??
     data.llmAnswer?.focusSummary ??
     null;
+
+  // Se não há focusPayload mas há focusedPatient, criar um básico usando o ID correto
+  if (!focusPayload && data.focusedPatient?.id) {
+    // Usar o ID do focusedPatient que é o ID lógico correto (ex: "p1", "p2")
+    focusPayload = {
+      patientId: data.focusedPatient.id,
+      nome: data.focusedPatient.nome,
+      idade: data.focusedPatient.idade,
+      peso: data.focusedPatient.peso,
+      leito: data.focusedPatient.leito,
+      diagnosticoPrincipal: data.focusedPatient.diagnosticoPrincipal,
+      riskLevel: "moderado",
+      riskPercent24h: Math.round((data.focusedPatient.riscoMortality24h || 0) * 100),
+      hasVM: !!data.focusedPatient.ventilationParams,
+      hasVaso: data.focusedPatient.medications?.some((m: any) => m.tipo === "vasopressor" && m.ativo) || false,
+      keyFindings: [], // Array vazio como fallback mínimo
+    };
+  }
+
+  // Garantir que se focusPayload existe, o patientId seja o ID correto
+  if (focusPayload && data.focusedPatient?.id) {
+    focusPayload.patientId = data.focusedPatient.id;
+  }
 
   return {
     plainTextAnswer,

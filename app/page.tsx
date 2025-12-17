@@ -642,6 +642,23 @@ export default function HomePage() {
                             onExpandPatient={(patientId) => {
                               setExpandedPatientId(patientId);
                             }}
+                            onShowFullEvolution={(patientId) => {
+                              // Validar se o ID existe no mapa de pacientes
+                              const patient = mockPatients.find(p => p.id === patientId);
+                              if (!patient) {
+                                console.error('Paciente não encontrado com ID:', patientId);
+                                return;
+                              }
+                              setActivePatientId(patientId);
+                              setExpandedPatientId(patientId);
+                              // Scroll para a seção de evolução se estiver visível
+                              setTimeout(() => {
+                                const element = document.getElementById("patient-evolution-section");
+                                if (element) {
+                                  element.scrollIntoView({ behavior: "smooth", block: "start" });
+                                }
+                              }, 100);
+                            }}
                           />
                         );
                       })()
