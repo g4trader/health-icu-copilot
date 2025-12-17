@@ -17,6 +17,9 @@ import { MicroDashboardRenderer } from "@/components/ui/MicroDashboardRenderer";
 import { MicroDashboardV2Renderer } from "@/components/ui/MicroDashboardV2Renderer";
 import { PatientTimelineSummary } from "@/components/PatientTimelineSummary";
 import { PatientMiniTrends } from "@/components/ui/PatientMiniTrends";
+import { PlantonistaAnswerPanel } from "@/components/ui/PlantonistaAnswerPanel";
+import { normalizeAgentAnswer, normalizeAgentAnswerFromLegacy } from "@/lib/normalizeAgentAnswer";
+import type { PlantonistaAnswerContent } from "@/types/PlantonistaAnswerContent";
 import { VitalsPanel } from "@/components/VitalsPanel";
 import { TherapiesPanel } from "@/components/TherapiesPanel";
 import { PatientDetailPanel } from "@/components/PatientDetailPanel";
@@ -52,6 +55,8 @@ type Message = {
   focusPayload?: import('@/types/PatientFocusPayload').PatientFocusPayload;
   microDashboardsV2?: import('@/types/MicroDashboardV2').MicroDashboard[];
   timelineHighlights?: import('@/types/LlmPatientAnswer').TimelineHighlight[];
+  // Conteúdo normalizado padronizado
+  plantonistaContent?: PlantonistaAnswerContent;
 };
 
 type AgentReply = {
@@ -487,10 +492,13 @@ export default function HomePage() {
         setActivePatientId(data.selectedPatientId);
       }
 
+      // Normalizar resposta do agente para formato padronizado
+      const plantonistaContent = normalizeAgentAnswer(data);
+      
       const agentMessage: Message = {
         id: crypto.randomUUID(),
         role: "agent",
-        text: data.llmAnswer?.plainTextAnswer ?? data.reply,
+        text: plantonistaContent.plainTextAnswer,
         intent: data.intent as Message["intent"],
         topPatients: data.topPatients,
         focusedPatient: data.focusedPatient,
@@ -510,7 +518,9 @@ export default function HomePage() {
         llmAnswer: data.llmAnswer,
         focusPayload: data.focusPayload ?? data.llmAnswer?.focusSummary,
         microDashboardsV2: data.microDashboardsV2 ?? data.llmAnswer?.microDashboards,
-        timelineHighlights: data.timelineHighlights ?? data.llmAnswer?.timelineHighlights
+        timelineHighlights: data.timelineHighlights ?? data.llmAnswer?.timelineHighlights,
+        // Conteúdo normalizado padronizado
+        plantonistaContent
       };
 
       setConversation((prev) => [...prev, agentMessage]);
@@ -602,118 +612,39 @@ export default function HomePage() {
                     }}
                     className={`msg-container ${msg.role === "user" ? "msg-user-wrapper" : "msg-agent-wrapper"}`}
                   >
-                    {/* Painel estruturado do Plantonista (quando há llmAnswer) */}
-                    {msg.role === "agent" && msg.llmAnswer ? (
-                      <div className="plantonista-response-panel">
-                        {/* 1. Header text */}
-                        <div className="plantonista-response-header">
-                          <p className="plantonista-response-text">
-                            {msg.llmAnswer.plainTextAnswer ?? msg.text}
-                          </p>
-                        </div>
-
-                        {/* 2. Dashboards row */}
-                        {msg.microDashboardsV2 && msg.microDashboardsV2.length > 0 && (
-                          <div className="plantonista-response-dashboards">
-                            {msg.microDashboardsV2.map((dashboard, idx) => (
-                              <MicroDashboardV2Renderer key={idx} dashboard={dashboard} />
-                            ))}
-                          </div>
-                        )}
-
-                        {/* 3. Mini trends (se paciente específico) */}
-                        {msg.focusedPatient && (
-                          <div className="plantonista-response-timeline">
-                            <PatientMiniTrends patientId={msg.focusedPatient.id} />
-                          </div>
-                        )}
-
-                        {/* 4. Timeline highlights (se paciente específico) */}
-                        {msg.timelineHighlights && msg.timelineHighlights.length > 0 && msg.focusedPatient && (
-                          <div className="plantonista-response-timeline">
-                            <PatientTimelineSummary 
-                              patientId={msg.focusedPatient.id}
-                              timelineHighlights={msg.timelineHighlights}
-                            />
-                            {/* CTA para ver evolução completa */}
-                            <div className="plantonista-response-cta">
-                              <button
-                                type="button"
-                                className="plantonista-cta-button"
-                                onClick={() => {
-                                  const element = document.getElementById("patient-evolution-section");
-                                  element?.scrollIntoView({ behavior: "smooth", block: "start" });
-                                }}
-                              >
-                                Ver evolução completa →
-                              </button>
-                            </div>
-                          </div>
-                        )}
+                    {/* Mensagens do usuário */}
+                    {msg.role === "user" ? (
+                      <div className={`msg-bubble msg-user`}>
+                        <div className="msg-text" style={{ whiteSpace: "pre-wrap" }}>{msg.text}</div>
                       </div>
                     ) : (
-                      /* Fallback: mensagem simples (para agentes não-Plantonista ou mensagens sem llmAnswer) */
-                      <div className={`msg-bubble ${msg.role === "user" ? "msg-user" : "msg-agent"}`}>
-                        <div className="msg-text" style={{ whiteSpace: "pre-wrap" }}>{msg.text}</div>
+                      /* Mensagens do agente - usar PlantonistaAnswerPanel padronizado */
+                      (() => {
+                        // Casos especiais que não usam o painel padronizado
+                        if (msg.intent === 'RADIOLOGISTA_VIRTUAL' && msg.radiologyReport) {
+                          return (
+                            <div className={`msg-bubble msg-agent`}>
+                              <div className="msg-text" style={{ whiteSpace: "pre-wrap" }}>{msg.text}</div>
+                              <RadiologyReportCard summary={msg.radiologyReport.summary} fullReport={msg.radiologyReport.full} />
+                            </div>
+                          );
+                        }
                         
-                        {/* Micro Dashboard */}
-                        {msg.role === "agent" && msg.microDashboard && (
-                          <div className="mt-4">
-                            <MicroDashboardRenderer dashboard={msg.microDashboard} />
-                          </div>
-                        )}
+                        if (msg.intent === 'AGENTE_PARECER' && msg.specialistOpinion) {
+                          return (
+                            <div className={`msg-bubble msg-agent`}>
+                              <div className="msg-text" style={{ whiteSpace: "pre-wrap" }}>{msg.text}</div>
+                              <AgentOpinionBlock opinion={msg.specialistOpinion} />
+                            </div>
+                          );
+                        }
+
+                        // Caso padrão: usar PlantonistaAnswerPanel
+                        const content = msg.plantonistaContent ?? normalizeAgentAnswerFromLegacy(msg);
                         
-                        {/* Múltiplos Micro Dashboards */}
-                        {msg.role === "agent" && msg.microDashboards && msg.microDashboards.length > 0 && (
-                          <div className="mt-4 space-y-4">
-                            {msg.microDashboards.map((dashboard, idx) => (
-                              <MicroDashboardRenderer key={idx} dashboard={dashboard} />
-                            ))}
-                          </div>
-                        )}
-                        
-                        {/* Micro Dashboards V2 (do LLM) - fallback se não usar painel */}
-                        {msg.role === "agent" && msg.microDashboardsV2 && msg.microDashboardsV2.length > 0 && !msg.llmAnswer && (
-                          <div className="mt-4 space-y-4">
-                            {msg.microDashboardsV2.map((dashboard, idx) => (
-                              <MicroDashboardV2Renderer key={idx} dashboard={dashboard} />
-                            ))}
-                          </div>
-                        )}
-                        
-                        {/* Parecer de Radiologista Virtual */}
-                        {msg.role === "agent" && (msg.intent === 'RADIOLOGISTA_VIRTUAL' || msg.radiologyReport) && msg.radiologyReport && (
-                          <RadiologyReportCard summary={msg.radiologyReport.summary} fullReport={msg.radiologyReport.full} />
-                        )}
-                        
-                        {/* Parecer de agente com visual premium */}
-                        {msg.role === "agent" && msg.intent === 'AGENTE_PARECER' && msg.specialistOpinion && (
-                          <AgentOpinionBlock opinion={msg.specialistOpinion} />
-                        )}
-                        
-                        {/* Fallback: Parecer de agente com micro dashboards (formato antigo) */}
-                        {msg.role === "agent" && msg.intent === 'AGENTE_PARECER' && !msg.specialistOpinion && msg.focusedPatient && (
-                          <>
-                            {msg.showPatientMiniPanel && (
-                              <MiniPatientSummary 
-                                patient={msg.focusedPatient}
-                              />
-                            )}
-                            {msg.showVitalsPanel && (
-                              <VitalsPanel patient={msg.focusedPatient} />
-                            )}
-                            {msg.showLabsPanel && (
-                              <LabPanel patients={[msg.focusedPatient]} />
-                            )}
-                            {msg.showTherapiesPanel && (
-                              <TherapiesPanel patient={msg.focusedPatient} />
-                            )}
-                          </>
-                        )}
-                        
-                        {msg.role === "agent" && msg.showIcuPanel && msg.topPatients && msg.topPatients.length > 0 && (
-                          <PrioritizationPanel 
-                            patients={msg.topPatients} 
+                        return (
+                          <PlantonistaAnswerPanel
+                            content={content}
                             onSelectPatient={(patientId) => {
                               openPatientPreviewDrawer(patientId);
                             }}
@@ -721,59 +652,32 @@ export default function HomePage() {
                               setExpandedPatientId(patientId);
                             }}
                           />
-                        )}
-                        
-                      {msg.role === "agent" && msg.focusedPatient && !msg.type && (() => {
-                        const focusedPatientId = msg.focusedPatient.id;
-                        // Buscar timelineHighlights mais recentes para este paciente
-                        const latestTimelineHighlights = conversation
-                          .filter(m => 
-                            m.role === "agent" && 
-                            m.focusedPatient?.id === focusedPatientId &&
-                            m.timelineHighlights && 
-                            m.timelineHighlights.length > 0
-                          )
-                          .map(m => m.timelineHighlights)
-                          .flat()
-                          .filter((h): h is NonNullable<typeof h> => h !== undefined);
-                        
-                        return (
-                          <PatientDetailPanel 
-                            patient={msg.focusedPatient}
-                            timelineHighlights={latestTimelineHighlights.length > 0 ? latestTimelineHighlights : undefined}
-                          />
                         );
-                      })()}
-
-                        {/* Overview do paciente com micro-painéis */}
-                        {msg.role === "agent" && msg.type === 'patient-overview' && msg.focusedPatient && (
-                          <>
-                            {msg.showPatientMiniPanel && (
-                              <MiniPatientSummary 
-                                patient={msg.focusedPatient}
-                              />
-                            )}
-                            {msg.showVitalsPanel && (
-                              <VitalsPanel patient={msg.focusedPatient} />
-                            )}
-                            {msg.showLabsPanel && (
-                              <LabPanel patients={msg.focusedPatient ? [msg.focusedPatient] : []} />
-                            )}
-                            {msg.showTherapiesPanel && (
-                              <TherapiesPanel patient={msg.focusedPatient} />
-                            )}
-                          </>
-                        )}
-
-                        {msg.role === "agent" && msg.showLabPanel && msg.topPatients && msg.topPatients.length > 0 && !msg.type && (
-                          <LabPanel patients={msg.topPatients} />
-                        )}
-
-                        {msg.role === "agent" && msg.showUnitProfilePanel && (
-                          <UnitProfilePanel />
-                        )}
-                      </div>
+                      })()
                     )}
+                    
+                    {/* PatientDetailPanel ainda renderizado separadamente (para compatibilidade) */}
+                    {msg.role === "agent" && msg.focusedPatient && !msg.type && (() => {
+                      const focusedPatientId = msg.focusedPatient.id;
+                      // Buscar timelineHighlights mais recentes para este paciente
+                      const latestTimelineHighlights = conversation
+                        .filter(m => 
+                          m.role === "agent" && 
+                          m.focusedPatient?.id === focusedPatientId &&
+                          m.timelineHighlights && 
+                          m.timelineHighlights.length > 0
+                        )
+                        .map(m => m.timelineHighlights)
+                        .flat()
+                        .filter((h): h is NonNullable<typeof h> => h !== undefined);
+                      
+                      return (
+                        <PatientDetailPanel 
+                          patient={msg.focusedPatient}
+                          timelineHighlights={latestTimelineHighlights.length > 0 ? latestTimelineHighlights : undefined}
+                        />
+                      );
+                    })()}
                   </div>
                 ))}
                 

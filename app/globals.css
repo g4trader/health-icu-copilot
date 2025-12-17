@@ -3761,6 +3761,12 @@ a {
   font-size: 0.875rem;
 }
 
+.plantonista-response-patients {
+  margin-top: 1.25rem;
+  border-top: 1px solid #e2e8f0;
+  padding-top: 1.25rem;
+}
+
 /* ========================================
    MICRO DASHBOARD CARD (V2)
    ======================================== */
