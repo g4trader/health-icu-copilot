@@ -621,7 +621,14 @@ export default function HomePage() {
                           </div>
                         )}
 
-                        {/* 3. Timeline row (se paciente específico) */}
+                        {/* 3. Mini trends (se paciente específico) */}
+                        {msg.focusedPatient && (
+                          <div className="plantonista-response-timeline">
+                            <PatientMiniTrends patientId={msg.focusedPatient.id} />
+                          </div>
+                        )}
+
+                        {/* 4. Timeline highlights (se paciente específico) */}
                         {msg.timelineHighlights && msg.timelineHighlights.length > 0 && msg.focusedPatient && (
                           <div className="plantonista-response-timeline">
                             <PatientTimelineSummary 
