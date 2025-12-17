@@ -907,7 +907,7 @@ export async function POST(req: Request) {
   try {
   const body = (await req.json()) as RequestBody;
     const message = (body.message || "").trim();
-  const focusedId = body.focusedPatientId ?? null;
+  const focusedId = body.focusedPatientId ?? body.patientId ?? null;
 
     // Contexto de sessão clínica
     const sessionId = body.sessionId || `session-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
@@ -993,37 +993,74 @@ export async function POST(req: Request) {
         if (!patientId) {
           result = { reply: "Para obter um resumo de um paciente específico, mencione o leito (ex: 'UTI 03') ou o nome do paciente, ou selecione-o primeiro." + DISCLAIMER, showIcuPanel: false };
         } else {
-          // Mapear intent para tipo de dashboard
-          const dashboardType = mapIntentToDashboardType(intent, message);
+          // Buscar paciente
+          const patient = mockPatients.find(p => p.id === patientId);
           
-          if (dashboardType && dashboardBuilders[dashboardType]) {
-            try {
-              const dashboard = dashboardBuilders[dashboardType](patientId);
-              result = {
-                reply: `Dashboard clínico gerado para ${dashboard.titulo || 'o paciente'}.`,
-                showIcuPanel: false,
-                focusedPatient: mockPatients.find(p => p.id === patientId),
-                selectedPatientId: patientId,
-                microDashboard: dashboard
-              } as any;
-            } catch (error) {
-              result = { reply: "Erro ao gerar dashboard. Tente novamente." + DISCLAIMER, showIcuPanel: false };
-            }
+          if (!patient) {
+            console.warn("Paciente não encontrado com ID:", patientId);
+            result = { reply: `Paciente com ID ${patientId} não encontrado.` + DISCLAIMER, showIcuPanel: false };
           } else {
-            // Fallback para handler antigo (pode usar LLM se pergunta for complexa)
-            const msgLower = message.toLowerCase();
-            const useLLM = !msgLower.includes("resumo") && 
-                          !msgLower.includes("status") && 
-                          (msgLower.includes("melhorou") || 
-                           msgLower.includes("piorou") || 
-                           msgLower.includes("evolução") ||
-                           msgLower.includes("evolucao") ||
-                           msgLower.includes("quando") ||
-                           msgLower.includes("como está") ||
-                           msgLower.length > 30);
+            // Tentar chamar LLM Plantonista primeiro
+            const isPlantonistaAgent = 
+              agent.name === "Plantonista" || 
+              selectedAgent === "default" || 
+              selectedAgent === "plantonista" ||
+              role === "plantonista";
             
-            const patientResult = await handleFocusedPatientIntent(patientId, message, useLLM);
-            result = { ...patientResult, showIcuPanel: false };
+            let llmAnswerResult: LlmPatientAnswer | null = null;
+            
+            if (isPlantonistaAgent) {
+              try {
+                const dailyStatus = getDailyStatus(patientId);
+                const unitProfile: UnitProfile | null = mockUnitProfile ?? null;
+                
+                llmAnswerResult = await callPlantonistaAgent({
+                  question: message,
+                  patient: patient,
+                  dailyStatus: dailyStatus,
+                  unitProfile: unitProfile
+                });
+              } catch (error) {
+                console.error("Erro ao chamar Plantonista LLM:", error);
+                // Continue sem dados do LLM - fallback para resposta determinística
+              }
+            }
+            
+            // Se LLM retornou resposta, usar ela
+            if (llmAnswerResult) {
+              result = {
+                reply: llmAnswerResult.plainTextAnswer,
+                showIcuPanel: false,
+                focusedPatient: patient,
+                selectedPatientId: patientId,
+                llmAnswer: llmAnswerResult
+              } as any;
+            } else {
+              // Fallback: mapear intent para tipo de dashboard determinístico
+              const dashboardType = mapIntentToDashboardType(intent, message);
+              
+              if (dashboardType && dashboardBuilders[dashboardType]) {
+                try {
+                  const dashboard = dashboardBuilders[dashboardType](patientId);
+                  result = {
+                    reply: `Dashboard clínico gerado para ${dashboard.titulo || 'o paciente'}.`,
+                    showIcuPanel: false,
+                    focusedPatient: patient,
+                    selectedPatientId: patientId,
+                    microDashboard: dashboard
+                  } as any;
+                } catch (error) {
+                  console.error("Erro ao gerar dashboard:", error);
+                  // Fallback para handler antigo
+                  const patientResult = await handleFocusedPatientIntent(patientId, message, false);
+                  result = { ...patientResult, showIcuPanel: false };
+                }
+              } else {
+                // Fallback para handler antigo
+                const patientResult = await handleFocusedPatientIntent(patientId, message, false);
+                result = { ...patientResult, showIcuPanel: false };
+              }
+            }
           }
         }
         break;
