@@ -1,6 +1,7 @@
-import type { LlmPatientAnswer, TimelineHighlight } from "./LlmPatientAnswer";
+import type { TimelineHighlight } from "./LlmPatientAnswer";
 import type { MicroDashboard } from "./MicroDashboardV2";
 import type { Patient } from "./Patient";
+import type { PatientFocusPayload } from "./PatientFocusPayload";
 
 /**
  * Conteúdo normalizado para uma resposta do Plantonista
@@ -11,6 +12,6 @@ export interface PlantonistaAnswerContent {
   microDashboards: MicroDashboard[];
   timelineHighlights?: TimelineHighlight[];
   topPatients?: Patient[]; // Para respostas de PRIORITIZACAO
-  focusPatientId?: string | null;
+  focusPayload?: PatientFocusPayload | null;
 }
 

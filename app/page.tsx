@@ -352,59 +352,12 @@ export default function HomePage() {
   const activePatient = mockPatients.find(p => p.id === activePatientId) || null;
   const expandedPatient = mockPatients.find(p => p.id === expandedPatientId) || null;
   const { setPreview, setOnSelectPatient } = usePreview();
-  const { setActivePatient: setActivePatientFromContext, addOpinion } = useClinicalSession();
+  const { setActivePatient: setActivePatientFromContext, addOpinion, setLastAnswerForPatient } = useClinicalSession();
 
   // Sincronizar activePatientId com o contexto
   useEffect(() => {
     setActivePatientFromContext(activePatientId || undefined);
   }, [activePatientId, setActivePatientFromContext]);
-
-  // Função para mostrar overview inline no chat (sem drawer) - usado no menu do input
-  const showPatientOverviewInline = useCallback((patientId: string) => {
-    setActivePatientId(patientId);
-    const patient = mockPatients.find(p => p.id === patientId);
-    if (!patient) {
-      console.error('Paciente não encontrado com ID:', patientId);
-      return;
-    }
-
-    // Adicionar mensagem automática no chat com overview (sem abrir drawer)
-    const overviewMessage: Message = {
-      id: crypto.randomUUID(),
-      role: "agent",
-      text: `Mostrando overview do paciente ${patient.leito} • ${patient.nome}.`,
-      type: 'patient-overview',
-      patientId: patientId,
-      focusedPatient: patient,
-      showPatientMiniPanel: true,
-      showVitalsPanel: true,
-      showLabsPanel: true,
-      showTherapiesPanel: true
-    };
-    setConversation((prev) => [...prev, overviewMessage]);
-  }, [setConversation]);
-
-  // Função para abrir drawer com paciente (usado em cards/big numbers)
-  const openPatientPreviewDrawer = useCallback((patientId: string) => {
-    setActivePatientId(patientId);
-    const patient = mockPatients.find(p => p.id === patientId);
-    if (!patient) {
-      console.error('Paciente não encontrado com ID:', patientId);
-      return;
-    }
-    setPreview('patient', { patient });
-  }, [setPreview]);
-
-
-  // Configurar handler de seleção de paciente (para cards/big numbers - abre drawer)
-  useEffect(() => {
-    const handleSelectPatient = (patientId: string) => {
-      console.log('Selecionando paciente:', patientId); // Debug
-      openPatientPreviewDrawer(patientId);
-    };
-    setOnSelectPatient(handleSelectPatient);
-    return () => setOnSelectPatient(undefined);
-  }, [setOnSelectPatient, openPatientPreviewDrawer]);
 
   // Scroll para o topo da última mensagem do agente quando uma nova resposta é renderizada
   useEffect(() => {
@@ -495,6 +448,11 @@ export default function HomePage() {
       // Normalizar resposta do agente para formato padronizado
       const plantonistaContent = normalizeAgentAnswer(data);
       
+      // Armazenar resposta no contexto se for de um paciente específico
+      if (plantonistaContent.focusPayload?.patientId) {
+        setLastAnswerForPatient(plantonistaContent.focusPayload.patientId, plantonistaContent);
+      }
+      
       const agentMessage: Message = {
         id: crypto.randomUUID(),
         role: "agent",
@@ -539,8 +497,41 @@ export default function HomePage() {
     } finally {
       setLoading(false);
     }
-  }, [activePatientId, sessionIdRef, currentAgent, setConversation, setInput, loading, addOpinion, input]);
+  }, [activePatientId, sessionIdRef, currentAgent, setConversation, setInput, loading, addOpinion, input, setLastAnswerForPatient]);
 
+  // Função para mostrar overview inline no chat - agora usa handleSend
+  const showPatientOverviewInline = useCallback((patientId: string) => {
+    const patient = mockPatients.find(p => p.id === patientId);
+    if (!patient) {
+      console.error('Paciente não encontrado com ID:', patientId);
+      return;
+    }
+    // Usar handleSend para garantir que tudo passe pelo fluxo unificado
+    void handleSend(`Me dê um overview clínico completo do paciente da ${patient.leito} (${patient.nome}).`, undefined, patientId);
+  }, [handleSend]);
+
+  // Função para abrir drawer com paciente - agora usa handleSend e depois abre drawer
+  const openPatientPreviewDrawer = useCallback((patientId: string) => {
+    const patient = mockPatients.find(p => p.id === patientId);
+    if (!patient) {
+      console.error('Paciente não encontrado com ID:', patientId);
+      return;
+    }
+    // Usar handleSend para garantir que tudo passe pelo fluxo unificado
+    void handleSend(`Me dê um overview clínico completo do paciente da ${patient.leito} (${patient.nome}).`, undefined, patientId);
+    // Abrir drawer também (para visualização detalhada)
+    setPreview('patient', { patient });
+  }, [handleSend, setPreview]);
+
+  // Configurar handler de seleção de paciente (para cards/big numbers - abre drawer)
+  useEffect(() => {
+    const handleSelectPatient = (patientId: string) => {
+      console.log('Selecionando paciente:', patientId); // Debug
+      openPatientPreviewDrawer(patientId);
+    };
+    setOnSelectPatient(handleSelectPatient);
+    return () => setOnSelectPatient(undefined);
+  }, [setOnSelectPatient, openPatientPreviewDrawer]);
 
   const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter" && !e.shiftKey) {
@@ -596,9 +587,9 @@ export default function HomePage() {
 
               {conversation.length > 0 && (
                 <div className="conversation">
-                  <PatientContextBar 
+                    <PatientContextBar 
                     activePatient={activePatient} 
-                    onClear={() => setActivePatientId(null)} 
+                    onClear={() => setActivePatientId(null)}
                   />
                   {conversation.map((msg) => (
                   <div 
@@ -656,28 +647,7 @@ export default function HomePage() {
                       })()
                     )}
                     
-                    {/* PatientDetailPanel ainda renderizado separadamente (para compatibilidade) */}
-                    {msg.role === "agent" && msg.focusedPatient && !msg.type && (() => {
-                      const focusedPatientId = msg.focusedPatient.id;
-                      // Buscar timelineHighlights mais recentes para este paciente
-                      const latestTimelineHighlights = conversation
-                        .filter(m => 
-                          m.role === "agent" && 
-                          m.focusedPatient?.id === focusedPatientId &&
-                          m.timelineHighlights && 
-                          m.timelineHighlights.length > 0
-                        )
-                        .map(m => m.timelineHighlights)
-                        .flat()
-                        .filter((h): h is NonNullable<typeof h> => h !== undefined);
-                      
-                      return (
-                        <PatientDetailPanel 
-                          patient={msg.focusedPatient}
-                          timelineHighlights={latestTimelineHighlights.length > 0 ? latestTimelineHighlights : undefined}
-                        />
-                      );
-                    })()}
+                    {/* PatientDetailPanel removido do chat - agora tudo passa pelo PlantonistaAnswerPanel */}
                   </div>
                 ))}
                 

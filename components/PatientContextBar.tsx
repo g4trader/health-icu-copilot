@@ -10,8 +10,6 @@ interface PatientContextBarProps {
 }
 
 export function PatientContextBar({ activePatient, onClear }: PatientContextBarProps) {
-  const { setPreview } = usePreview();
-
   if (!activePatient) {
     return (
       <div className="patient-context-bar patient-context-bar-empty">
@@ -27,9 +25,8 @@ export function PatientContextBar({ activePatient, onClear }: PatientContextBarP
   const risk24h = Math.round(activePatient.riscoMortality24h * 100);
 
   const handleViewDetails = () => {
-    // Abre o drawer mantendo o paciente ativo (não limpa activePatientId)
-    // O activePatientId já está definido quando este componente é renderizado
-    setPreview('patient', { patient: activePatient });
+    // Ver detalhes agora deve ser feito via chat (handleSend) - apenas manter para compatibilidade visual
+    // A ação real deve ser feita pelo componente pai usando handleSend
   };
 
   return (

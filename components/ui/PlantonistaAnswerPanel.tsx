@@ -9,6 +9,7 @@ interface PlantonistaAnswerPanelProps {
   content: PlantonistaAnswerContent;
   onSelectPatient?: (patientId: string) => void;
   onExpandPatient?: (patientId: string) => void;
+  onShowFullEvolution?: (patientId: string) => void;
 }
 
 /**
@@ -19,6 +20,7 @@ export function PlantonistaAnswerPanel({
   content,
   onSelectPatient,
   onExpandPatient,
+  onShowFullEvolution,
 }: PlantonistaAnswerPanelProps) {
   const handleScrollToEvolution = () => {
     document.getElementById("patient-evolution-section")?.scrollIntoView({
@@ -66,11 +68,17 @@ export function PlantonistaAnswerPanel({
       )}
 
       {/* CTA para ver evolução completa (quando há paciente focado) */}
-      {content.focusPatientId && (
+      {content.focusPayload?.patientId && (
         <div className="mt-4 text-center">
           <button
             className="plantonista-cta-button"
-            onClick={handleScrollToEvolution}
+            onClick={() => {
+              if (onShowFullEvolution && content.focusPayload?.patientId) {
+                onShowFullEvolution(content.focusPayload.patientId);
+              } else {
+                handleScrollToEvolution();
+              }
+            }}
           >
             Ver evolução completa →
           </button>

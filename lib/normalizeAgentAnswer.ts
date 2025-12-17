@@ -1,6 +1,7 @@
 import type { PlantonistaAnswerContent } from "@/types/PlantonistaAnswerContent";
 import type { MicroDashboard } from "@/types/MicroDashboardV2";
 import type { Patient } from "@/types/Patient";
+import type { PatientFocusPayload } from "@/types/PatientFocusPayload";
 
 /**
  * Normaliza respostas do agente para o formato padronizado PlantonistaAnswerContent
@@ -26,11 +27,9 @@ export function normalizeAgentAnswer(data: any): PlantonistaAnswerContent {
 
   const topPatients: Patient[] = data.topPatients ?? [];
 
-  const focusPatientId =
-    data.focusPayload?.patientId ??
-    data.llmAnswer?.focusSummary?.patientId ??
-    data.focusedPatient?.id ??
-    data.focusedPatientId ??
+  const focusPayload: PatientFocusPayload | null =
+    data.focusPayload ??
+    data.llmAnswer?.focusSummary ??
     null;
 
   return {
@@ -38,7 +37,7 @@ export function normalizeAgentAnswer(data: any): PlantonistaAnswerContent {
     microDashboards,
     timelineHighlights,
     topPatients,
-    focusPatientId,
+    focusPayload,
   };
 }
 
@@ -50,9 +49,10 @@ export function normalizeAgentAnswerFromLegacy(message: any): PlantonistaAnswerC
     reply: message.text || message.content || "",
     topPatients: message.topPatients,
     focusedPatient: message.focusedPatient,
-    focusedPatientId: message.patientId,
+    focusPayload: message.focusPayload,
     microDashboardsV2: message.microDashboardsV2,
     llmAnswer: message.llmAnswer,
+    timelineHighlights: message.timelineHighlights,
   });
 }
 

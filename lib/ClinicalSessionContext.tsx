@@ -3,6 +3,7 @@
 import { createContext, useContext, useState, ReactNode } from "react";
 import type { Patient } from "@/types";
 import type { ClinicalAgentId } from "@/lib/clinicalAgents";
+import type { PlantonistaAnswerContent } from "@/types/PlantonistaAnswerContent";
 
 export interface PatientSummary {
   id: string;
@@ -23,6 +24,8 @@ interface ClinicalSessionContextValue {
   setActivePatient: (patientId: string | undefined) => void;
   opinionsByPatientId: Record<string, PatientOpinion[]>;
   addOpinion: (patientId: string, agentId: ClinicalAgentId) => void;
+  lastAnswerByPatientId: Record<string, PlantonistaAnswerContent>;
+  setLastAnswerForPatient: (patientId: string, content: PlantonistaAnswerContent) => void;
 }
 
 const ClinicalSessionContext = createContext<ClinicalSessionContextValue | undefined>(undefined);
@@ -31,6 +34,7 @@ export function ClinicalSessionProvider({ children }: { children: ReactNode }) {
   const [pinnedPatients, setPinnedPatients] = useState<PatientSummary[]>([]);
   const [activePatientId, setActivePatientId] = useState<string | undefined>(undefined);
   const [opinionsByPatientId, setOpinionsByPatientId] = useState<Record<string, PatientOpinion[]>>({});
+  const [lastAnswerByPatientId, setLastAnswerByPatientId] = useState<Record<string, PlantonistaAnswerContent>>({});
 
   const togglePinnedPatient = (patient: PatientSummary) => {
     setPinnedPatients((current) => {
@@ -65,6 +69,13 @@ export function ClinicalSessionProvider({ children }: { children: ReactNode }) {
     });
   };
 
+  const setLastAnswerForPatient = (patientId: string, content: PlantonistaAnswerContent) => {
+    setLastAnswerByPatientId((current) => ({
+      ...current,
+      [patientId]: content,
+    }));
+  };
+
   return (
     <ClinicalSessionContext.Provider
       value={{
@@ -74,6 +85,8 @@ export function ClinicalSessionProvider({ children }: { children: ReactNode }) {
         setActivePatient,
         opinionsByPatientId,
         addOpinion,
+        lastAnswerByPatientId,
+        setLastAnswerForPatient,
       }}
     >
       {children}

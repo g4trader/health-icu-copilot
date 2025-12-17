@@ -9,15 +9,27 @@ import { getDailyStatus } from "@/lib/patientTimeline";
 import { PatientBigTimeline } from "./ui/PatientBigTimeline";
 import { PatientTimelineSummary } from "./PatientTimelineSummary";
 import type { TimelineHighlight } from "@/types/LlmPatientAnswer";
+import { useClinicalSession } from "@/lib/ClinicalSessionContext";
+import type { PlantonistaAnswerContent } from "@/types/PlantonistaAnswerContent";
+import { buildAllDashboards } from "@/lib/microDashboardBuildersV2";
 
 interface PatientDetailPanelProps {
   patient: Patient;
-  microDashboards?: MicroDashboard[]; // Dashboards V2 (opcional)
-  timelineHighlights?: TimelineHighlight[]; // Highlights do LLM (opcional)
+  microDashboards?: MicroDashboard[]; // Dashboards V2 (opcional) - se não fornecido, usa do contexto ou determinístico
+  timelineHighlights?: TimelineHighlight[]; // Highlights do LLM (opcional) - se não fornecido, usa do contexto
 }
 
-export function PatientDetailPanel({ patient, microDashboards, timelineHighlights }: PatientDetailPanelProps) {
+export function PatientDetailPanel({ patient, microDashboards: propsMicroDashboards, timelineHighlights: propsTimelineHighlights }: PatientDetailPanelProps) {
+  const { lastAnswerByPatientId } = useClinicalSession();
   const dailyStatus = getDailyStatus(patient.id);
+  
+  // Buscar resposta do Plantonista para este paciente, se disponível
+  const plantonistaAnswer = lastAnswerByPatientId[patient.id];
+  
+  // Preferir dados do LLM, depois props, depois determinístico
+  const microDashboards = propsMicroDashboards ?? plantonistaAnswer?.microDashboards ?? buildAllDashboards(patient);
+  const timelineHighlights = propsTimelineHighlights ?? plantonistaAnswer?.timelineHighlights;
+  
   const hasVM = patient.ventilationParams !== undefined;
   const hasVaso = patient.medications.some(m => m.tipo === "vasopressor" && m.ativo);
   const antibioticos = patient.medications.filter(m => m.tipo === "antibiotico" && m.ativo);
@@ -39,15 +51,6 @@ export function PatientDetailPanel({ patient, microDashboards, timelineHighlight
 
   return (
     <div className="patient-detail-refined">
-      {/* Renderizar micro dashboards V2 se disponíveis */}
-      {microDashboards && microDashboards.length > 0 && (
-        <div className="mb-6 space-y-4">
-          {microDashboards.map((dashboard, idx) => (
-            <MicroDashboardV2Renderer key={idx} dashboard={dashboard} />
-          ))}
-        </div>
-      )}
-      
       {/* Seção Resumo */}
       <div className="detail-card">
         <h4 className="detail-card-title">Resumo</h4>
