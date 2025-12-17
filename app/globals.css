@@ -3800,6 +3800,14 @@ a {
   border-left: 4px solid #f97316; /* orange */
 }
 
+.micro-dashboard-labs_evolutivos {
+  border-left: 4px solid #8b5cf6; /* purple */
+}
+
+.micro-dashboard-imagem_evolutiva {
+  border-left: 4px solid #06b6d4; /* cyan */
+}
+
 .micro-dashboard-header {
   display: flex;
   justify-content: space-between;

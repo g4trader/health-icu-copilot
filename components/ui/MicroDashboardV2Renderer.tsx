@@ -1,7 +1,7 @@
 "use client";
 
 import type { MicroDashboard, MicroDashboardBlock } from "@/types/MicroDashboardV2";
-import { Activity, Wind, Heart, FlaskConical, Shield, Bug } from "lucide-react";
+import { Activity, Wind, Heart, FlaskConical, Shield, Bug, TestTube, Scan } from "lucide-react";
 
 interface MicroDashboardV2RendererProps {
   dashboard: MicroDashboard;
@@ -14,6 +14,8 @@ const dashboardIcons: Record<MicroDashboard['tipo'], typeof Activity> = {
   hemodinamico: Heart,
   labs_criticos: FlaskConical,
   infeccao_antibiotico: Shield, // Usaremos Shield + Bug em composição
+  labs_evolutivos: TestTube,
+  imagem_evolutiva: Scan,
 };
 
 function getRiskLabel(level?: string): string {

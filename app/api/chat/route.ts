@@ -29,7 +29,7 @@ import { specialistOpinions, type SpecialistKey } from "@/lib/specialistOpinions
 import { buildSpecialistOpinion } from "@/lib/specialistOpinionBuilder";
 import type { SpecialistOpinion } from "@/types/SpecialistOpinion";
 import { buildRadiologyReport, buildRadiologyOpinion } from "@/lib/radiologyOpinionBuilder";
-import type { RadiologyOpinion, RadiologyReport } from "@/types/RadiologyOpinion";
+import type { RadiologyOpinion, RadiologyReport, RadiologyReportSummary } from "@/types/RadiologyOpinion";
 import { storeResearchEntry, desidentifyText } from "@/lib/researchStore";
 import { dashboardBuilders } from "@/lib/microDashboardBuilders";
 import type { MicroDashboardPayload, MicroDashboardType } from "@/types/MicroDashboard";
@@ -455,7 +455,13 @@ async function handleFocusedPatientIntent(
   if (useLLM && process.env.GROQ_API_KEY) {
     try {
       const dailyEvolution = getDailyStatus(focusedPatientId);
-      const llmAnswer = await getLlmPatientAnswer(p, dailyEvolution, mockUnitProfile, message);
+      
+      // Gerar últimos 3 exames de imagem para o paciente (mock determinístico)
+      // Por enquanto, geramos apenas 1 exame recente - pode ser estendido para gerar 3
+      const radiologyReport = buildRadiologyReport(p);
+      const radiologyReports: RadiologyReportSummary[] = [radiologyReport.summary];
+      
+      const llmAnswer = await getLlmPatientAnswer(p, dailyEvolution, mockUnitProfile, message, radiologyReports);
       
       return {
         reply: llmAnswer.plainTextAnswer + DISCLAIMER,

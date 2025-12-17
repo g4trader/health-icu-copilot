@@ -4,6 +4,7 @@ import type { DailyPatientStatus } from "@/types/DailyPatientStatus";
 import type { LlmPatientAnswer, TimelineHighlight } from "@/types/LlmPatientAnswer";
 import type { PatientFocusPayload } from "@/types/PatientFocusPayload";
 import type { MicroDashboard } from "@/types/MicroDashboardV2";
+import type { RadiologyReportSummary } from "@/types/RadiologyOpinion";
 import { buildPatientFocusPayload } from "./mockData";
 import { buildAllDashboards } from "./microDashboardBuildersV2";
 import { getDailyStatus } from "./patientTimeline";
@@ -26,13 +27,15 @@ export function buildUserMessageForPatient(
   patient: Patient,
   dailyEvolution: DailyPatientStatus[],
   unitProfile: UnitProfile | null,
-  userQuestion: string
+  userQuestion: string,
+  radiologyReports?: RadiologyReportSummary[] | null
 ): string {
   const messages = buildPlantonistaMessages({
     question: userQuestion,
     patient,
     dailyStatus: dailyEvolution,
-    unitProfile
+    unitProfile,
+    radiologyReports
   });
   
   return messages[1].content; // Retorna apenas o conteúdo da mensagem do usuário
@@ -83,8 +86,9 @@ export async function callPlantonistaAgent(args: {
   patient?: Patient | null;
   dailyStatus?: DailyPatientStatus[] | null;
   unitProfile?: UnitProfile | null;
+  radiologyReports?: RadiologyReportSummary[] | null;
 }): Promise<LlmPatientAnswer> {
-  const { question, patient, dailyStatus, unitProfile } = args;
+  const { question, patient, dailyStatus, unitProfile, radiologyReports } = args;
   const apiKey = process.env.GROQ_API_KEY;
   
   if (!apiKey) {
@@ -99,7 +103,7 @@ export async function callPlantonistaAgent(args: {
     }
     
     const focusPayload = buildPatientFocusPayload(patient);
-    const dashboards = buildAllDashboards(patient);
+    const dashboards = buildAllDashboards(patient, radiologyReports || undefined);
     
     // Gerar narrativa básica
     const riskPercent = Math.round(patient.riscoMortality24h * 100);
@@ -123,7 +127,7 @@ export async function callPlantonistaAgent(args: {
   }
   
   try {
-    const messages = buildPlantonistaMessages({ question, patient, dailyStatus, unitProfile });
+    const messages = buildPlantonistaMessages({ question, patient, dailyStatus, unitProfile, radiologyReports });
     
     const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
       method: "POST",
@@ -193,7 +197,7 @@ export async function callPlantonistaAgent(args: {
     }
     
     const focusPayload = buildPatientFocusPayload(patient);
-    const dashboards = buildAllDashboards(patient);
+    const dashboards = buildAllDashboards(patient, radiologyReports || undefined);
     
     const riskPercent = Math.round(patient.riscoMortality24h * 100);
     const narrativa = `Paciente ${patient.nome} (${patient.idade} anos), leito ${patient.leito}, com ${patient.diagnosticoPrincipal}. Risco de mortalidade em 24h: ${riskPercent}%. Veja os dashboards abaixo para detalhes.`;
@@ -216,13 +220,15 @@ export async function getLlmPatientAnswer(
   patient: Patient,
   dailyEvolution: DailyPatientStatus[],
   unitProfile: UnitProfile | null,
-  userQuestion: string
+  userQuestion: string,
+  radiologyReports?: RadiologyReportSummary[] | null
 ): Promise<LlmPatientAnswer> {
   return callPlantonistaAgent({
     question: userQuestion,
     patient,
     dailyStatus: dailyEvolution,
-    unitProfile
+    unitProfile,
+    radiologyReports
   });
 }
 

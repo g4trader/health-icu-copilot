@@ -3,6 +3,7 @@ export type SpecialistKey = 'general' | 'cardiology' | 'pneumology' | 'neurology
 import type { Patient } from "@/types/Patient";
 import type { DailyPatientStatus } from "@/types/DailyPatientStatus";
 import type { UnitProfile } from "@/types/UnitProfile";
+import type { RadiologyReportSummary } from "@/types/RadiologyOpinion";
 
 /**
  * Tipo para mensagens do OpenAI/Groq
@@ -22,6 +23,10 @@ INSTRUÇÕES GERAIS:
 2. Quando a pergunta for sobre um paciente específico, preencha o focusSummary com os dados estruturados relevantes.
 3. Escolha 2-3 microDashboards relevantes baseados na pergunta do usuário e no contexto clínico.
 4. Quando a pergunta for sobre evolução ("melhorou?", "quando piorou?", "o que mudou?"), inclua timelineHighlights destacando momentos-chave.
+5. Quando houver exames laboratoriais (LabResult[]) e de imagem (RadiologyReportSummary[]), você DEVE:
+   - Identificar os 3 exames laboratoriais mais recentes de maior impacto clínico (lactato, PCR, pró-calcitonina, função renal, hemograma).
+   - Identificar os 3 exames de imagem mais recentes (RX, TC, eco, etc.).
+   - Descrever explicitamente se, na sua interpretação, há TENDÊNCIA DE MELHORA, PIORA ou ESTABILIDADE com base nesses exames.
 
 FORMATO DE RESPOSTA (JSON OBRIGATÓRIO):
 Você DEVE retornar APENAS um objeto JSON válido, sem texto adicional antes ou depois. O formato é:
@@ -45,7 +50,7 @@ Você DEVE retornar APENAS um objeto JSON válido, sem texto adicional antes ou 
   },
   "microDashboards": [
     {
-      "tipo": "status_global" | "respiratorio" | "hemodinamico" | "labs_criticos" | "infeccao_antibiotico",
+      "tipo": "status_global" | "respiratorio" | "hemodinamico" | "labs_criticos" | "infeccao_antibiotico" | "labs_evolutivos" | "imagem_evolutiva",
       "titulo": "string",
       "subtitulo": "string (opcional)",
       "riskLevel": "alto" | "moderado" | "baixo" (opcional),
@@ -59,6 +64,14 @@ Você DEVE retornar APENAS um objeto JSON válido, sem texto adicional antes ou 
       ]
     }
   ],
+  
+REGRAS PARA MICRO DASHBOARDS DE EXAMES:
+- Quando existirem exames laboratoriais relevantes, inclua um dashboard "tipo": "labs_evolutivos" com:
+  * Um bloco "Resumo por exame" contendo frases curtas como: "Lactato: 3,2 mmol/L ↓ (caindo)", "PCR: 180 → 90 mg/L ↓ (melhora)".
+  * Um bloco "Últimos 3 por tipo" com datas e valores.
+- Quando existirem exames de imagem recentes, inclua um dashboard "tipo": "imagem_evolutiva" com:
+  * Resumo de até 3 exames (tipo + data + impressão curta).
+  * Indicação se o padrão radiológico está melhorando, piorando ou estável.
   "timelineHighlights": [
     {
       "diaUti": number,
@@ -67,7 +80,7 @@ Você DEVE retornar APENAS um objeto JSON válido, sem texto adicional antes ou 
       "descricaoCurta": "string (máx 90 caracteres)"
     }
   ],
-  "plainTextAnswer": "string (parágrafo clínico em português, sempre presente)"
+  "plainTextAnswer": "string (parágrafo clínico em português, sempre presente). No texto corrido, sempre reserve 1 parágrafo curto para comentar de forma integrada: 'Do ponto de vista de exames complementares, os últimos labs sugerem melhora/piora/estabilidade por causa de X.' e 'As imagens mais recentes (RX/TC/eco) mostram melhora/piora/estabilidade do foco infeccioso ou complicações.'"
 }
 
 REGRAS IMPORTANTES:
@@ -421,8 +434,9 @@ export function buildPlantonistaMessages(params: {
   patient?: Patient | null;
   dailyStatus?: DailyPatientStatus[] | null;
   unitProfile?: UnitProfile | null;
+  radiologyReports?: RadiologyReportSummary[] | null;
 }): ChatMessage[] {
-  const { question, patient, dailyStatus, unitProfile } = params;
+  const { question, patient, dailyStatus, unitProfile, radiologyReports } = params;
 
   const userContextParts: string[] = [];
 
@@ -444,6 +458,22 @@ export function buildPlantonistaMessages(params: {
     userContextParts.push(
       "### PERFIL DA UNIDADE (JSON)",
       JSON.stringify(unitProfile, null, 2)
+    );
+  }
+
+  // Adicionar exames laboratoriais se disponíveis
+  if (patient?.labResults?.length) {
+    userContextParts.push(
+      "### EXAMES LABORATORIAIS RECENTES (LabResult[], JSON)",
+      JSON.stringify(patient.labResults, null, 2)
+    );
+  }
+
+  // Adicionar exames de imagem se disponíveis
+  if (radiologyReports && radiologyReports.length > 0) {
+    userContextParts.push(
+      "### EXAMES DE IMAGEM RECENTES (RadiologyReportSummary[], JSON)",
+      JSON.stringify(radiologyReports, null, 2)
     );
   }
 

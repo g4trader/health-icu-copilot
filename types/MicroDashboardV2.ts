@@ -8,7 +8,9 @@ export type MicroDashboardType =
   | "respiratorio"
   | "hemodinamico"
   | "labs_criticos"
-  | "infeccao_antibiotico";
+  | "infeccao_antibiotico"
+  | "labs_evolutivos"
+  | "imagem_evolutiva";
 
 /**
  * Bloco de um micro dashboard
