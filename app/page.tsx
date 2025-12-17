@@ -9,7 +9,6 @@ import { ChatInput } from "@/components/ChatInput";
 import { PatientContextBar } from "@/components/PatientContextBar";
 import { usePreview } from "@/components/PreviewProvider";
 import { MiniPatientSummary } from "@/components/MiniPatientSummary";
-import { PatientFocusMode } from "@/components/PatientFocusMode";
 import { SpecialistOpinionMessage } from "@/components/chat/SpecialistOpinionMessage";
 import { AgentOpinionBlock } from "@/components/ui/AgentOpinionBlock";
 import { RadiologyReportCard } from "@/components/ui/RadiologyReportCard";
