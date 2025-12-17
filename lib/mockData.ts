@@ -724,8 +724,42 @@ const mockPatientsRaw: Patient[] = [
       ultimaAtualizacao: "2025-11-26T08:50:00Z"
     },
     labResults: [
+      // Lactato: estável (TCE sem choque)
       {
-        id: "l7",
+        id: "p4-lactato-1",
+        tipo: "lactato",
+        nome: "Lactato",
+        valor: 1.6,
+        unidade: "mmol/L",
+        referencia: "< 2.0",
+        data: "2025-11-20T08:00:00Z",
+        tendencia: "estavel",
+        critico: false
+      },
+      {
+        id: "p4-lactato-2",
+        tipo: "lactato",
+        nome: "Lactato",
+        valor: 1.7,
+        unidade: "mmol/L",
+        referencia: "< 2.0",
+        data: "2025-11-22T08:00:00Z",
+        tendencia: "estavel",
+        critico: false
+      },
+      {
+        id: "p4-lactato-3",
+        tipo: "lactato",
+        nome: "Lactato",
+        valor: 1.8,
+        unidade: "mmol/L",
+        referencia: "< 2.0",
+        data: "2025-11-24T08:00:00Z",
+        tendencia: "estavel",
+        critico: false
+      },
+      {
+        id: "p4-lactato-4",
         tipo: "lactato",
         nome: "Lactato",
         valor: 1.8,
@@ -862,8 +896,31 @@ const mockPatientsRaw: Patient[] = [
       ultimaAtualizacao: "2025-11-26T08:45:00Z"
     },
     labResults: [
+      // Lactato: normal (bronquiolite moderada)
       {
-        id: "l9",
+        id: "p6-lactato-1",
+        tipo: "lactato",
+        nome: "Lactato",
+        valor: 1.4,
+        unidade: "mmol/L",
+        referencia: "< 2.0",
+        data: "2025-11-24T08:00:00Z",
+        tendencia: "estavel",
+        critico: false
+      },
+      {
+        id: "p6-lactato-2",
+        tipo: "lactato",
+        nome: "Lactato",
+        valor: 1.5,
+        unidade: "mmol/L",
+        referencia: "< 2.0",
+        data: "2025-11-25T08:00:00Z",
+        tendencia: "estavel",
+        critico: false
+      },
+      {
+        id: "p6-lactato-3",
         tipo: "lactato",
         nome: "Lactato",
         valor: 1.5,
@@ -872,6 +929,29 @@ const mockPatientsRaw: Patient[] = [
         data: "2025-11-26T08:00:00Z",
         tendencia: "estavel",
         critico: false
+      },
+      // PCR: leve elevação, queda rápida
+      {
+        id: "p6-pcr-1",
+        tipo: "pcr",
+        nome: "Proteína C Reativa",
+        valor: 85,
+        unidade: "mg/L",
+        referencia: "< 3.0",
+        data: "2025-11-24T08:00:00Z",
+        tendencia: "subindo",
+        critico: true
+      },
+      {
+        id: "p6-pcr-2",
+        tipo: "pcr",
+        nome: "Proteína C Reativa",
+        valor: 70,
+        unidade: "mg/L",
+        referencia: "< 3.0",
+        data: "2025-11-26T08:00:00Z",
+        tendencia: "caindo",
+        critico: true
       }
     ]
   },
@@ -957,26 +1037,94 @@ const mockPatientsRaw: Patient[] = [
       ultimaAtualizacao: "2025-11-26T08:40:00Z"
     },
     labResults: [
+      // Lactato: pico inicial, depois plateau
       {
-        id: "l10",
+        id: "p7-lactato-1",
+        tipo: "lactato",
+        nome: "Lactato",
+        valor: 3.5,
+        unidade: "mmol/L",
+        referencia: "< 2.0",
+        data: "2025-11-23T08:00:00Z", // D1
+        tendencia: "subindo",
+        critico: true
+      },
+      {
+        id: "p7-lactato-2",
+        tipo: "lactato",
+        nome: "Lactato",
+        valor: 4.0,
+        unidade: "mmol/L",
+        referencia: "< 2.0",
+        data: "2025-11-24T08:00:00Z", // D2
+        tendencia: "subindo",
+        critico: true
+      },
+      {
+        id: "p7-lactato-3",
         tipo: "lactato",
         nome: "Lactato",
         valor: 4.2,
         unidade: "mmol/L",
         referencia: "< 2.0",
-        data: "2025-11-26T08:00:00Z",
+        data: "2025-11-25T08:00:00Z", // D3 (pico/plateau)
+        tendencia: "estavel",
+        critico: true
+      },
+      {
+        id: "p7-lactato-4",
+        tipo: "lactato",
+        nome: "Lactato",
+        valor: 3.8,
+        unidade: "mmol/L",
+        referencia: "< 2.0",
+        data: "2025-11-26T08:00:00Z", // D4 (começa a cair)
+        tendencia: "caindo",
+        critico: true
+      },
+      // PCR: evolução típica de sepse pulmonar
+      {
+        id: "p7-pcr-1",
+        tipo: "pcr",
+        nome: "Proteína C Reativa",
+        valor: 200,
+        unidade: "mg/L",
+        referencia: "< 3.0",
+        data: "2025-11-23T08:00:00Z",
         tendencia: "subindo",
         critico: true
       },
       {
-        id: "l11",
+        id: "p7-pcr-2",
         tipo: "pcr",
         nome: "Proteína C Reativa",
         valor: 250,
         unidade: "mg/L",
         referencia: "< 3.0",
-        data: "2025-11-26T08:00:00Z",
+        data: "2025-11-24T08:00:00Z",
         tendencia: "subindo",
+        critico: true
+      },
+      {
+        id: "p7-pcr-3",
+        tipo: "pcr",
+        nome: "Proteína C Reativa",
+        valor: 230,
+        unidade: "mg/L",
+        referencia: "< 3.0",
+        data: "2025-11-25T08:00:00Z",
+        tendencia: "caindo",
+        critico: true
+      },
+      {
+        id: "p7-pcr-4",
+        tipo: "pcr",
+        nome: "Proteína C Reativa",
+        valor: 180,
+        unidade: "mg/L",
+        referencia: "< 3.0",
+        data: "2025-11-26T08:00:00Z",
+        tendencia: "caindo",
         critico: true
       }
     ]
@@ -1174,15 +1322,72 @@ const mockPatientsRaw: Patient[] = [
       ultimaAtualizacao: "2025-11-26T08:30:00Z"
     },
     labResults: [
+      // Lactato: leve elevação (bronquiolite grave em lactente)
       {
-        id: "l13",
+        id: "p9-lactato-1",
+        tipo: "lactato",
+        nome: "Lactato",
+        valor: 2.5,
+        unidade: "mmol/L",
+        referencia: "< 2.0",
+        data: "2025-11-23T08:00:00Z",
+        tendencia: "subindo",
+        critico: true
+      },
+      {
+        id: "p9-lactato-2",
+        tipo: "lactato",
+        nome: "Lactato",
+        valor: 2.7,
+        unidade: "mmol/L",
+        referencia: "< 2.0",
+        data: "2025-11-24T08:00:00Z",
+        tendencia: "subindo",
+        critico: true
+      },
+      {
+        id: "p9-lactato-3",
         tipo: "lactato",
         nome: "Lactato",
         valor: 2.8,
         unidade: "mmol/L",
         referencia: "< 2.0",
-        data: "2025-11-26T08:00:00Z",
+        data: "2025-11-25T08:00:00Z",
         tendencia: "estavel",
+        critico: true
+      },
+      {
+        id: "p9-lactato-4",
+        tipo: "lactato",
+        nome: "Lactato",
+        valor: 2.6,
+        unidade: "mmol/L",
+        referencia: "< 2.0",
+        data: "2025-11-26T08:00:00Z",
+        tendencia: "caindo",
+        critico: true
+      },
+      // PCR: elevação moderada
+      {
+        id: "p9-pcr-1",
+        tipo: "pcr",
+        nome: "Proteína C Reativa",
+        valor: 120,
+        unidade: "mg/L",
+        referencia: "< 3.0",
+        data: "2025-11-24T08:00:00Z",
+        tendencia: "subindo",
+        critico: true
+      },
+      {
+        id: "p9-pcr-2",
+        tipo: "pcr",
+        nome: "Proteína C Reativa",
+        valor: 110,
+        unidade: "mg/L",
+        referencia: "< 3.0",
+        data: "2025-11-26T08:00:00Z",
+        tendencia: "caindo",
         critico: true
       }
     ]
@@ -1245,8 +1450,53 @@ const mockPatientsRaw: Patient[] = [
       ultimaAtualizacao: "2025-11-26T08:25:00Z"
     },
     labResults: [
+      // Lactato: normalização pós-cirúrgica
       {
-        id: "l14",
+        id: "p10-lactato-1",
+        tipo: "lactato",
+        nome: "Lactato",
+        valor: 2.2,
+        unidade: "mmol/L",
+        referencia: "< 2.0",
+        data: "2025-11-19T08:00:00Z", // D1 pós-op
+        tendencia: "subindo",
+        critico: true
+      },
+      {
+        id: "p10-lactato-2",
+        tipo: "lactato",
+        nome: "Lactato",
+        valor: 1.9,
+        unidade: "mmol/L",
+        referencia: "< 2.0",
+        data: "2025-11-21T08:00:00Z",
+        tendencia: "caindo",
+        critico: false
+      },
+      {
+        id: "p10-lactato-3",
+        tipo: "lactato",
+        nome: "Lactato",
+        valor: 1.7,
+        unidade: "mmol/L",
+        referencia: "< 2.0",
+        data: "2025-11-23T08:00:00Z",
+        tendencia: "caindo",
+        critico: false
+      },
+      {
+        id: "p10-lactato-4",
+        tipo: "lactato",
+        nome: "Lactato",
+        valor: 1.6,
+        unidade: "mmol/L",
+        referencia: "< 2.0",
+        data: "2025-11-25T08:00:00Z",
+        tendencia: "caindo",
+        critico: false
+      },
+      {
+        id: "p10-lactato-5",
         tipo: "lactato",
         nome: "Lactato",
         valor: 1.6,
