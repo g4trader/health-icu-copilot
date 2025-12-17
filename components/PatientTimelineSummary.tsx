@@ -1,14 +1,11 @@
 "use client";
 
-import { getPatientTimelineSummary, formatRelativeTime, eventTypeLabels } from "@/lib/patientTimeline";
+import { getPatientTimelineSummary, formatRelativeTime } from "@/lib/patientTimeline";
 import type { TimelineEvent } from "@/lib/patientTimeline";
-import { UserPlus, Beaker, Scan, Syringe, FileText, Activity } from "lucide-react";
-import { BaseCard } from "./ui/BaseCard";
-import { SectionHeader } from "./ui/SectionHeader";
+import { UserPlus, Beaker, Scan, Syringe, FileText } from "lucide-react";
 import { usePreview } from "./PreviewProvider";
 import { buildRadiologyReport } from "@/lib/radiologyOpinionBuilder";
 import { mockPatients } from "@/lib/mockData";
-import { TimelineEventCard } from "./TimelineEventCard";
 
 interface PatientTimelineSummaryProps {
   patientId: string;
