@@ -158,7 +158,7 @@ function AllPatientsPreview({ payload }: { payload: PreviewPayload | null }) {
   const { onSelectPatient } = usePreview();
 
   return (
-    <div className="flex flex-col gap-4 p-4">
+    <div className="flex flex-col gap-4">
       {patients.map((p) => (
         <PatientCard
           key={p.id}
@@ -176,7 +176,7 @@ function VentilatedPreview() {
   const { onSelectPatient } = usePreview();
 
   return (
-    <div className="flex flex-col gap-4 p-4">
+    <div className="flex flex-col gap-4">
       {ventilated.map((p) => (
         <PatientCard
           key={p.id}
@@ -196,7 +196,7 @@ function VasopressorsPreview() {
   const { onSelectPatient } = usePreview();
 
   return (
-    <div className="flex flex-col gap-4 p-4">
+    <div className="flex flex-col gap-4">
       {onVaso.map((p) => (
         <PatientCard
           key={p.id}
@@ -217,7 +217,7 @@ function HighRiskPreview() {
   const { onSelectPatient } = usePreview();
 
   return (
-    <div className="flex flex-col gap-4 p-4">
+    <div className="flex flex-col gap-4">
       {highRisk.map((p) => (
         <PatientCard
           key={p.id}
