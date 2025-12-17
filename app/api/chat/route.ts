@@ -33,6 +33,9 @@ import type { RadiologyOpinion, RadiologyReport } from "@/types/RadiologyOpinion
 import { storeResearchEntry, desidentifyText } from "@/lib/researchStore";
 import { dashboardBuilders } from "@/lib/microDashboardBuilders";
 import type { MicroDashboardPayload, MicroDashboardType } from "@/types/MicroDashboard";
+import { getLlmPatientAnswer } from "@/lib/llmPatientAnswer";
+import type { LlmPatientAnswer } from "@/types/LlmPatientAnswer";
+import { getDailyStatus } from "@/lib/patientTimeline";
 
 interface RequestBody {
   message: string;
@@ -422,13 +425,44 @@ function handlePrioritizationIntent(message: string): { reply: string; topN: num
 
 /**
  * Handler para intenção de PACIENTE_ESPECIFICO
+ * Pode usar LLM se disponível, senão usa template determinístico
  */
-function handleFocusedPatientIntent(focusedPatientId: string): { reply: string; showIcuPanel: boolean; focusedPatient?: PatientType; selectedPatientId?: string } {
+async function handleFocusedPatientIntent(
+  focusedPatientId: string, 
+  message: string = "",
+  useLLM: boolean = false
+): Promise<{ 
+  reply: string; 
+  showIcuPanel: boolean; 
+  focusedPatient?: PatientType; 
+  selectedPatientId?: string;
+  llmAnswer?: LlmPatientAnswer;
+}> {
   const p = mockPatients.find((p) => p.id === focusedPatientId);
   if (!p) {
     return { reply: "Não encontrei o paciente selecionado. Tente selecionar novamente." + DISCLAIMER, showIcuPanel: false };
   }
 
+  // Se usar LLM e API key disponível, tentar resposta estruturada
+  if (useLLM && process.env.GROQ_API_KEY) {
+    try {
+      const dailyEvolution = getDailyStatus(focusedPatientId);
+      const llmAnswer = await getLlmPatientAnswer(p, dailyEvolution, mockUnitProfile, message);
+      
+      return {
+        reply: llmAnswer.plainTextAnswer + DISCLAIMER,
+        showIcuPanel: false,
+        focusedPatient: p,
+        selectedPatientId: p.id,
+        llmAnswer
+      };
+    } catch (error) {
+      console.warn("LLM failed, using template:", error);
+      // Fallback para template
+    }
+  }
+
+  // Template determinístico (fallback)
   const risco24 = (p.riscoMortality24h * 100).toFixed(0);
   const risco7 = (p.riscoMortality7d * 100).toFixed(0);
   const riscoLevel = riskLevelFromScore(p.riscoMortality24h);
@@ -975,8 +1009,19 @@ export async function POST(req: Request) {
               result = { reply: "Erro ao gerar dashboard. Tente novamente." + DISCLAIMER, showIcuPanel: false };
             }
           } else {
-            // Fallback para handler antigo
-            const patientResult = handleFocusedPatientIntent(patientId);
+            // Fallback para handler antigo (pode usar LLM se pergunta for complexa)
+            const msgLower = message.toLowerCase();
+            const useLLM = !msgLower.includes("resumo") && 
+                          !msgLower.includes("status") && 
+                          (msgLower.includes("melhorou") || 
+                           msgLower.includes("piorou") || 
+                           msgLower.includes("evolução") ||
+                           msgLower.includes("evolucao") ||
+                           msgLower.includes("quando") ||
+                           msgLower.includes("como está") ||
+                           msgLower.length > 30);
+            
+            const patientResult = await handleFocusedPatientIntent(patientId, message, useLLM);
             result = { ...patientResult, showIcuPanel: false };
           }
         }
@@ -1099,7 +1144,12 @@ export async function POST(req: Request) {
       showTherapiesPanel: result.showTherapiesPanel,
       specialistOpinion: result.specialistOpinion,
       microDashboard: result.microDashboard,
-      microDashboards: result.microDashboards
+      microDashboards: result.microDashboards,
+      // Dados do LLM (se disponível)
+      llmAnswer: (result as any).llmAnswer,
+      focusPayload: (result as any).llmAnswer?.focusSummary,
+      microDashboardsV2: (result as any).llmAnswer?.microDashboards,
+      timelineHighlights: (result as any).llmAnswer?.timelineHighlights
     });
   } catch (error) {
     return NextResponse.json(

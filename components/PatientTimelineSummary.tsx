@@ -8,9 +8,11 @@ import { SectionHeader } from "./ui/SectionHeader";
 import { usePreview } from "./PreviewProvider";
 import { buildRadiologyReport } from "@/lib/radiologyOpinionBuilder";
 import { mockPatients } from "@/lib/mockData";
+import { TimelineEventCard } from "./TimelineEventCard";
 
 interface PatientTimelineSummaryProps {
   patientId: string;
+  timelineHighlights?: import("@/types/LlmPatientAnswer").TimelineHighlight[]; // Destaques do LLM (opcional)
 }
 
 const eventIcons: Record<TimelineEvent['type'], typeof UserPlus> = {
@@ -33,9 +35,38 @@ const severityLabels: Record<NonNullable<TimelineEvent['severity']>, string> = {
   critical: 'Crítico',
 };
 
-export function PatientTimelineSummary({ patientId }: PatientTimelineSummaryProps) {
+export function PatientTimelineSummary({ patientId, timelineHighlights }: PatientTimelineSummaryProps) {
   const { setPreview } = usePreview();
   const { events, isFallback } = getPatientTimelineSummary(patientId);
+  const patient = mockPatients.find(p => p.id === patientId);
+
+  // Se houver highlights do LLM, renderizar eles primeiro
+  if (timelineHighlights && timelineHighlights.length > 0) {
+    return (
+      <BaseCard className="mb-6" padding="md">
+        <SectionHeader title="Destaques da Evolução" />
+        <div className="mt-3 space-y-2.5">
+          {timelineHighlights.map((highlight, idx) => {
+            // Converter highlight para TimelineEvent
+            const event: TimelineEvent = {
+              id: `highlight-${idx}`,
+              type: 'note',
+              title: highlight.titulo,
+              description: highlight.descricao,
+              timestamp: highlight.data,
+              severity: highlight.relevancia === 'alta' ? 'critical' : highlight.relevancia === 'media' ? 'warning' : 'normal'
+            };
+            
+            return (
+              <div key={idx} className="py-2">
+                <TimelineEventCard event={event} patient={patient} />
+              </div>
+            );
+          })}
+        </div>
+      </BaseCard>
+    );
+  }
 
   if (events.length === 0) {
     return null;

@@ -1,14 +1,17 @@
 "use client";
 
 import type { Patient } from "@/lib/mockData";
+import type { MicroDashboard } from "@/types/MicroDashboardV2";
 import { PatientPinButton } from "./PatientPinButton";
 import { riskLevelFromScore } from "@/lib/mockData";
+import { MicroDashboardV2Renderer } from "./ui/MicroDashboardV2Renderer";
 
 interface PatientDetailPanelProps {
   patient: Patient;
+  microDashboards?: MicroDashboard[]; // Dashboards V2 (opcional)
 }
 
-export function PatientDetailPanel({ patient }: PatientDetailPanelProps) {
+export function PatientDetailPanel({ patient, microDashboards }: PatientDetailPanelProps) {
   const hasVM = patient.ventilationParams !== undefined;
   const hasVaso = patient.medications.some(m => m.tipo === "vasopressor" && m.ativo);
   const antibioticos = patient.medications.filter(m => m.tipo === "antibiotico" && m.ativo);
@@ -30,6 +33,15 @@ export function PatientDetailPanel({ patient }: PatientDetailPanelProps) {
 
   return (
     <div className="patient-detail-refined">
+      {/* Renderizar micro dashboards V2 se disponíveis */}
+      {microDashboards && microDashboards.length > 0 && (
+        <div className="mb-6 space-y-4">
+          {microDashboards.map((dashboard, idx) => (
+            <MicroDashboardV2Renderer key={idx} dashboard={dashboard} />
+          ))}
+        </div>
+      )}
+      
       {/* Seção Resumo */}
       <div className="detail-card">
         <h4 className="detail-card-title">Resumo</h4>
