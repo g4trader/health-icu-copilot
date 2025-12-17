@@ -523,11 +523,10 @@ export default function HomePage() {
       console.error('Paciente não encontrado com ID:', patientId);
       return;
     }
-    // Usar handleSend para garantir que tudo passe pelo fluxo unificado
-    void handleSend(`Me dê um overview clínico completo do paciente da ${patient.leito} (${patient.nome}).`, undefined, patientId);
-    // Abrir drawer também (para visualização detalhada)
+    // Apenas abrir o preview drawer com os dados já disponíveis no contexto
+    // Não fazer nova requisição ao chat - os dados já estão sendo exibidos
     setPreview('patient', { patient });
-  }, [handleSend, setPreview]);
+  }, [setPreview]);
 
   // Configurar handler de seleção de paciente (para cards/big numbers - abre drawer)
   useEffect(() => {

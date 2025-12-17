@@ -127,24 +127,16 @@ export function PlantonistaAnswerPanel({
         </section>
       )}
 
-      {/* Andar 3: Evolução e linha do tempo - dentro de card */}
+      {/* Andar 3: Evolução - apenas timeline, eventos marcantes vão no preview */}
       {patient && dailyStatus.length > 0 && (
         <section className="plantonista-section plantonista-section-evolution">
           <div className="plantonista-evolution-card">
             <h3 className="plantonista-section-title">Evolução na UTI</h3>
-            <div className="plantonista-evolution-grid">
-              <div className="plantonista-evolution-timeline">
-                <PatientBigTimeline
-                  dailyStatus={dailyStatus}
-                  highlights={content.timelineHighlights}
-                />
-              </div>
-              <div className="plantonista-evolution-summary">
-                <PatientTimelineSummary
-                  patientId={patient.id}
-                  timelineHighlights={content.timelineHighlights}
-                />
-              </div>
+            <div className="plantonista-evolution-timeline">
+              <PatientBigTimeline
+                dailyStatus={dailyStatus}
+                highlights={content.timelineHighlights}
+              />
             </div>
           </div>
         </section>
