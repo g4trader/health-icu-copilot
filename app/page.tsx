@@ -635,6 +635,19 @@ export default function HomePage() {
                               patientId={msg.focusedPatient.id}
                               timelineHighlights={msg.timelineHighlights}
                             />
+                            {/* CTA para ver evolução completa */}
+                            <div className="plantonista-response-cta">
+                              <button
+                                type="button"
+                                className="plantonista-cta-button"
+                                onClick={() => {
+                                  const element = document.getElementById("patient-evolution-section");
+                                  element?.scrollIntoView({ behavior: "smooth", block: "start" });
+                                }}
+                              >
+                                Ver evolução completa →
+                              </button>
+                            </div>
                           </div>
                         )}
                       </div>
@@ -710,9 +723,27 @@ export default function HomePage() {
                           />
                         )}
                         
-                        {msg.role === "agent" && msg.focusedPatient && !msg.type && (
-                          <PatientDetailPanel patient={msg.focusedPatient} />
-                        )}
+                      {msg.role === "agent" && msg.focusedPatient && !msg.type && (() => {
+                        const focusedPatientId = msg.focusedPatient.id;
+                        // Buscar timelineHighlights mais recentes para este paciente
+                        const latestTimelineHighlights = conversation
+                          .filter(m => 
+                            m.role === "agent" && 
+                            m.focusedPatient?.id === focusedPatientId &&
+                            m.timelineHighlights && 
+                            m.timelineHighlights.length > 0
+                          )
+                          .map(m => m.timelineHighlights)
+                          .flat()
+                          .filter((h): h is NonNullable<typeof h> => h !== undefined);
+                        
+                        return (
+                          <PatientDetailPanel 
+                            patient={msg.focusedPatient}
+                            timelineHighlights={latestTimelineHighlights.length > 0 ? latestTimelineHighlights : undefined}
+                          />
+                        );
+                      })()}
 
                         {/* Overview do paciente com micro-painéis */}
                         {msg.role === "agent" && msg.type === 'patient-overview' && msg.focusedPatient && (

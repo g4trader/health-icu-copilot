@@ -5,13 +5,19 @@ import type { MicroDashboard } from "@/types/MicroDashboardV2";
 import { PatientPinButton } from "./PatientPinButton";
 import { riskLevelFromScore } from "@/lib/mockData";
 import { MicroDashboardV2Renderer } from "./ui/MicroDashboardV2Renderer";
+import { getDailyStatus } from "@/lib/patientTimeline";
+import { PatientBigTimeline } from "./ui/PatientBigTimeline";
+import { PatientTimelineSummary } from "./PatientTimelineSummary";
+import type { TimelineHighlight } from "@/types/LlmPatientAnswer";
 
 interface PatientDetailPanelProps {
   patient: Patient;
   microDashboards?: MicroDashboard[]; // Dashboards V2 (opcional)
+  timelineHighlights?: TimelineHighlight[]; // Highlights do LLM (opcional)
 }
 
-export function PatientDetailPanel({ patient, microDashboards }: PatientDetailPanelProps) {
+export function PatientDetailPanel({ patient, microDashboards, timelineHighlights }: PatientDetailPanelProps) {
+  const dailyStatus = getDailyStatus(patient.id);
   const hasVM = patient.ventilationParams !== undefined;
   const hasVaso = patient.medications.some(m => m.tipo === "vasopressor" && m.ativo);
   const antibioticos = patient.medications.filter(m => m.tipo === "antibiotico" && m.ativo);
@@ -227,6 +233,36 @@ export function PatientDetailPanel({ patient, microDashboards }: PatientDetailPa
           </div>
         </div>
       )}
+
+      {/* 2. Dashboards de decisão */}
+      {microDashboards && microDashboards.length > 0 && (
+        <>
+          <h3 className="patient-detail-section-title">Dashboards de decisão</h3>
+          <div className="mb-6 space-y-4">
+            {microDashboards.map((dashboard, idx) => (
+              <MicroDashboardV2Renderer key={idx} dashboard={dashboard} />
+            ))}
+          </div>
+        </>
+      )}
+
+      {/* 3. Evolução na UTI (30 dias) */}
+      <h3 className="patient-detail-section-title">Evolução na UTI (30 dias)</h3>
+      <div className="mb-6">
+        <PatientBigTimeline
+          dailyStatus={dailyStatus}
+          highlights={timelineHighlights}
+        />
+      </div>
+
+      {/* 4. Eventos marcantes */}
+      <h3 className="patient-detail-section-title">Eventos marcantes</h3>
+      <div className="mb-6">
+        <PatientTimelineSummary
+          patientId={patient.id}
+          timelineHighlights={timelineHighlights}
+        />
+      </div>
 
       {/* Balanço Hídrico */}
       <div className="detail-card">
