@@ -169,7 +169,10 @@ export function PatientFocusMode({
         )}
 
         {/* Resumo das últimas 24h */}
-        <PatientTimelineSummary patientId={patient.id} />
+        <PatientTimelineSummary 
+          patientId={patient.id} 
+          timelineHighlights={timelineHighlights}
+        />
 
         {/* 3. Sinais vitais (gráficos) */}
         <section>
