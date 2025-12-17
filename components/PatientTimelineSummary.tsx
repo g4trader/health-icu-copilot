@@ -51,8 +51,8 @@ export function PatientTimelineSummary({ patientId, timelineHighlights }: Patien
             const event: TimelineEvent = {
               id: `highlight-${idx}`,
               type: 'note',
-              title: highlight.titulo,
-              description: highlight.descricao,
+              title: highlight.titulo || highlight.descricaoCurta,
+              description: highlight.descricao || highlight.descricaoCurta,
               timestamp: highlight.data,
               severity: highlight.relevancia === 'alta' ? 'critical' : highlight.relevancia === 'media' ? 'warning' : 'normal'
             };

@@ -8,73 +8,19 @@ import { buildPatientFocusPayload } from "./mockData";
 import { buildAllDashboards } from "./microDashboardBuildersV2";
 import { getDailyStatus } from "./patientTimeline";
 import { enhanceTextWithLLM } from "./llmClient";
+import { buildPlantonistaMessages, PLANTONISTA_SYSTEM_PROMPT } from "./specialistOpinions";
 
 /**
  * Constrói prompt do sistema para o LLM "plantonista"
+ * Usa o prompt oficial do Plantonista UTI Pediátrica
  */
 export function buildSystemPromptForPlantonista(): string {
-  return `Você é um assistente clínico especializado em UTI Pediátrica. Sua função é analisar dados de pacientes e fornecer respostas estruturadas em português brasileiro.
-
-INSTRUÇÕES:
-1. Sempre forneça uma resposta em texto livre (plainTextAnswer) em formato de parágrafo clínico.
-2. Quando a pergunta for sobre um paciente específico, preencha o focusSummary com os dados estruturados.
-3. Escolha 2-3 microDashboards relevantes baseados na pergunta do usuário.
-4. Quando a pergunta for sobre evolução ("melhorou?", "quando piorou?"), inclua timelineHighlights.
-
-FORMATO DE RESPOSTA (JSON):
-{
-  "focusSummary": {
-    "patientId": "string",
-    "nome": "string",
-    "idade": number,
-    "peso": number,
-    "leito": "string",
-    "diagnosticoPrincipal": "string",
-    "riskLevel": "alto" | "moderado" | "baixo",
-    "riskPercent24h": number,
-    "hasVM": boolean,
-    "hasVaso": boolean,
-    "lactatoValue": number (opcional),
-    "lactatoTrend": "subindo" | "estavel" | "caindo" (opcional),
-    "keyFindings": ["string"],
-    "narrativaAgente": "string (parágrafo clínico)"
-  },
-  "microDashboards": [
-    {
-      "tipo": "status_global" | "respiratorio" | "hemodinamico" | "labs_criticos" | "infeccao_antibiotico",
-      "titulo": "string",
-      "subtitulo": "string (opcional)",
-      "riskLevel": "alto" | "moderado" | "baixo" (opcional),
-      "riskPercent24h": number (opcional),
-      "blocks": [
-        {
-          "titulo": "string",
-          "tipo": "lista" | "kpi" | "trend",
-          "itens": ["string"]
-        }
-      ]
-    }
-  ],
-  "timelineHighlights": [
-    {
-      "diaUti": number,
-      "data": "ISO string",
-      "titulo": "string",
-      "descricao": "string",
-      "relevancia": "alta" | "media" | "baixa"
-    }
-  ],
-  "plainTextAnswer": "string (parágrafo clínico em português)"
-}
-
-IMPORTANTE:
-- Use linguagem médica apropriada
-- Seja objetivo e focado em decisão clínica
-- Sempre inclua plainTextAnswer mesmo quando fornecer dados estruturados`;
+  return PLANTONISTA_SYSTEM_PROMPT;
 }
 
 /**
  * Constrói mensagem do usuário com contexto do paciente
+ * Agora usa buildPlantonistaMessages para consistência
  */
 export function buildUserMessageForPatient(
   patient: Patient,
@@ -82,46 +28,14 @@ export function buildUserMessageForPatient(
   unitProfile: UnitProfile | null,
   userQuestion: string
 ): string {
-  const lines: string[] = [];
+  const messages = buildPlantonistaMessages({
+    question: userQuestion,
+    patient,
+    dailyStatus: dailyEvolution,
+    unitProfile
+  });
   
-  lines.push(`PERGUNTA DO USUÁRIO: ${userQuestion}`);
-  lines.push("");
-  lines.push("DADOS DO PACIENTE:");
-  lines.push(JSON.stringify({
-    id: patient.id,
-    nome: patient.nome,
-    idade: patient.idade,
-    peso: patient.peso,
-    leito: patient.leito,
-    diagnosticoPrincipal: patient.diagnosticoPrincipal,
-    diasDeUTI: patient.diasDeUTI,
-    riscoMortality24h: patient.riscoMortality24h,
-    riscoMortality7d: patient.riscoMortality7d,
-    vitalSigns: patient.vitalSigns,
-    fluidBalance: patient.fluidBalance,
-    medications: patient.medications.filter(m => m.ativo),
-    ventilationParams: patient.ventilationParams,
-    labResults: patient.labResults.filter(l => l.critico || l.tipo === "lactato" || l.tipo === "pcr")
-  }, null, 2));
-  
-  lines.push("");
-  lines.push("EVOLUÇÃO DOS ÚLTIMOS 30 DIAS:");
-  lines.push(JSON.stringify(dailyEvolution.slice(-7), null, 2)); // Últimos 7 dias
-  
-  if (unitProfile) {
-    lines.push("");
-    lines.push("PERFIL DA UNIDADE:");
-    lines.push(JSON.stringify({
-      totalPacientes: unitProfile.totalPacientes,
-      taxaOcupacao: unitProfile.taxaOcupacao,
-      casuistica: unitProfile.casuistica
-    }, null, 2));
-  }
-  
-  lines.push("");
-  lines.push("Analise os dados acima e forneça uma resposta estruturada conforme o formato especificado no system prompt.");
-  
-  return lines.join("\n");
+  return messages[1].content; // Retorna apenas o conteúdo da mensagem do usuário
 }
 
 /**
@@ -162,18 +76,28 @@ export function parseLlmResponse(llmResponse: string, patient: Patient): LlmPati
 }
 
 /**
- * Chama LLM e retorna resposta estruturada
+ * Chama o agente Plantonista e retorna resposta estruturada
  */
-export async function getLlmPatientAnswer(
-  patient: Patient,
-  dailyEvolution: DailyPatientStatus[],
-  unitProfile: UnitProfile | null,
-  userQuestion: string
-): Promise<LlmPatientAnswer> {
+export async function callPlantonistaAgent(args: {
+  question: string;
+  patient?: Patient | null;
+  dailyStatus?: DailyPatientStatus[] | null;
+  unitProfile?: UnitProfile | null;
+}): Promise<LlmPatientAnswer> {
+  const { question, patient, dailyStatus, unitProfile } = args;
   const apiKey = process.env.GROQ_API_KEY;
   
   if (!apiKey) {
     // Sem API key: retornar resposta determinística
+    if (!patient) {
+      return {
+        focusSummary: undefined,
+        microDashboards: [],
+        timelineHighlights: [],
+        plainTextAnswer: "Para fornecer uma análise clínica, é necessário selecionar um paciente."
+      };
+    }
+    
     const focusPayload = buildPatientFocusPayload(patient);
     const dashboards = buildAllDashboards(patient);
     
@@ -199,8 +123,7 @@ export async function getLlmPatientAnswer(
   }
   
   try {
-    const systemPrompt = buildSystemPromptForPlantonista();
-    const userMessage = buildUserMessageForPatient(patient, dailyEvolution, unitProfile, userQuestion);
+    const messages = buildPlantonistaMessages({ question, patient, dailyStatus, unitProfile });
     
     const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
       method: "POST",
@@ -210,11 +133,11 @@ export async function getLlmPatientAnswer(
       },
       body: JSON.stringify({
         model: "llama-3.1-70b-versatile",
-        messages: [
-          { role: "system", content: systemPrompt },
-          { role: "user", content: userMessage }
-        ],
-        temperature: 0.3,
+        messages: messages.map(msg => ({
+          role: msg.role,
+          content: msg.content
+        })),
+        temperature: 0.1,
         max_tokens: 3000,
         response_format: { type: "json_object" }
       })
@@ -225,17 +148,50 @@ export async function getLlmPatientAnswer(
     }
     
     const data = await response.json();
-    const llmResponse = data.choices?.[0]?.message?.content;
+    const content = data.choices?.[0]?.message?.content;
     
-    if (!llmResponse) {
+    if (!content) {
       throw new Error("Empty LLM response");
     }
     
-    return parseLlmResponse(llmResponse, patient);
+    // Parsear resposta
+    let parsed: LlmPatientAnswer;
+    try {
+      parsed = JSON.parse(content) as LlmPatientAnswer;
+    } catch (e) {
+      // Fallback: wrap whatever came back as plain text
+      parsed = {
+        focusSummary: patient ? buildPatientFocusPayload(patient) : undefined,
+        microDashboards: [],
+        timelineHighlights: [],
+        plainTextAnswer: content,
+      };
+    }
+    
+    // Garantir que plainTextAnswer está presente
+    if (!parsed.plainTextAnswer) {
+      parsed.plainTextAnswer = "[Erro ao interpretar resposta do modelo.]";
+    }
+    
+    // Garantir que focusSummary está preenchido se paciente disponível
+    if (patient && !parsed.focusSummary) {
+      parsed.focusSummary = buildPatientFocusPayload(patient);
+    }
+    
+    return parsed;
   } catch (error) {
-    console.warn("Error calling LLM, using fallback:", error);
+    console.warn("Error calling Plantonista agent, using fallback:", error);
     
     // Fallback: resposta determinística
+    if (!patient) {
+      return {
+        focusSummary: undefined,
+        microDashboards: [],
+        timelineHighlights: [],
+        plainTextAnswer: "Erro ao processar a pergunta. Tente novamente."
+      };
+    }
+    
     const focusPayload = buildPatientFocusPayload(patient);
     const dashboards = buildAllDashboards(patient);
     
@@ -251,5 +207,22 @@ export async function getLlmPatientAnswer(
       plainTextAnswer: narrativa
     };
   }
+}
+
+/**
+ * Chama LLM e retorna resposta estruturada (função de compatibilidade)
+ */
+export async function getLlmPatientAnswer(
+  patient: Patient,
+  dailyEvolution: DailyPatientStatus[],
+  unitProfile: UnitProfile | null,
+  userQuestion: string
+): Promise<LlmPatientAnswer> {
+  return callPlantonistaAgent({
+    question: userQuestion,
+    patient,
+    dailyStatus: dailyEvolution,
+    unitProfile
+  });
 }
 

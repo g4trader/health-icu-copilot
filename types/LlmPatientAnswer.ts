@@ -8,9 +8,12 @@ import type { DailyPatientStatus } from "./DailyPatientStatus";
 export interface TimelineHighlight {
   diaUti: number;
   data: string;
-  titulo: string;
-  descricao: string;
-  relevancia: "alta" | "media" | "baixa";
+  tipo: "melhora" | "piora" | "evento_critico" | "intervencao";
+  descricaoCurta: string;
+  // Campos opcionais para compatibilidade
+  titulo?: string;
+  descricao?: string;
+  relevancia?: "alta" | "media" | "baixa";
 }
 
 /**

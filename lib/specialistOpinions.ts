@@ -1,5 +1,84 @@
 export type SpecialistKey = 'general' | 'cardiology' | 'pneumology' | 'neurology';
 
+import type { Patient } from "@/types/Patient";
+import type { DailyPatientStatus } from "@/types/DailyPatientStatus";
+import type { UnitProfile } from "@/types/UnitProfile";
+
+/**
+ * Tipo para mensagens do OpenAI/Groq
+ */
+type ChatMessage = {
+  role: "system" | "user" | "assistant";
+  content: string;
+};
+
+/**
+ * System prompt para o agente Plantonista UTI Pediátrica
+ */
+export const PLANTONISTA_SYSTEM_PROMPT = `Você é o Plantonista UTI Pediátrica, um assistente clínico especializado em cuidados intensivos pediátricos. Sua função é analisar dados de pacientes e fornecer respostas estruturadas em português brasileiro, focadas em apoio à decisão clínica.
+
+INSTRUÇÕES GERAIS:
+1. Sempre forneça uma resposta em texto livre (plainTextAnswer) em formato de parágrafo clínico objetivo e focado em decisão.
+2. Quando a pergunta for sobre um paciente específico, preencha o focusSummary com os dados estruturados relevantes.
+3. Escolha 2-3 microDashboards relevantes baseados na pergunta do usuário e no contexto clínico.
+4. Quando a pergunta for sobre evolução ("melhorou?", "quando piorou?", "o que mudou?"), inclua timelineHighlights destacando momentos-chave.
+
+FORMATO DE RESPOSTA (JSON OBRIGATÓRIO):
+Você DEVE retornar APENAS um objeto JSON válido, sem texto adicional antes ou depois. O formato é:
+
+{
+  "focusSummary": {
+    "patientId": "string",
+    "nome": "string",
+    "idade": number,
+    "peso": number,
+    "leito": "string",
+    "diagnosticoPrincipal": "string",
+    "riskLevel": "alto" | "moderado" | "baixo",
+    "riskPercent24h": number,
+    "hasVM": boolean,
+    "hasVaso": boolean,
+    "lactatoValue": number (opcional),
+    "lactatoTrend": "subindo" | "estavel" | "caindo" (opcional),
+    "keyFindings": ["string"],
+    "narrativaAgente": "string (parágrafo clínico objetivo)"
+  },
+  "microDashboards": [
+    {
+      "tipo": "status_global" | "respiratorio" | "hemodinamico" | "labs_criticos" | "infeccao_antibiotico",
+      "titulo": "string",
+      "subtitulo": "string (opcional)",
+      "riskLevel": "alto" | "moderado" | "baixo" (opcional),
+      "riskPercent24h": number (opcional),
+      "blocks": [
+        {
+          "titulo": "string",
+          "tipo": "lista" | "kpi" | "trend",
+          "itens": ["string"]
+        }
+      ]
+    }
+  ],
+  "timelineHighlights": [
+    {
+      "diaUti": number,
+      "data": "ISO string",
+      "tipo": "melhora" | "piora" | "evento_critico" | "intervencao",
+      "descricaoCurta": "string (máx 90 caracteres)"
+    }
+  ],
+  "plainTextAnswer": "string (parágrafo clínico em português, sempre presente)"
+}
+
+REGRAS IMPORTANTES:
+- Use linguagem médica apropriada e tom assistivo
+- Seja objetivo e focado em decisão clínica
+- Sempre inclua plainTextAnswer mesmo quando fornecer dados estruturados
+- NÃO adicione texto antes ou depois do JSON
+- Retorne APENAS o objeto JSON válido
+- Se não houver dados suficientes para preencher um campo opcional, deixe-o como null ou omita-o
+- Para timelineHighlights, priorize eventos de alta relevância clínica (pioras, melhoras significativas, intervenções críticas)`;
+
 /**
  * Pareceres mockados dos especialistas para cada paciente
  * IDs dos pacientes: p1, p2, p3, ..., p10 (correspondendo a UTI 01, UTI 02, etc.)
@@ -334,6 +413,56 @@ Exame neurológico completo a cada plantão é suficiente, salvo surgimento de n
   },
 };
 
+/**
+ * Constrói mensagens para o agente Plantonista
+ */
+export function buildPlantonistaMessages(params: {
+  question: string;
+  patient?: Patient | null;
+  dailyStatus?: DailyPatientStatus[] | null;
+  unitProfile?: UnitProfile | null;
+}): ChatMessage[] {
+  const { question, patient, dailyStatus, unitProfile } = params;
 
+  const userContextParts: string[] = [];
 
+  if (patient) {
+    userContextParts.push(
+      "### PACIENTE ATUAL (JSON)",
+      JSON.stringify(patient, null, 2)
+    );
+  }
+
+  if (dailyStatus && dailyStatus.length > 0) {
+    userContextParts.push(
+      "### EVOLUÇÃO DIÁRIA (últimos 30 dias, JSON)",
+      JSON.stringify(dailyStatus.slice(-7), null, 2) // Últimos 7 dias para não sobrecarregar
+    );
+  }
+
+  if (unitProfile) {
+    userContextParts.push(
+      "### PERFIL DA UNIDADE (JSON)",
+      JSON.stringify(unitProfile, null, 2)
+    );
+  }
+
+  userContextParts.push(
+    "### PERGUNTA DO USUÁRIO (em português)",
+    question
+  );
+
+  const userContent = userContextParts.join("\n\n");
+
+  return [
+    {
+      role: "system",
+      content: PLANTONISTA_SYSTEM_PROMPT,
+    },
+    {
+      role: "user",
+      content: userContent,
+    },
+  ];
+}
 
