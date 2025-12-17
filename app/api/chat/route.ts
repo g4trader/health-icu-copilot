@@ -31,6 +31,8 @@ import type { SpecialistOpinion } from "@/types/SpecialistOpinion";
 import { buildRadiologyReport, buildRadiologyOpinion } from "@/lib/radiologyOpinionBuilder";
 import type { RadiologyOpinion, RadiologyReport } from "@/types/RadiologyOpinion";
 import { storeResearchEntry, desidentifyText } from "@/lib/researchStore";
+import { dashboardBuilders } from "@/lib/microDashboardBuilders";
+import type { MicroDashboardPayload, MicroDashboardType } from "@/types/MicroDashboard";
 
 interface RequestBody {
   message: string;
@@ -62,7 +64,55 @@ type Intent =
   | "PERFIL_UNIDADE"
   | "CALCULO_CLINICO"
   | "RADIOLOGISTA_VIRTUAL"
-  | "FALLBACK";
+  | "FALLBACK"
+  | "STATUS_PACIENTE"
+  | "EVOLUCAO_24H"
+  | "SUPORTE_RESPIRATORIO"
+  | "RISCO_SCORES"
+  | "ANTIBIOTICO_INFECCAO"
+  | "RESUMO_FAMILIA";
+
+/**
+ * Mapeia intent para tipo de dashboard
+ */
+function mapIntentToDashboardType(intent: Intent, message: string): MicroDashboardType | null {
+  const msg = message.toLowerCase().trim();
+  
+  // Mapeamento direto para novos intents específicos
+  if (intent === "STATUS_PACIENTE") return 'status_paciente';
+  if (intent === "EVOLUCAO_24H") return 'evolucao_24h';
+  if (intent === "SUPORTE_RESPIRATORIO") return 'suporte_respiratorio';
+  if (intent === "RISCO_SCORES") return 'risco_scores';
+  if (intent === "ANTIBIOTICO_INFECCAO") return 'antibiotico_infeccao';
+  if (intent === "RESUMO_FAMILIA") return 'resumo_familia';
+  
+  // Mapeamento de intents antigos para novos dashboards
+  if (intent === "PACIENTE_ESPECIFICO") {
+    if (msg.includes("como está") || msg.includes("status")) return 'status_paciente';
+    if (msg.includes("mudou") || msg.includes("evolução") || msg.includes("evolucao")) return 'evolucao_24h';
+    if (msg.includes("piorou") || msg.includes("melhorou")) return 'evolucao_24h';
+    return 'status_paciente'; // default
+  }
+  
+  if (intent === "SINAIS_VITAIS") {
+    if (msg.includes("desmamar") || msg.includes("respiratório") || msg.includes("respiratorio")) return 'suporte_respiratorio';
+    return 'status_paciente';
+  }
+  
+  if (msg.includes("risco") && (msg.includes("24h") || msg.includes("score"))) {
+    return 'risco_scores';
+  }
+  
+  if (msg.includes("antibiótico") || msg.includes("antibiotico") || msg.includes("infecção") || msg.includes("infeccao")) {
+    return 'antibiotico_infeccao';
+  }
+  
+  if (msg.includes("família") || msg.includes("familia") || msg.includes("pais")) {
+    return 'resumo_familia';
+  }
+  
+  return null;
+}
 
 /**
  * Handler para Radiologista Virtual
@@ -864,6 +914,7 @@ export async function POST(req: Request) {
       topN?: number; 
       topPatients?: PatientType[]; 
       focusedPatient?: PatientType; 
+      selectedPatientId?: string;
       calculationData?: any; 
       showLabPanel?: boolean; 
       showUnitProfilePanel?: boolean;
@@ -873,6 +924,8 @@ export async function POST(req: Request) {
       showLabsPanel?: boolean;
       showTherapiesPanel?: boolean;
       specialistOpinion?: SpecialistOpinion;
+      microDashboard?: MicroDashboardPayload;
+      microDashboards?: MicroDashboardPayload[];
     };
 
     switch (intent) {
@@ -904,9 +957,28 @@ export async function POST(req: Request) {
         
         if (!patientId) {
           result = { reply: "Para obter um resumo de um paciente específico, mencione o leito (ex: 'UTI 03') ou o nome do paciente, ou selecione-o primeiro." + DISCLAIMER, showIcuPanel: false };
-  } else {
-          const patientResult = handleFocusedPatientIntent(patientId);
-          result = { ...patientResult, showIcuPanel: false };
+        } else {
+          // Mapear intent para tipo de dashboard
+          const dashboardType = mapIntentToDashboardType(intent, message);
+          
+          if (dashboardType && dashboardBuilders[dashboardType]) {
+            try {
+              const dashboard = dashboardBuilders[dashboardType](patientId);
+              result = {
+                reply: `Dashboard clínico gerado para ${dashboard.titulo || 'o paciente'}.`,
+                showIcuPanel: false,
+                focusedPatient: mockPatients.find(p => p.id === patientId),
+                selectedPatientId: patientId,
+                microDashboard: dashboard
+              } as any;
+            } catch (error) {
+              result = { reply: "Erro ao gerar dashboard. Tente novamente." + DISCLAIMER, showIcuPanel: false };
+            }
+          } else {
+            // Fallback para handler antigo
+            const patientResult = handleFocusedPatientIntent(patientId);
+            result = { ...patientResult, showIcuPanel: false };
+          }
         }
         break;
       }
@@ -1025,7 +1097,9 @@ export async function POST(req: Request) {
       showVitalsPanel: result.showVitalsPanel,
       showLabsPanel: result.showLabsPanel,
       showTherapiesPanel: result.showTherapiesPanel,
-      specialistOpinion: result.specialistOpinion
+      specialistOpinion: result.specialistOpinion,
+      microDashboard: result.microDashboard,
+      microDashboards: result.microDashboards
     });
   } catch (error) {
     return NextResponse.json(

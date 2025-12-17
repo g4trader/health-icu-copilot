@@ -13,6 +13,7 @@ import { PatientFocusMode } from "@/components/PatientFocusMode";
 import { SpecialistOpinionMessage } from "@/components/chat/SpecialistOpinionMessage";
 import { AgentOpinionBlock } from "@/components/ui/AgentOpinionBlock";
 import { RadiologyReportCard } from "@/components/ui/RadiologyReportCard";
+import { MicroDashboardRenderer } from "@/components/ui/MicroDashboardRenderer";
 import { VitalsPanel } from "@/components/VitalsPanel";
 import { TherapiesPanel } from "@/components/TherapiesPanel";
 import { PatientDetailPanel } from "@/components/PatientDetailPanel";
@@ -20,6 +21,7 @@ import { PatientPinButton } from "@/components/PatientPinButton";
 import { PatientOpinionBadges } from "@/components/PatientOpinionBadges";
 import { PatientCard } from "@/components/patients/PatientCard";
 import { useClinicalSession } from "@/lib/ClinicalSessionContext";
+import type { MicroDashboardPayload } from "@/types/MicroDashboard";
 
 type Message = {
   id: string;
@@ -40,6 +42,8 @@ type Message = {
   agentId?: ClinicalAgentId | 'radiology';
   specialistOpinion?: import('@/types/SpecialistOpinion').SpecialistOpinion;
   radiologyReport?: import('@/types/RadiologyOpinion').RadiologyReport;
+  microDashboard?: MicroDashboardPayload;
+  microDashboards?: MicroDashboardPayload[];
 };
 
 type AgentReply = {
@@ -61,6 +65,8 @@ type AgentReply = {
   showTherapiesPanel?: boolean;
   specialistOpinion?: import('@/types/SpecialistOpinion').SpecialistOpinion;
   radiologyReport?: import('@/types/RadiologyOpinion').RadiologyReport;
+  microDashboard?: MicroDashboardPayload;
+  microDashboards?: MicroDashboardPayload[];
 };
 
 function LoadingSkeleton() {
@@ -469,7 +475,9 @@ export default function HomePage() {
         showLabsPanel: data.showLabsPanel,
         showTherapiesPanel: data.showTherapiesPanel,
         specialistOpinion: data.specialistOpinion,
-        radiologyReport: data.radiologyReport
+        radiologyReport: data.radiologyReport,
+        microDashboard: data.microDashboard,
+        microDashboards: data.microDashboards
       };
 
       setConversation((prev) => [...prev, agentMessage]);
@@ -560,6 +568,22 @@ export default function HomePage() {
                   >
                     <div className={`msg-bubble ${msg.role === "user" ? "msg-user" : "msg-agent"}`}>
                       <div className="msg-text" style={{ whiteSpace: "pre-wrap" }}>{msg.text}</div>
+                      
+                      {/* Micro Dashboard */}
+                      {msg.role === "agent" && msg.microDashboard && (
+                        <div className="mt-4">
+                          <MicroDashboardRenderer dashboard={msg.microDashboard} />
+                        </div>
+                      )}
+                      
+                      {/* Múltiplos Micro Dashboards */}
+                      {msg.role === "agent" && msg.microDashboards && msg.microDashboards.length > 0 && (
+                        <div className="mt-4 space-y-4">
+                          {msg.microDashboards.map((dashboard, idx) => (
+                            <MicroDashboardRenderer key={idx} dashboard={dashboard} />
+                          ))}
+                        </div>
+                      )}
                       
                       {/* Parecer de Radiologista Virtual */}
                       {msg.role === "agent" && (msg.intent === 'RADIOLOGISTA_VIRTUAL' || msg.radiologyReport) && msg.radiologyReport && (
