@@ -19,7 +19,7 @@ export function PatientList({
   const sorted = getSortedByMortalityRisk24h();
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-3 md:gap-4">
       {sorted.map((p) => (
         <PatientCard
           key={p.id}

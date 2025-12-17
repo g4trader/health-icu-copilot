@@ -44,47 +44,41 @@ export function PatientCard({
       className={`
         detail-card
         w-full
-        p-5
         text-left
-        transition-all
-        hover:shadow-md hover:border-slate-300
         cursor-pointer
         relative
         ${selected ? "border-emerald-500 shadow-md ring-2 ring-emerald-100" : ""}
         ${className}
       `}
     >
-      {/* PIN no canto superior direito */}
-      {showPin && (
-        <div className="absolute top-4 right-4" onClick={(e) => e.stopPropagation()}>
-          <PatientPinButton patient={patient} />
-        </div>
-      )}
-
-      <div className={showPin ? "pr-12" : ""}>
-        <div className="space-y-3">
-          {/* Linha 1 (header): UTI XX • Nome */}
-          <div>
-            <span className="text-slate-900 font-semibold text-lg">
-              {patient.leito} • {patient.nome}
-            </span>
+      {/* Header row: UTI • Nome + PIN */}
+      <div className="flex items-start justify-between gap-3">
+        <h3 className="text-[17px] md:text-[18px] font-semibold text-slate-900 leading-tight tracking-[-0.01em] flex-1">
+          {patient.leito} • {patient.nome}
+        </h3>
+        {showPin && (
+          <div onClick={(e) => e.stopPropagation()} className="flex-shrink-0">
+            <PatientPinButton patient={patient} />
           </div>
+        )}
+      </div>
 
-          {/* Linha 2: idade • diagnóstico completo */}
-          <div className="text-sm text-slate-600 leading-relaxed">
-            {patient.idade} {patient.idade === 1 ? "ano" : "anos"} • {patient.diagnosticoPrincipal}
-          </div>
+      {/* Body content: 3 linhas abaixo */}
+      <div className="mt-2 space-y-1.5">
+        {/* Linha 2: idade • diagnóstico completo */}
+        <p className="text-[14px] md:text-[15px] text-slate-600 leading-snug">
+          {patient.idade} {patient.idade === 1 ? "ano" : "anos"} • {patient.diagnosticoPrincipal}
+        </p>
 
-          {/* Linha 3: Risco 24h */}
-          <div className="text-sm text-slate-600">
-            Risco 24h: {riskPercent}%
-          </div>
+        {/* Linha 3: Risco 24h */}
+        <p className="text-[14px] md:text-[15px] text-slate-700 leading-snug">
+          Risco 24h: <span className="font-semibold text-slate-900">{riskPercent}%</span>
+        </p>
 
-          {/* Linha 4: VM • Vasopressor */}
-          <div className="text-sm text-slate-600">
-            VM: {hasVM ? "Sim" : "Não"} • Vasopressor: {hasVaso ? "Sim" : "Não"}
-          </div>
-        </div>
+        {/* Linha 4: VM • Vasopressor */}
+        <p className="text-[14px] md:text-[15px] text-slate-600 leading-snug">
+          VM: {hasVM ? "Sim" : "Não"} <span className="text-slate-400">•</span> Vasopressor: {hasVaso ? "Sim" : "Não"}
+        </p>
       </div>
     </div>
   );

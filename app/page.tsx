@@ -97,7 +97,7 @@ function PrioritizationPanel({
       <div className="mb-4">
         <h3 className="text-slate-900 font-semibold text-base">TOP {patients.length} Pacientes por Prioridade</h3>
       </div>
-      <div className="space-y-4">
+      <div className="flex flex-col gap-3 md:gap-4">
         {patients.map((p, idx) => (
           <div key={p.id} className="relative">
             <div className="absolute -left-2 top-4 flex items-center justify-center w-6 h-6 bg-slate-100 border border-slate-300 rounded-full text-xs font-semibold text-slate-700 z-10">

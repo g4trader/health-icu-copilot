@@ -100,7 +100,7 @@ export function LeftSidebar() {
                 Fixe pacientes importantes para acompanhar aqui.
               </p>
             ) : (
-              <div className="flex flex-col gap-3">
+              <div className="flex flex-col gap-3 md:gap-4">
                 {pinnedPatients.map((pinned) => {
                   const patient = mockPatients.find(p => p.id === pinned.id);
                   if (!patient) return null;
