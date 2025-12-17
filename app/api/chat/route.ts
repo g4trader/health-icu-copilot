@@ -33,9 +33,10 @@ import type { RadiologyOpinion, RadiologyReport } from "@/types/RadiologyOpinion
 import { storeResearchEntry, desidentifyText } from "@/lib/researchStore";
 import { dashboardBuilders } from "@/lib/microDashboardBuilders";
 import type { MicroDashboardPayload, MicroDashboardType } from "@/types/MicroDashboard";
-import { getLlmPatientAnswer } from "@/lib/llmPatientAnswer";
+import { getLlmPatientAnswer, callPlantonistaAgent } from "@/lib/llmPatientAnswer";
 import type { LlmPatientAnswer } from "@/types/LlmPatientAnswer";
 import { getDailyStatus } from "@/lib/patientTimeline";
+import type { UnitProfile } from "@/types/UnitProfile";
 
 interface RequestBody {
   message: string;
@@ -1089,6 +1090,47 @@ export async function POST(req: Request) {
 
     const duracaoProcessamento = Date.now() - startTime;
 
+    // Chamar LLM Plantonista quando apropriado
+    let llmAnswer: LlmPatientAnswer | null = null;
+    let focusPayload: import("@/types/PatientFocusPayload").PatientFocusPayload | null = null;
+    let microDashboardsV2: import("@/types/MicroDashboardV2").MicroDashboard[] | null = null;
+    let timelineHighlights: import("@/types/LlmPatientAnswer").TimelineHighlight[] | null = null;
+    let plainTextAnswer: string | null = null;
+
+    const isPlantonistaAgent = 
+      agent.name === "Plantonista" || 
+      selectedAgent === "default" || 
+      selectedAgent === "plantonista" ||
+      role === "plantonista";
+
+    if (isPlantonistaAgent && (focusedId || result.focusedPatient)) {
+      const patientIdToUse = focusedId || result.focusedPatient?.id;
+      if (patientIdToUse) {
+        const patient = mockPatients.find(p => p.id === patientIdToUse);
+        if (patient) {
+          try {
+            const dailyStatus = getDailyStatus(patientIdToUse);
+            const unitProfile: UnitProfile | null = mockUnitProfile ?? null;
+
+            llmAnswer = await callPlantonistaAgent({
+              question: message,
+              patient: patient,
+              dailyStatus: dailyStatus,
+              unitProfile: unitProfile
+            });
+
+            focusPayload = llmAnswer.focusSummary ?? null;
+            microDashboardsV2 = llmAnswer.microDashboards ?? null;
+            timelineHighlights = llmAnswer.timelineHighlights ?? null;
+            plainTextAnswer = llmAnswer.plainTextAnswer ?? null;
+          } catch (error) {
+            console.error("Error calling Plantonista LLM:", error);
+            // Continue sem dados do LLM - fallback para resposta determinística
+          }
+        }
+      }
+    }
+
     // Log de auditoria
     logClinicalInteraction({
       timestamp: new Date().toISOString(),
@@ -1100,7 +1142,7 @@ export async function POST(req: Request) {
       intencaoDetectada: intent,
       tipoResposta,
       versaoModelo: VERSION,
-      llmUtilizado,
+      llmUtilizado: llmUtilizado || (llmAnswer !== null),
       mensagemUsuario: message.substring(0, 100),
       duracaoProcessamento
     });
@@ -1123,7 +1165,7 @@ export async function POST(req: Request) {
       intencao: intent,
       dadosExibidos,
       duracaoProcessamento,
-      llmUtilizado
+      llmUtilizado: llmUtilizado || (llmAnswer !== null)
     });
 
     return NextResponse.json({ 
@@ -1145,11 +1187,12 @@ export async function POST(req: Request) {
       specialistOpinion: result.specialistOpinion,
       microDashboard: result.microDashboard,
       microDashboards: result.microDashboards,
-      // Dados do LLM (se disponível)
-      llmAnswer: (result as any).llmAnswer,
-      focusPayload: (result as any).llmAnswer?.focusSummary,
-      microDashboardsV2: (result as any).llmAnswer?.microDashboards,
-      timelineHighlights: (result as any).llmAnswer?.timelineHighlights
+      // Dados do LLM (se disponível) - usar dados chamados acima ou do result
+      llmAnswer: (result as any).llmAnswer ?? llmAnswer ?? null,
+      focusPayload: (result as any).llmAnswer?.focusSummary ?? focusPayload ?? null,
+      microDashboardsV2: (result as any).llmAnswer?.microDashboards ?? microDashboardsV2 ?? null,
+      timelineHighlights: (result as any).llmAnswer?.timelineHighlights ?? timelineHighlights ?? null,
+      plainTextAnswer: plainTextAnswer ?? finalReply
     });
   } catch (error) {
     return NextResponse.json(
