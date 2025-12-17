@@ -1,28 +1,54 @@
 "use client";
 
 import type { MicroDashboard, MicroDashboardBlock } from "@/types/MicroDashboardV2";
+import { Activity, Wind, Heart, FlaskConical, Shield, Bug } from "lucide-react";
 
 interface MicroDashboardV2RendererProps {
   dashboard: MicroDashboard;
 }
 
+// Ícones por tipo de dashboard
+const dashboardIcons: Record<MicroDashboard['tipo'], typeof Activity> = {
+  status_global: Activity,
+  respiratorio: Wind,
+  hemodinamico: Heart,
+  labs_criticos: FlaskConical,
+  infeccao_antibiotico: Shield, // Usaremos Shield + Bug em composição
+};
+
+function getRiskLabel(level?: string): string {
+  if (level === "alto") return "Alto risco";
+  if (level === "moderado") return "Risco moderado";
+  return "Risco baixo";
+}
+
 export function MicroDashboardV2Renderer({ dashboard }: MicroDashboardV2RendererProps) {
-  const getRiskColor = (level?: string) => {
-    if (level === "alto") return "border-rose-200 bg-rose-50";
-    if (level === "moderado") return "border-amber-200 bg-amber-50";
-    return "border-slate-200 bg-slate-50";
-  };
+  const Icon = dashboardIcons[dashboard.tipo] || Activity;
+  const isInfeccao = dashboard.tipo === "infeccao_antibiotico";
 
   return (
-    <div className={`detail-card ${getRiskColor(dashboard.riskLevel)}`}>
-      <div className="mb-3">
-        <h4 className="detail-card-title">{dashboard.titulo}</h4>
-        {dashboard.subtitulo && (
-          <p className="text-xs text-slate-600 mt-1">{dashboard.subtitulo}</p>
+    <div className={`micro-dashboard-card micro-dashboard-${dashboard.tipo}`}>
+      <div className="micro-dashboard-header">
+        <div className="micro-dashboard-header-left">
+          <div className="micro-dashboard-icon-wrapper">
+            <Icon className="micro-dashboard-icon" />
+            {isInfeccao && <Bug className="micro-dashboard-icon micro-dashboard-icon-overlay" />}
+          </div>
+          <div>
+            <h4 className="micro-dashboard-title">{dashboard.titulo}</h4>
+            {dashboard.subtitulo && (
+              <p className="micro-dashboard-subtitle">{dashboard.subtitulo}</p>
+            )}
+          </div>
+        </div>
+        {dashboard.riskLevel && (
+          <span className={`risk-pill risk-${dashboard.riskLevel}`}>
+            {getRiskLabel(dashboard.riskLevel)}
+          </span>
         )}
       </div>
       
-      <div className="space-y-4">
+      <div className="micro-dashboard-body">
         {dashboard.blocks.map((block, idx) => (
           <MicroDashboardBlockRenderer key={idx} block={block} />
         ))}
@@ -36,46 +62,48 @@ interface MicroDashboardBlockRendererProps {
 }
 
 function MicroDashboardBlockRenderer({ block }: MicroDashboardBlockRendererProps) {
-  if (block.tipo === "kpi") {
+  const blockType = block.tipo || "lista";
+  
+  if (blockType === "kpi") {
     // Grid de KPIs
     return (
-      <div>
-        <h5 className="text-sm font-semibold text-slate-900 mb-2">{block.titulo}</h5>
-        <div className="grid grid-cols-2 gap-2">
+      <section className={`micro-dashboard-block block-${blockType}`}>
+        <h5 className="micro-dashboard-block-title">{block.titulo}</h5>
+        <div className="micro-dashboard-kpi-grid">
           {block.itens.map((item, idx) => (
-            <div key={idx} className="text-sm text-slate-700">
+            <div key={idx} className="micro-dashboard-kpi-item">
               {item}
             </div>
           ))}
         </div>
-      </div>
+      </section>
     );
   }
   
-  if (block.tipo === "trend") {
+  if (blockType === "trend") {
     // Lista com indicadores de tendência
     return (
-      <div>
-        <h5 className="text-sm font-semibold text-slate-900 mb-2">{block.titulo}</h5>
-        <ul className="list-disc list-inside text-sm text-slate-700 space-y-1">
+      <section className={`micro-dashboard-block block-${blockType}`}>
+        <h5 className="micro-dashboard-block-title">{block.titulo}</h5>
+        <ul className="micro-dashboard-list">
           {block.itens.map((item, idx) => (
             <li key={idx}>{item}</li>
           ))}
         </ul>
-      </div>
+      </section>
     );
   }
   
   // Default: lista simples
   return (
-    <div>
-      <h5 className="text-sm font-semibold text-slate-900 mb-2">{block.titulo}</h5>
-      <ul className="list-disc list-inside text-sm text-slate-700 space-y-1">
+    <section className={`micro-dashboard-block block-${blockType}`}>
+      <h5 className="micro-dashboard-block-title">{block.titulo}</h5>
+      <ul className="micro-dashboard-list">
         {block.itens.map((item, idx) => (
           <li key={idx}>{item}</li>
         ))}
       </ul>
-    </div>
+    </section>
   );
 }
 
