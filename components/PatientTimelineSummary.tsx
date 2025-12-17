@@ -42,29 +42,58 @@ export function PatientTimelineSummary({ patientId, timelineHighlights }: Patien
 
   // Se houver highlights do LLM, renderizar eles primeiro
   if (timelineHighlights && timelineHighlights.length > 0) {
+    const highlightEvents: TimelineEvent[] = timelineHighlights.map((highlight, idx) => {
+      let severity: 'normal' | 'warning' | 'critical' = 'normal';
+      if (highlight.relevancia === 'alta') {
+        severity = 'critical';
+      } else if (highlight.relevancia === 'media') {
+        severity = 'warning';
+      }
+      
+      return {
+        id: `highlight-${idx}`,
+        type: 'note' as const,
+        title: highlight.titulo || highlight.descricaoCurta,
+        description: highlight.descricao || highlight.descricaoCurta,
+        timestamp: highlight.data,
+        severity
+      };
+    });
+
     return (
-      <BaseCard className="mb-6" padding="md">
-        <SectionHeader title="Destaques da Evolução" />
-        <div className="mt-3 space-y-2.5">
-          {timelineHighlights.map((highlight, idx) => {
-            // Converter highlight para TimelineEvent
-            const event: TimelineEvent = {
-              id: `highlight-${idx}`,
-              type: 'note',
-              title: highlight.titulo || highlight.descricaoCurta,
-              description: highlight.descricao || highlight.descricaoCurta,
-              timestamp: highlight.data,
-              severity: highlight.relevancia === 'alta' ? 'critical' : highlight.relevancia === 'media' ? 'warning' : 'normal'
-            };
-            
+      <div className="plantonista-timeline-summary-card">
+        <h4 className="plantonista-timeline-summary-title">Destaques da Evolução</h4>
+        <div className="plantonista-timeline-events-list">
+          {highlightEvents.map((event) => {
+            const Icon = eventIcons[event.type];
+            const severity = event.severity || 'normal';
+            const badgeClass = severityBadgeClasses[severity];
+            const badgeLabel = severityLabels[severity];
+
             return (
-              <div key={idx} className="py-2">
-                <TimelineEventCard event={event} patient={patient} />
+              <div key={event.id} className="plantonista-timeline-event-card">
+                <div className="plantonista-timeline-event-icon">
+                  <Icon className="w-4 h-4 text-slate-600" />
+                </div>
+                <div className="plantonista-timeline-event-content">
+                  <div className="plantonista-timeline-event-header">
+                    <div className="plantonista-timeline-event-text">
+                      <p className="plantonista-timeline-event-title">{event.title}</p>
+                      {event.description && (
+                        <p className="plantonista-timeline-event-description">{event.description}</p>
+                      )}
+                      <p className="plantonista-timeline-event-time">{formatRelativeTime(event.timestamp)}</p>
+                    </div>
+                    <span className={`plantonista-timeline-event-badge ${badgeClass}`}>
+                      {badgeLabel}
+                    </span>
+                  </div>
+                </div>
               </div>
             );
           })}
         </div>
-      </BaseCard>
+      </div>
     );
   }
 
@@ -83,46 +112,40 @@ export function PatientTimelineSummary({ patientId, timelineHighlights }: Patien
   };
 
   return (
-    <BaseCard className="mb-6" padding="md">
-      <SectionHeader title="Resumo das últimas 24h" />
+    <div className="plantonista-timeline-summary-card">
+      <h4 className="plantonista-timeline-summary-title">Eventos marcantes</h4>
       {isFallback && (
-        <p className="mt-2 text-xs text-slate-500">
+        <p className="plantonista-timeline-summary-fallback">
           Sem eventos relevantes nas últimas 24h; exibindo os mais recentes.
         </p>
       )}
-      <div className="mt-3 space-y-2.5">
+      <div className="plantonista-timeline-events-list">
         {events.map((event) => {
           const Icon = eventIcons[event.type];
           const severity = event.severity || 'normal';
           const badgeClass = severityBadgeClasses[severity];
           const badgeLabel = severityLabels[severity];
-          const typeLabel = eventTypeLabels[event.type];
           const isClickable = !!event.relatedExamId;
 
           return (
             <div
               key={event.id}
-              className={`flex items-start gap-3 py-2 ${isClickable ? 'cursor-pointer hover:bg-slate-50 rounded-lg px-2 -mx-2 transition-colors' : ''}`}
+              className={`plantonista-timeline-event-card ${isClickable ? 'plantonista-timeline-event-clickable' : ''}`}
               onClick={isClickable ? () => handleEventClick(event) : undefined}
             >
-              <div className="p-1.5 bg-white border border-slate-200 rounded-lg flex-shrink-0">
-                <Icon className="w-3.5 h-3.5 text-slate-600" />
+              <div className="plantonista-timeline-event-icon">
+                <Icon className="w-4 h-4 text-slate-600" />
               </div>
-              
-              <div className="flex-1 min-w-0">
-                <p className="text-sm text-slate-900 leading-tight line-clamp-1">
-                  <span className="text-xs font-medium text-slate-600 tabular-nums">
-                    {formatRelativeTime(event.timestamp)}
-                  </span>
-                  <span className="text-slate-400 mx-1">•</span>
-                  <span className="text-slate-600">{typeLabel}</span>
-                  <span className="text-slate-400 mx-1">—</span>
-                  <span>{event.title}</span>
-                </p>
-                <div className="mt-1">
-                  <span
-                    className={`px-2 py-0.5 rounded text-xs font-semibold border ${badgeClass}`}
-                  >
+              <div className="plantonista-timeline-event-content">
+                <div className="plantonista-timeline-event-header">
+                  <div className="plantonista-timeline-event-text">
+                    <p className="plantonista-timeline-event-title">{event.title}</p>
+                    {event.description && (
+                      <p className="plantonista-timeline-event-description">{event.description}</p>
+                    )}
+                    <p className="plantonista-timeline-event-time">{formatRelativeTime(event.timestamp)}</p>
+                  </div>
+                  <span className={`plantonista-timeline-event-badge ${badgeClass}`}>
                     {badgeLabel}
                   </span>
                 </div>
@@ -131,7 +154,7 @@ export function PatientTimelineSummary({ patientId, timelineHighlights }: Patien
           );
         })}
       </div>
-    </BaseCard>
+    </div>
   );
 }
 

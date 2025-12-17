@@ -139,14 +139,12 @@ export function PlantonistaAnswerPanel({
                   highlights={content.timelineHighlights}
                 />
               </div>
-              {content.timelineHighlights && content.timelineHighlights.length > 0 && (
-                <div className="plantonista-evolution-summary">
-                  <PatientTimelineSummary
-                    patientId={patient.id}
-                    timelineHighlights={content.timelineHighlights}
-                  />
-                </div>
-              )}
+              <div className="plantonista-evolution-summary">
+                <PatientTimelineSummary
+                  patientId={patient.id}
+                  timelineHighlights={content.timelineHighlights}
+                />
+              </div>
             </div>
           </div>
         </section>

@@ -3718,7 +3718,16 @@ a {
   border-radius: 1rem; /* rounded-xl */
   padding: 1.25rem; /* p-5 */
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05), 0 1px 2px rgba(0, 0, 0, 0.1);
-  max-width: 100%;
+  max-width: calc(100% - 20px); /* 10px margin de cada lado */
+  margin-left: 10px;
+  margin-right: 10px;
+  width: calc(100% - 20px);
+}
+
+@media (min-width: 768px) {
+  .plantonista-response-panel {
+    max-width: min(calc(100% - 20px), 900px); /* Largura maior em desktop */
+  }
 }
 
 /* Seções (andares) */
@@ -3890,6 +3899,121 @@ a {
 
 .plantonista-evolution-summary {
   min-width: 0;
+}
+
+/* Timeline Summary Card (dentro de evolution card) */
+.plantonista-timeline-summary-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 0.75rem;
+  padding: 1rem;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.plantonista-timeline-summary-title {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #1e293b;
+  margin: 0 0 0.75rem 0;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.plantonista-timeline-summary-fallback {
+  font-size: 0.75rem;
+  color: #64748b;
+  margin: 0 0 0.75rem 0;
+}
+
+.plantonista-timeline-events-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.plantonista-timeline-event-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 0.75rem;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 0.5rem;
+  transition: all 150ms ease;
+}
+
+.plantonista-timeline-event-card:hover {
+  border-color: #cbd5e1;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.plantonista-timeline-event-clickable {
+  cursor: pointer;
+}
+
+.plantonista-timeline-event-clickable:hover {
+  background: #f8fafc;
+  border-color: #94a3b8;
+}
+
+.plantonista-timeline-event-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  border-radius: 0.5rem;
+  flex-shrink: 0;
+}
+
+.plantonista-timeline-event-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.plantonista-timeline-event-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.plantonista-timeline-event-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.plantonista-timeline-event-title {
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: #1e293b;
+  margin: 0 0 0.25rem 0;
+  line-height: 1.4;
+}
+
+.plantonista-timeline-event-description {
+  font-size: 0.75rem;
+  color: #64748b;
+  margin: 0 0 0.25rem 0;
+  line-height: 1.4;
+}
+
+.plantonista-timeline-event-time {
+  font-size: 0.6875rem;
+  color: #94a3b8;
+  margin: 0;
+  line-height: 1.4;
+}
+
+.plantonista-timeline-event-badge {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.25rem;
+  border: 1px solid;
+  flex-shrink: 0;
 }
 
 /* Andar 4: Opinion - Card */
@@ -4213,11 +4337,12 @@ a {
    ======================================== */
 
 .big-timeline {
-  background: #ffffff;
-  border: 1px solid #e2e8f0;
-  border-radius: 0.75rem;
-  padding: 1rem;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  /* Removido background e border pois já está dentro de plantonista-evolution-card */
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  padding: 0;
+  box-shadow: none;
 }
 
 .big-timeline-header {
