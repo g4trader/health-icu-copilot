@@ -4,6 +4,11 @@ import type { PlantonistaAnswerContent } from "@/types/PlantonistaAnswerContent"
 import { MicroDashboardV2Renderer } from "./MicroDashboardV2Renderer";
 import { PatientCard } from "../patients/PatientCard";
 import type { Patient } from "@/types/Patient";
+import { OpinionBullets } from "./OpinionBullets";
+import { PatientBigTimeline } from "./PatientBigTimeline";
+import { PatientTimelineSummary } from "../PatientTimelineSummary";
+import { getDailyStatus } from "@/lib/patientTimeline";
+import { mockPatients } from "@/lib/mockData";
 
 interface PlantonistaAnswerPanelProps {
   content: PlantonistaAnswerContent;
@@ -13,8 +18,32 @@ interface PlantonistaAnswerPanelProps {
 }
 
 /**
+ * Ordena dashboards por ordem de importância visual
+ */
+function orderDashboards(dashboards: PlantonistaAnswerContent["microDashboards"]) {
+  if (!dashboards) return [];
+  
+  const order: Record<string, number> = {
+    status_global: 1,
+    respiratorio: 2,
+    hemodinamico: 3,
+    labs_evolutivos: 4,
+    imagem_evolutiva: 5,
+    evolucao24h: 6,
+    riscoscores: 7,
+    antibiotico_infeccao: 8,
+  };
+  
+  return [...dashboards].sort((a, b) => {
+    const orderA = order[a.tipo] ?? 99;
+    const orderB = order[b.tipo] ?? 99;
+    return orderA - orderB;
+  });
+}
+
+/**
  * Componente canônico para renderizar respostas do Plantonista
- * Padroniza o estilo visual independente da origem (botão pré-definido, texto livre, paciente específico)
+ * Estrutura em 4 andares fixos: Header, Dashboards, Evolution, Opinion
  */
 export function PlantonistaAnswerPanel({
   content,
@@ -29,30 +58,21 @@ export function PlantonistaAnswerPanel({
     });
   };
 
+  // Buscar paciente e dailyStatus se houver focusPayload
+  const patient = content.focusPayload?.patientId 
+    ? mockPatients.find(p => p.id === content.focusPayload!.patientId)
+    : null;
+  const dailyStatus = patient ? getDailyStatus(patient.id) : [];
+
+  // Ordenar dashboards
+  const orderedDashboards = orderDashboards(content.microDashboards);
+
   return (
     <div className="plantonista-response-panel">
-      {/* Header: Texto principal */}
-      {content.plainTextAnswer && (
-        <div className="plantonista-response-header">
-          <p className="plantonista-response-text">
-            {content.plainTextAnswer}
-          </p>
-        </div>
-      )}
-
-      {/* Middle: Micro Dashboards */}
-      {content.microDashboards && content.microDashboards.length > 0 && (
-        <div className="plantonista-response-dashboards">
-          {content.microDashboards.map((dashboard, idx) => (
-            <MicroDashboardV2Renderer key={idx} dashboard={dashboard} />
-          ))}
-        </div>
-      )}
-
-      {/* TOP N Patients List (para PRIORITIZACAO) */}
+      {/* TOP N Patients List (para PRIORITIZACAO) - renderiza antes dos andares */}
       {content.topPatients && content.topPatients.length > 0 && (
         <div className="plantonista-response-patients">
-          <h3 className="text-slate-900 font-semibold text-base mb-3">
+          <h3 className="plantonista-section-title">
             TOP {content.topPatients.length} Pacientes por Prioridade
           </h3>
           <div className="patients-list">
@@ -67,9 +87,78 @@ export function PlantonistaAnswerPanel({
         </div>
       )}
 
-      {/* CTA para ver evolução completa (quando há paciente focado) */}
+      {/* Andar 1: Cabeçalho clínico curto */}
+      {content.focusPayload && (
+        <section className="plantonista-section plantonista-section-header">
+          <div className="plantonista-header-compact">
+            <div className="plantonista-header-main">
+              <span className="plantonista-header-bed">{content.focusPayload.leito}</span>
+              <h3 className="plantonista-header-name">{content.focusPayload.nome}</h3>
+            </div>
+            <p className="plantonista-header-diagnosis">
+              {content.focusPayload.idade} anos • {content.focusPayload.peso} kg • {content.focusPayload.diagnosticoPrincipal}
+            </p>
+            <div className="plantonista-header-chips">
+              <span className={`plantonista-header-chip ${content.focusPayload.riskLevel === "alto" ? "chip-risk-high" : content.focusPayload.riskLevel === "moderado" ? "chip-risk-medium" : "chip-risk-low"}`}>
+                Risco 24h: {content.focusPayload.riskPercent24h}%
+              </span>
+              {content.focusPayload.hasVM && (
+                <span className="plantonista-header-chip chip-vm">VM: Sim</span>
+              )}
+              {content.focusPayload.hasVaso && (
+                <span className="plantonista-header-chip chip-vaso">Vaso: Sim</span>
+              )}
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* Andar 2: Dashboards de decisão */}
+      {orderedDashboards.length > 0 && (
+        <section className="plantonista-section plantonista-section-dashboards">
+          <h3 className="plantonista-section-title">Dashboards de decisão</h3>
+          <div className="plantonista-dashboards-grid">
+            {orderedDashboards.map((dashboard, idx) => (
+              <MicroDashboardV2Renderer key={idx} dashboard={dashboard} />
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* Andar 3: Evolução e linha do tempo */}
+      {patient && dailyStatus.length > 0 && (
+        <section className="plantonista-section plantonista-section-evolution">
+          <h3 className="plantonista-section-title">Evolução na UTI</h3>
+          <div className="plantonista-evolution-grid">
+            <div className="plantonista-evolution-timeline">
+              <PatientBigTimeline
+                dailyStatus={dailyStatus}
+                highlights={content.timelineHighlights}
+              />
+            </div>
+            {content.timelineHighlights && content.timelineHighlights.length > 0 && (
+              <div className="plantonista-evolution-summary">
+                <PatientTimelineSummary
+                  patientId={patient.id}
+                  timelineHighlights={content.timelineHighlights}
+                />
+              </div>
+            )}
+          </div>
+        </section>
+      )}
+
+      {/* Andar 4: Parecer resumido */}
+      {content.plainTextAnswer && (
+        <section className="plantonista-section plantonista-section-opinion">
+          <h3 className="plantonista-section-title">Parecer do Plantonista</h3>
+          <OpinionBullets text={content.plainTextAnswer} />
+        </section>
+      )}
+
+      {/* CTA para ver evolução completa */}
       {content.focusPayload?.patientId && (
-        <div className="mt-4 text-center">
+        <div className="plantonista-cta-wrapper">
           <button
             className="plantonista-cta-button"
             onClick={() => {
