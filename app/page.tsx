@@ -14,6 +14,7 @@ import { SpecialistOpinionMessage } from "@/components/chat/SpecialistOpinionMes
 import { AgentOpinionBlock } from "@/components/ui/AgentOpinionBlock";
 import { RadiologyReportCard } from "@/components/ui/RadiologyReportCard";
 import { MicroDashboardRenderer } from "@/components/ui/MicroDashboardRenderer";
+import { MicroDashboardV2Renderer } from "@/components/ui/MicroDashboardV2Renderer";
 import { VitalsPanel } from "@/components/VitalsPanel";
 import { TherapiesPanel } from "@/components/TherapiesPanel";
 import { PatientDetailPanel } from "@/components/PatientDetailPanel";
@@ -44,6 +45,11 @@ type Message = {
   radiologyReport?: import('@/types/RadiologyOpinion').RadiologyReport;
   microDashboard?: MicroDashboardPayload;
   microDashboards?: MicroDashboardPayload[];
+  // Novos campos do LLM
+  llmAnswer?: import('@/types/LlmPatientAnswer').LlmPatientAnswer;
+  focusPayload?: import('@/types/PatientFocusPayload').PatientFocusPayload;
+  microDashboardsV2?: import('@/types/MicroDashboardV2').MicroDashboard[];
+  timelineHighlights?: import('@/types/LlmPatientAnswer').TimelineHighlight[];
 };
 
 type AgentReply = {
@@ -67,6 +73,11 @@ type AgentReply = {
   radiologyReport?: import('@/types/RadiologyOpinion').RadiologyReport;
   microDashboard?: MicroDashboardPayload;
   microDashboards?: MicroDashboardPayload[];
+  // Novos campos do LLM
+  llmAnswer?: import('@/types/LlmPatientAnswer').LlmPatientAnswer;
+  focusPayload?: import('@/types/PatientFocusPayload').PatientFocusPayload;
+  microDashboardsV2?: import('@/types/MicroDashboardV2').MicroDashboard[];
+  timelineHighlights?: import('@/types/LlmPatientAnswer').TimelineHighlight[];
 };
 
 function LoadingSkeleton() {
@@ -462,7 +473,7 @@ export default function HomePage() {
       const agentMessage: Message = {
         id: crypto.randomUUID(),
         role: "agent",
-        text: data.reply,
+        text: data.llmAnswer?.plainTextAnswer ?? data.reply,
         intent: data.intent as Message["intent"],
         topPatients: data.topPatients,
         focusedPatient: data.focusedPatient,
@@ -477,7 +488,12 @@ export default function HomePage() {
         specialistOpinion: data.specialistOpinion,
         radiologyReport: data.radiologyReport,
         microDashboard: data.microDashboard,
-        microDashboards: data.microDashboards
+        microDashboards: data.microDashboards,
+        // Novos campos do LLM
+        llmAnswer: data.llmAnswer,
+        focusPayload: data.focusPayload ?? data.llmAnswer?.focusSummary,
+        microDashboardsV2: data.microDashboardsV2 ?? data.llmAnswer?.microDashboards,
+        timelineHighlights: data.timelineHighlights ?? data.llmAnswer?.timelineHighlights
       };
 
       setConversation((prev) => [...prev, agentMessage]);
@@ -585,6 +601,15 @@ export default function HomePage() {
                         </div>
                       )}
                       
+                      {/* Micro Dashboards V2 (do LLM) */}
+                      {msg.role === "agent" && msg.microDashboardsV2 && msg.microDashboardsV2.length > 0 && (
+                        <div className="mt-4 space-y-4">
+                          {msg.microDashboardsV2.map((dashboard, idx) => (
+                            <MicroDashboardV2Renderer key={idx} dashboard={dashboard} />
+                          ))}
+                        </div>
+                      )}
+                      
                       {/* Parecer de Radiologista Virtual */}
                       {msg.role === "agent" && (msg.intent === 'RADIOLOGISTA_VIRTUAL' || msg.radiologyReport) && msg.radiologyReport && (
                         <RadiologyReportCard summary={msg.radiologyReport.summary} fullReport={msg.radiologyReport.full} />
@@ -663,22 +688,38 @@ export default function HomePage() {
                 ))}
                 
                 {/* Patient Focus Mode - Expandido inline (global, fora do loop de mensagens) */}
-                {expandedPatientId && expandedPatient && (
-                  <div className="msg-container msg-agent-wrapper">
-                    <PatientFocusMode
-                      patient={expandedPatient}
-                      onCollapse={() => setExpandedPatientId(null)}
-                      onRequestRadiologistOpinion={() => {
-                        // Enviar mensagem para acionar o Radiologista Virtual
-                        void handleSend(
-                          `Radiologista Virtual, analise os exames de imagem do paciente ${expandedPatient.leito} - ${expandedPatient.nome}.`,
-                          'radiology',
-                          expandedPatient.id
-                        );
-                      }}
-                    />
-                  </div>
-                )}
+                {expandedPatientId && expandedPatient && (() => {
+                  // Buscar o focusPayload mais recente para este paciente
+                  const latestFocusPayload = conversation
+                    .filter(m => m.role === "agent" && m.focusPayload?.patientId === expandedPatient.id)
+                    .map(m => m.focusPayload)
+                    .find(p => p !== undefined);
+                  
+                  // Buscar timelineHighlights mais recentes para este paciente
+                  const latestTimelineHighlights = conversation
+                    .filter(m => m.role === "agent" && m.timelineHighlights && m.timelineHighlights.length > 0)
+                    .flatMap(m => m.timelineHighlights || [])
+                    .filter((h): h is NonNullable<typeof h> => h !== undefined && h.data !== undefined);
+                  
+                  return (
+                    <div className="msg-container msg-agent-wrapper">
+                      <PatientFocusMode
+                        patient={expandedPatient}
+                        focusPayload={latestFocusPayload}
+                        timelineHighlights={latestTimelineHighlights.length > 0 ? latestTimelineHighlights : undefined}
+                        onCollapse={() => setExpandedPatientId(null)}
+                        onRequestRadiologistOpinion={() => {
+                          // Enviar mensagem para acionar o Radiologista Virtual
+                          void handleSend(
+                            `Radiologista Virtual, analise os exames de imagem do paciente ${expandedPatient.leito} - ${expandedPatient.nome}.`,
+                            'radiology',
+                            expandedPatient.id
+                          );
+                        }}
+                      />
+                    </div>
+                  );
+                })()}
 
                 {loading && (
                   <div className="msg-container msg-agent-wrapper">

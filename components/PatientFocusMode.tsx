@@ -37,13 +37,15 @@ interface PatientFocusModeProps {
   onCollapse: () => void;
   onRequestRadiologistOpinion?: () => void;
   focusPayload?: PatientFocusPayload; // Payload estruturado (opcional)
+  timelineHighlights?: import("@/types/LlmPatientAnswer").TimelineHighlight[]; // Highlights do LLM (opcional)
 }
 
 export function PatientFocusMode({ 
   patient, 
   onCollapse,
   onRequestRadiologistOpinion,
-  focusPayload
+  focusPayload,
+  timelineHighlights
 }: PatientFocusModeProps) {
   const riskLevel = riskLevelFromScore(patient.riscoMortality24h);
   const riskPercent = Math.round(patient.riscoMortality24h * 100);
