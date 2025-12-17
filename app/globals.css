@@ -3742,7 +3742,16 @@ a {
   letter-spacing: -0.01em;
 }
 
-/* Andar 1: Cabeçalho clínico curto */
+/* Andar 1: Cabeçalho clínico curto - Card */
+.plantonista-header-card {
+  background: #ffffff;
+  border-radius: 0.75rem;
+  padding: 1rem;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+/* Legacy alias para compatibilidade */
 .plantonista-header-compact {
   background: #ffffff;
   border-radius: 0.75rem;
@@ -3825,11 +3834,20 @@ a {
   border-color: #e9d5ff;
 }
 
-/* Andar 2: Dashboards */
+/* Andar 2: Dashboards - Card */
+.plantonista-dashboards-card {
+  background: #ffffff;
+  border-radius: 0.75rem;
+  padding: 1rem;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
 .plantonista-dashboards-grid {
   display: grid;
   grid-template-columns: 1fr;
   gap: 1rem;
+  margin-top: 1rem;
 }
 
 @media (min-width: 768px) {
@@ -3844,11 +3862,20 @@ a {
   }
 }
 
-/* Andar 3: Evolução */
+/* Andar 3: Evolução - Card */
+.plantonista-evolution-card {
+  background: #ffffff;
+  border-radius: 0.75rem;
+  padding: 1rem;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
 .plantonista-evolution-grid {
   display: grid;
   grid-template-columns: 1fr;
   gap: 1.5rem;
+  margin-top: 1rem;
 }
 
 @media (min-width: 1024px) {
@@ -3865,11 +3892,19 @@ a {
   min-width: 0;
 }
 
-/* Andar 4: Opinion Bullets */
+/* Andar 4: Opinion - Card */
+.plantonista-opinion-card {
+  background: #ffffff;
+  border-radius: 0.75rem;
+  padding: 1rem;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
 .opinion-bullets-list {
   list-style: none;
   padding: 0;
-  margin: 0;
+  margin: 1rem 0 0 0;
 }
 
 .opinion-bullet-item {

@@ -671,43 +671,11 @@ export default function HomePage() {
                       })()
                     )}
                     
-                    {/* PatientDetailPanel removido do chat - agora tudo passa pelo PlantonistaAnswerPanel */}
+                    {/* Tudo renderizado dentro do PlantonistaAnswerPanel - sem blocos extras */}
                   </div>
                 ))}
                 
-                {/* Patient Focus Mode - Expandido inline (global, fora do loop de mensagens) */}
-                {expandedPatientId && expandedPatient && (() => {
-                  // Buscar o focusPayload mais recente para este paciente
-                  const latestFocusPayload = conversation
-                    .filter(m => m.role === "agent" && m.focusPayload?.patientId === expandedPatient.id)
-                    .map(m => m.focusPayload)
-                    .find(p => p !== undefined);
-                  
-                  // Buscar timelineHighlights mais recentes para este paciente
-                  const latestTimelineHighlights = conversation
-                    .filter(m => m.role === "agent" && m.timelineHighlights && m.timelineHighlights.length > 0)
-                    .flatMap(m => m.timelineHighlights || [])
-                    .filter((h): h is NonNullable<typeof h> => h !== undefined && h.data !== undefined);
-                  
-                  return (
-                    <div className="msg-container msg-agent-wrapper">
-                      <PatientFocusMode
-                        patient={expandedPatient}
-                        focusPayload={latestFocusPayload}
-                        timelineHighlights={latestTimelineHighlights.length > 0 ? latestTimelineHighlights : undefined}
-                        onCollapse={() => setExpandedPatientId(null)}
-                        onRequestRadiologistOpinion={() => {
-                          // Enviar mensagem para acionar o Radiologista Virtual
-                          void handleSend(
-                            `Radiologista Virtual, analise os exames de imagem do paciente ${expandedPatient.leito} - ${expandedPatient.nome}.`,
-                            'radiology',
-                            expandedPatient.id
-                          );
-                        }}
-                      />
-                    </div>
-                  );
-                })()}
+                {/* Removido: PatientFocusMode expandido inline - tudo agora dentro do PlantonistaAnswerPanel */}
 
                 {loading && (
                   <div className="msg-container msg-agent-wrapper">

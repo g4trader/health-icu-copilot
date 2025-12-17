@@ -87,10 +87,10 @@ export function PlantonistaAnswerPanel({
         </div>
       )}
 
-      {/* Andar 1: Cabeçalho clínico curto */}
+      {/* Andar 1: Cabeçalho clínico curto - dentro de card */}
       {content.focusPayload && (
         <section className="plantonista-section plantonista-section-header">
-          <div className="plantonista-header-compact">
+          <div className="plantonista-header-card">
             <div className="plantonista-header-main">
               <span className="plantonista-header-bed">{content.focusPayload.leito}</span>
               <h3 className="plantonista-header-name">{content.focusPayload.nome}</h3>
@@ -113,46 +113,52 @@ export function PlantonistaAnswerPanel({
         </section>
       )}
 
-      {/* Andar 2: Dashboards de decisão */}
+      {/* Andar 2: Dashboards de decisão - dentro de card */}
       {orderedDashboards.length > 0 && (
         <section className="plantonista-section plantonista-section-dashboards">
-          <h3 className="plantonista-section-title">Dashboards de decisão</h3>
-          <div className="plantonista-dashboards-grid">
-            {orderedDashboards.map((dashboard, idx) => (
-              <MicroDashboardV2Renderer key={idx} dashboard={dashboard} />
-            ))}
+          <div className="plantonista-dashboards-card">
+            <h3 className="plantonista-section-title">Dashboards de decisão</h3>
+            <div className="plantonista-dashboards-grid">
+              {orderedDashboards.map((dashboard, idx) => (
+                <MicroDashboardV2Renderer key={idx} dashboard={dashboard} />
+              ))}
+            </div>
           </div>
         </section>
       )}
 
-      {/* Andar 3: Evolução e linha do tempo */}
+      {/* Andar 3: Evolução e linha do tempo - dentro de card */}
       {patient && dailyStatus.length > 0 && (
         <section className="plantonista-section plantonista-section-evolution">
-          <h3 className="plantonista-section-title">Evolução na UTI</h3>
-          <div className="plantonista-evolution-grid">
-            <div className="plantonista-evolution-timeline">
-              <PatientBigTimeline
-                dailyStatus={dailyStatus}
-                highlights={content.timelineHighlights}
-              />
-            </div>
-            {content.timelineHighlights && content.timelineHighlights.length > 0 && (
-              <div className="plantonista-evolution-summary">
-                <PatientTimelineSummary
-                  patientId={patient.id}
-                  timelineHighlights={content.timelineHighlights}
+          <div className="plantonista-evolution-card">
+            <h3 className="plantonista-section-title">Evolução na UTI</h3>
+            <div className="plantonista-evolution-grid">
+              <div className="plantonista-evolution-timeline">
+                <PatientBigTimeline
+                  dailyStatus={dailyStatus}
+                  highlights={content.timelineHighlights}
                 />
               </div>
-            )}
+              {content.timelineHighlights && content.timelineHighlights.length > 0 && (
+                <div className="plantonista-evolution-summary">
+                  <PatientTimelineSummary
+                    patientId={patient.id}
+                    timelineHighlights={content.timelineHighlights}
+                  />
+                </div>
+              )}
+            </div>
           </div>
         </section>
       )}
 
-      {/* Andar 4: Parecer resumido */}
+      {/* Andar 4: Parecer resumido - dentro de card */}
       {content.plainTextAnswer && (
         <section className="plantonista-section plantonista-section-opinion">
-          <h3 className="plantonista-section-title">Parecer do Plantonista</h3>
-          <OpinionBullets text={content.plainTextAnswer} />
+          <div className="plantonista-opinion-card">
+            <h3 className="plantonista-section-title">Parecer do Plantonista</h3>
+            <OpinionBullets text={content.plainTextAnswer} />
+          </div>
         </section>
       )}
 
