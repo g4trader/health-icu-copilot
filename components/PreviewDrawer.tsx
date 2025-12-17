@@ -105,7 +105,7 @@ export function PreviewDrawer() {
             </>
           )}
         </div>
-        <div className="drawer-body">
+        <div className="drawer-body" style={{ padding: 0 }}>
           {previewType === 'allPatients' && <AllPatientsPreview payload={previewPayload} />}
           {previewType === 'ventilated' && <VentilatedPreview />}
           {previewType === 'vasopressors' && <VasopressorsPreview />}
