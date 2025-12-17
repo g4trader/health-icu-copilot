@@ -439,9 +439,16 @@ async function handleFocusedPatientIntent(
   selectedPatientId?: string;
   llmAnswer?: LlmPatientAnswer;
 }> {
+  // GUARD: Garantir que temos um ID válido
+  if (!focusedPatientId || typeof focusedPatientId !== 'string' || focusedPatientId.trim() === '') {
+    console.warn("[chat] handleFocusedPatientIntent chamado sem ID válido:", focusedPatientId);
+    return { reply: "Não foi possível identificar o paciente. Por favor, selecione um paciente ou informe o leito/ID." + DISCLAIMER, showIcuPanel: false };
+  }
+  
   const p = mockPatients.find((p) => p.id === focusedPatientId);
   if (!p) {
-    return { reply: "Não encontrei o paciente selecionado. Tente selecionar novamente." + DISCLAIMER, showIcuPanel: false };
+    console.warn("[chat] handleFocusedPatientIntent: Paciente não encontrado com ID:", focusedPatientId);
+    return { reply: `Paciente com ID "${focusedPatientId}" não encontrado. Tente selecionar novamente.` + DISCLAIMER, showIcuPanel: false };
   }
 
   // Se usar LLM e API key disponível, tentar resposta estruturada
@@ -970,35 +977,49 @@ export async function POST(req: Request) {
         break;
       }
       case "PACIENTE_ESPECIFICO": {
-        // Tentar identificar paciente por leito ou nome na mensagem
-        let patientId = focusedId;
-        if (!patientId) {
+        // Resolver patientId: usar focusedId primeiro, depois tentar parse da mensagem
+        let resolvedPatientId: string | null = focusedId;
+        
+        // Se não temos ID do body, tentar identificar por leito ou nome na mensagem
+        if (!resolvedPatientId || typeof resolvedPatientId !== 'string') {
           // Buscar por leito (ex: "UTI 03", "leito 03")
           const leitoMatch = message.match(/(?:UTI|leito)\s*(\d+)/i);
           if (leitoMatch) {
             const leitoNum = leitoMatch[1].padStart(2, '0');
             const leitoStr = `UTI ${leitoNum}`;
             const patient = mockPatients.find(p => p.leito === leitoStr);
-            if (patient) patientId = patient.id;
+            if (patient) resolvedPatientId = patient.id;
           }
           // Se não encontrou por leito, tentar por nome
-          if (!patientId) {
+          if (!resolvedPatientId || typeof resolvedPatientId !== 'string') {
             const patient = mockPatients.find(p => 
               message.toLowerCase().includes(p.nome.toLowerCase())
             );
-            if (patient) patientId = patient.id;
+            if (patient) resolvedPatientId = patient.id;
           }
         }
         
-        if (!patientId) {
-          result = { reply: "Para obter um resumo de um paciente específico, mencione o leito (ex: 'UTI 03') ou o nome do paciente, ou selecione-o primeiro." + DISCLAIMER, showIcuPanel: false };
+        // GUARD: Se ainda não temos um ID válido (string não-vazia), retornar erro
+        if (!resolvedPatientId || typeof resolvedPatientId !== 'string' || resolvedPatientId.trim() === '') {
+          console.warn("[chat] PACIENTE_ESPECIFICO sem resolvedPatientId válido, pulando busca de paciente.");
+          const reply = "Não foi possível identificar o paciente na sua pergunta. Selecione um paciente na lista ou informe o leito/ID de forma clara (ex: 'UTI 03')." + DISCLAIMER;
+          result = { 
+            reply,
+            showIcuPanel: false,
+            llmAnswer: null
+          } as any;
         } else {
-          // Buscar paciente
-          const patient = mockPatients.find(p => p.id === patientId);
+          // GUARD: Buscar paciente apenas com ID válido
+          const patient = mockPatients.find(p => p.id === resolvedPatientId);
           
           if (!patient) {
-            console.warn("Paciente não encontrado com ID:", patientId);
-            result = { reply: `Paciente com ID ${patientId} não encontrado.` + DISCLAIMER, showIcuPanel: false };
+            console.warn("[chat] Paciente não encontrado com ID:", resolvedPatientId);
+            const reply = `Paciente com ID "${resolvedPatientId}" não encontrado nos dados simulados. Verifique se o leito/ID informado está correto.` + DISCLAIMER;
+            result = { 
+              reply,
+              showIcuPanel: false,
+              llmAnswer: null
+            } as any;
           } else {
             // Tentar chamar LLM Plantonista primeiro
             const isPlantonistaAgent = 
@@ -1011,7 +1032,7 @@ export async function POST(req: Request) {
             
             if (isPlantonistaAgent) {
               try {
-                const dailyStatus = getDailyStatus(patientId);
+                const dailyStatus = getDailyStatus(resolvedPatientId);
                 const unitProfile: UnitProfile | null = mockUnitProfile ?? null;
                 
                 llmAnswerResult = await callPlantonistaAgent({
@@ -1021,7 +1042,7 @@ export async function POST(req: Request) {
                   unitProfile: unitProfile
                 });
               } catch (error) {
-                console.error("Erro ao chamar Plantonista LLM:", error);
+                console.error("[chat] Erro ao chamar Plantonista LLM:", error);
                 // Continue sem dados do LLM - fallback para resposta determinística
               }
             }
@@ -1032,7 +1053,7 @@ export async function POST(req: Request) {
                 reply: llmAnswerResult.plainTextAnswer,
                 showIcuPanel: false,
                 focusedPatient: patient,
-                selectedPatientId: patientId,
+                selectedPatientId: resolvedPatientId,
                 llmAnswer: llmAnswerResult
               } as any;
             } else {
@@ -1041,23 +1062,23 @@ export async function POST(req: Request) {
               
               if (dashboardType && dashboardBuilders[dashboardType]) {
                 try {
-                  const dashboard = dashboardBuilders[dashboardType](patientId);
+                  const dashboard = dashboardBuilders[dashboardType](resolvedPatientId);
                   result = {
                     reply: `Dashboard clínico gerado para ${dashboard.titulo || 'o paciente'}.`,
                     showIcuPanel: false,
                     focusedPatient: patient,
-                    selectedPatientId: patientId,
+                    selectedPatientId: resolvedPatientId,
                     microDashboard: dashboard
                   } as any;
                 } catch (error) {
-                  console.error("Erro ao gerar dashboard:", error);
+                  console.error("[chat] Erro ao gerar dashboard:", error);
                   // Fallback para handler antigo
-                  const patientResult = await handleFocusedPatientIntent(patientId, message, false);
+                  const patientResult = await handleFocusedPatientIntent(resolvedPatientId, message, false);
                   result = { ...patientResult, showIcuPanel: false };
                 }
               } else {
                 // Fallback para handler antigo
-                const patientResult = await handleFocusedPatientIntent(patientId, message, false);
+                const patientResult = await handleFocusedPatientIntent(resolvedPatientId, message, false);
                 result = { ...patientResult, showIcuPanel: false };
               }
             }

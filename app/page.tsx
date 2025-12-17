@@ -434,7 +434,18 @@ export default function HomePage() {
     setInput("");
 
     // Usar patientIdParam se fornecido, senão usar activePatientId
-    const patientIdToUse = patientIdParam || activePatientId;
+    // Garantir que é uma string válida ou null
+    const patientIdToUse = (patientIdParam || activePatientId) ? String(patientIdParam || activePatientId).trim() : null;
+
+    // Log temporário para debug
+    console.log("[chat] Sending request:", {
+      message: textToSend.substring(0, 50) + "...",
+      patientId: patientIdToUse,
+      focusedPatientId: patientIdToUse,
+      activePatientId,
+      patientIdParam,
+      agent: currentAgent,
+    });
 
     try {
       const res = await fetch("/api/chat", {
@@ -442,7 +453,7 @@ export default function HomePage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           message: textToSend,
-          focusedPatientId: patientIdToUse,
+          focusedPatientId: patientIdToUse || null,
           sessionId: sessionIdRef.current,
           userId: "user-mock",
           role: "plantonista",
@@ -450,7 +461,7 @@ export default function HomePage() {
           turno: "manhã",
           currentAgent: currentAgent,
           agentId: agentIdParam,
-          patientId: patientIdToUse || undefined
+          patientId: patientIdToUse || null
         })
       });
 
