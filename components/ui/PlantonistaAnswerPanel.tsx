@@ -6,7 +6,6 @@ import { PatientCard } from "../patients/PatientCard";
 import type { Patient } from "@/types/Patient";
 import { OpinionBullets } from "./OpinionBullets";
 import { PatientBigTimeline } from "./PatientBigTimeline";
-import { PatientTimelineSummary } from "../PatientTimelineSummary";
 import { getDailyStatus } from "@/lib/patientTimeline";
 import { mockPatients } from "@/lib/mockData";
 
