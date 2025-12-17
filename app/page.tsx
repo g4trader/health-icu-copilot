@@ -449,8 +449,15 @@ export default function HomePage() {
       const plantonistaContent = normalizeAgentAnswer(data);
       
       // Armazenar resposta no contexto se for de um paciente específico
+      // Validar que o patientId existe antes de armazenar
       if (plantonistaContent.focusPayload?.patientId) {
-        setLastAnswerForPatient(plantonistaContent.focusPayload.patientId, plantonistaContent);
+        const patientId = plantonistaContent.focusPayload.patientId;
+        const patientExists = mockPatients.some(p => p.id === patientId);
+        if (patientExists) {
+          setLastAnswerForPatient(patientId, plantonistaContent);
+        } else {
+          console.error(`[handleSend] Paciente não encontrado com ID: ${patientId}. Não será armazenado no contexto.`);
+        }
       }
       
       const agentMessage: Message = {
