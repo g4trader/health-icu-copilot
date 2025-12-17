@@ -41,6 +41,9 @@ export interface TimelineEvent {
   // Para lab events
   labResultId?: string;
   labResultType?: string;
+  
+  // Para eventos de imagem (compatibilidade com componentes existentes)
+  relatedExamId?: string;
 }
 
 /**
@@ -58,6 +61,9 @@ export interface MockPatientHistory {
   
   // Timeline de eventos clínicos
   timelineEvents: TimelineEvent[];
+  
+  // Evolução de 30 dias (opcional, carregada sob demanda)
+  dailyEvolution?: import("@/types/DailyPatientStatus").DailyPatientStatus[];
   
   // Timestamp da última atualização
   lastUpdated: string; // ISO string

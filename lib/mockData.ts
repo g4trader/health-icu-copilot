@@ -1096,3 +1096,84 @@ export const mockPatientsCompat: PatientCompat[] = mockPatientsRaw.map(toPatient
 // Exportamos os pacientes no formato compatível
 export type { PatientCompat as Patient };
 export { mockPatientsCompat as mockPatients };
+
+// Exportar mockPatientsRaw para uso em outros módulos
+export { mockPatientsRaw };
+
+/**
+ * Constrói payload estruturado para Patient Focus Mode
+ */
+export function buildPatientFocusPayload(patient: Patient): import("@/types/PatientFocusPayload").PatientFocusPayload {
+  const riskScore = calculateRiskScore(patient);
+  const riskLevel = riskLevelFromScore(riskScore);
+  const riskPercent24h = Math.round(patient.riscoMortality24h * 100);
+  
+  const hasVM = !!patient.ventilationParams;
+  const hasVaso = patient.medications.some(m => m.tipo === "vasopressor" && m.ativo);
+  
+  // Extrair lactato mais recente
+  const lactato = patient.labResults.find(l => l.tipo === "lactato");
+  const lactatoValue = lactato && typeof lactato.valor === "number" ? lactato.valor : undefined;
+  const lactatoTrend = lactato?.tendencia as "subindo" | "estavel" | "caindo" | undefined;
+  
+  // Construir key findings (3-6 bullet points)
+  const keyFindings: string[] = [];
+  
+  // Instabilidade de vitais
+  if (patient.vitalSigns.pressaoArterialMedia < 55) {
+    keyFindings.push(`Hipotensão crítica (PAM: ${patient.vitalSigns.pressaoArterialMedia} mmHg)`);
+  }
+  if (patient.vitalSigns.saturacaoO2 < 92) {
+    keyFindings.push(`Hipoxemia grave (SpO₂: ${patient.vitalSigns.saturacaoO2}%)`);
+  }
+  
+  // Ventilação mecânica
+  if (hasVM && patient.ventilationParams) {
+    keyFindings.push(`VM: ${patient.ventilationParams.modo} | FiO₂: ${patient.ventilationParams.fiO2}% | PEEP: ${patient.ventilationParams.peep}cmH₂O`);
+  }
+  
+  // Vasopressor
+  if (hasVaso) {
+    const vaso = patient.medications.find(m => m.tipo === "vasopressor" && m.ativo);
+    if (vaso) {
+      keyFindings.push(`Vasopressor ativo: ${vaso.nome} ${vaso.dose} ${vaso.unidade}`);
+    }
+  }
+  
+  // Lactato
+  if (lactatoValue !== undefined) {
+    const trend = lactatoTrend === 'subindo' ? '↑' : lactatoTrend === 'caindo' ? '↓' : '';
+    keyFindings.push(`Lactato: ${lactatoValue} mmol/L ${trend}`);
+  }
+  
+  // Diurese
+  if (patient.fluidBalance.diurese < 1) {
+    keyFindings.push(`Oligúria (diurese: ${patient.fluidBalance.diurese} ml/kg/h)`);
+  }
+  
+  // Garantir pelo menos 3 findings
+  if (keyFindings.length < 3) {
+    keyFindings.push(`Risco 24h: ${riskPercent24h}%`);
+    if (keyFindings.length < 3) {
+      keyFindings.push(`${patient.diasDeUTI} ${patient.diasDeUTI === 1 ? 'dia' : 'dias'} de internação na UTI`);
+    }
+  }
+  
+  return {
+    patientId: patient.id,
+    nome: patient.nome,
+    idade: patient.idade,
+    peso: patient.peso,
+    leito: patient.leito,
+    diagnosticoPrincipal: patient.diagnosticoPrincipal,
+    riskLevel,
+    riskPercent24h,
+    hasVM,
+    hasVaso,
+    lactatoValue,
+    lactatoTrend,
+    sofaScore: undefined, // Deixar undefined por enquanto
+    keyFindings: keyFindings.slice(0, 6), // Máximo 6
+    narrativaAgente: undefined // Será preenchido pelo LLM se disponível
+  };
+}

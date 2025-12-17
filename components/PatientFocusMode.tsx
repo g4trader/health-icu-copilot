@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import type { Patient } from "@/types/Patient";
+import type { PatientFocusPayload } from "@/types/PatientFocusPayload";
 import { 
   AlertCircle, 
   TrendingUp, 
@@ -35,12 +36,14 @@ interface PatientFocusModeProps {
   patient: Patient;
   onCollapse: () => void;
   onRequestRadiologistOpinion?: () => void;
+  focusPayload?: PatientFocusPayload; // Payload estruturado (opcional)
 }
 
 export function PatientFocusMode({ 
   patient, 
   onCollapse,
-  onRequestRadiologistOpinion 
+  onRequestRadiologistOpinion,
+  focusPayload
 }: PatientFocusModeProps) {
   const riskLevel = riskLevelFromScore(patient.riscoMortality24h);
   const riskPercent = Math.round(patient.riscoMortality24h * 100);
@@ -246,7 +249,7 @@ export function PatientFocusMode({
               const timelineEvents = getPatientTimeline(patient.id);
               const lastImagingEvent = timelineEvents
                 .filter(e => e.type === 'imaging')
-                .sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime())[0];
+                .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())[0];
               
               if (lastImagingEvent) {
                 const examTypeLabel = lastImagingEvent.title.includes('RX') || lastImagingEvent.title.includes('Radiografia') ? 'RX' :
@@ -388,16 +391,22 @@ export function PatientFocusMode({
         <section>
           <SectionHeader title="Parecer do Plantonista" />
           <div className="mt-3 p-4 bg-white border border-slate-200 rounded-2xl shadow-sm">
-            <p className="text-sm text-slate-700 leading-relaxed">
-              Paciente {patient.nome} ({patient.idade} anos, {patient.peso.toFixed(1)} kg), leito {patient.leito}, 
-              com diagnóstico principal de {patient.diagnosticoPrincipal}. 
-              {riskLevel === "alto" && ` Apresenta risco de mortalidade em 24h elevado (${riskPercent}%).`}
-              {lactatoValue && lactatoValue >= 3 && ` Lactato elevado (${lactatoValue.toFixed(1)} mmol/L), sugerindo comprometimento da perfusão tecidual.`}
-              {hasVM && " Em ventilação mecânica com parâmetros ajustados."}
-              {hasVaso && " Em uso de drogas vasoativas para suporte hemodinâmico."}
-              {sofaScore > 10 && ` Escore SOFA: ${sofaScore}, indicando disfunção orgânica significativa.`}
-              Recomenda-se monitorização próxima e reavaliação periódica do quadro clínico.
-            </p>
+            {focusPayload?.narrativaAgente ? (
+              <p className="text-sm text-slate-700 leading-relaxed">
+                {focusPayload.narrativaAgente}
+              </p>
+            ) : (
+              <p className="text-sm text-slate-700 leading-relaxed">
+                Paciente {patient.nome} ({patient.idade} anos, {patient.peso.toFixed(1)} kg), leito {patient.leito}, 
+                com diagnóstico principal de {patient.diagnosticoPrincipal}. 
+                {riskLevel === "alto" && ` Apresenta risco de mortalidade em 24h elevado (${riskPercent}%).`}
+                {lactatoValue && lactatoValue >= 3 && ` Lactato elevado (${lactatoValue.toFixed(1)} mmol/L), sugerindo comprometimento da perfusão tecidual.`}
+                {hasVM && " Em ventilação mecânica com parâmetros ajustados."}
+                {hasVaso && " Em uso de drogas vasoativas para suporte hemodinâmico."}
+                {sofaScore > 10 && ` Escore SOFA: ${sofaScore}, indicando disfunção orgânica significativa.`}
+                Recomenda-se monitorização próxima e reavaliação periódica do quadro clínico.
+              </p>
+            )}
           </div>
         </section>
       </div>

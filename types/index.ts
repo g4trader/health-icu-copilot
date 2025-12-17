@@ -8,6 +8,7 @@ export type { Medication } from "./Medication";
 export type { VentilationParams } from "./VentilationParams";
 export type { LabResult } from "./LabResult";
 export type { UnitProfile } from "./UnitProfile";
+export type { PatientFocusPayload } from "./PatientFocusPayload";
 
 
 

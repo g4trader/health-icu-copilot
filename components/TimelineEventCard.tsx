@@ -16,7 +16,6 @@ interface TimelineEventCardProps {
 
 const eventIcons: Record<TimelineEvent['type'], typeof UserPlus> = {
   admission: UserPlus,
-  vitals: Activity,
   lab: Beaker,
   imaging: Scan,
   therapy: Syringe,
