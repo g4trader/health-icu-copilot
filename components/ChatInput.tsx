@@ -209,7 +209,12 @@ export function ChatInput({
         <button
           className="chat-input-send-btn"
           type="button"
-          onClick={() => void onSend()}
+          onClick={() => {
+            console.log("[ChatInput] Send button clicked, value:", value);
+            if (value.trim()) {
+              onSend(value.trim());
+            }
+          }}
           disabled={loading || !value.trim()}
           aria-label="Enviar mensagem"
         >

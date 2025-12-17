@@ -419,8 +419,12 @@ export default function HomePage() {
   }, [conversation, loading]);
 
   const handleSend = useCallback(async (messageText?: string, agentIdParam?: ClinicalAgentId | 'radiology', patientIdParam?: string) => {
+    console.log("[ChatPanel] handleSend called with:", { messageText, input, loading });
     const textToSend = messageText || input.trim();
-    if (!textToSend || loading) return;
+    if (!textToSend || loading) {
+      console.log("[ChatPanel] handleSend returning early:", { textToSend: !!textToSend, loading });
+      return;
+    }
 
     setLoading(true);
 
@@ -523,15 +527,18 @@ export default function HomePage() {
     } finally {
       setLoading(false);
     }
-  }, [activePatientId, sessionIdRef, currentAgent, setConversation, setInput, loading, addOpinion]);
+  }, [activePatientId, sessionIdRef, currentAgent, setConversation, setInput, loading, addOpinion, input]);
 
 
   const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
-      void handleSend();
+      console.log("[ChatInput] Enter pressed, input:", input);
+      if (input.trim()) {
+        void handleSend(input.trim());
+      }
     }
-  }, [handleSend]);
+  }, [handleSend, input]);
 
   const handlePromptClick = useCallback((prompt: string) => {
     // Enviar a pergunta automaticamente
