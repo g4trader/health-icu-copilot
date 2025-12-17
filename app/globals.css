@@ -3180,10 +3180,7 @@ a {
   }
 }
 
-/* Hover effects para cards refinados */
-.detail-card:hover {
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
-}
+/* Hover effects para cards refinados - já definido em .detail-card acima */
 
 .lab-item-refined:hover {
   background: #f1f5f9;
