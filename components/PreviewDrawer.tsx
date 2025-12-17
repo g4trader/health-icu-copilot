@@ -8,8 +8,30 @@ import { PatientDetailPanel } from "./PatientDetailPanel";
 import { PatientPinButton } from "./PatientPinButton";
 import { PatientCard } from "./patients/PatientCard";
 import { useClinicalSession } from "@/lib/ClinicalSessionContext";
-import type { ClinicalAgentId } from "@/lib/clinicalAgents";
 import { RadiologyReportDetails } from "./ui/RadiologyReportDetails";
+
+// Helper para obter paciente de qualquer preview
+function getPatientFromPreview(previewType: string | null, payload: PreviewPayload | null): Patient | null {
+  if (!previewType || !payload) return null;
+
+  // Preview direto de paciente
+  if (previewType === 'patient' && payload.patient) {
+    return payload.patient as Patient;
+  }
+
+  // Radiology report tem patientId - SEMPRE mostrar header do paciente
+  if (previewType === 'radiology-report' && payload.report) {
+    const report = payload.report as any;
+    if (report.patientId) {
+      const patient = mockPatients.find(p => p.id === report.patientId);
+      if (patient) return patient;
+    }
+  }
+
+  // Para listas de pacientes, não há paciente específico
+  // Retornar null para esses casos - eles usam ListDrawerHeader
+  return null;
+}
 
 function PatientDrawerHeader({ patient }: { patient: Patient }) {
   const { clearPreview } = usePreview();
@@ -59,6 +81,33 @@ function PatientDrawerHeader({ patient }: { patient: Patient }) {
   );
 }
 
+function ListDrawerHeader({ title }: { title: string }) {
+  const { clearPreview } = usePreview();
+
+  return (
+    <>
+      <h3 className="drawer-title">{title}</h3>
+      <button
+        type="button"
+        className="drawer-close-btn"
+        onClick={clearPreview}
+        aria-label="Fechar preview"
+      >
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          fill="none"
+          viewBox="0 0 24 24"
+          strokeWidth={2}
+          stroke="currentColor"
+          className="drawer-close-icon"
+        >
+          <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+        </svg>
+      </button>
+    </>
+  );
+}
+
 export function PreviewDrawer() {
   const { previewType, previewPayload, clearPreview } = usePreview();
 
@@ -66,43 +115,30 @@ export function PreviewDrawer() {
     return null;
   }
 
+  // Obter paciente se disponível
+  const patient = getPatientFromPreview(previewType, previewPayload);
+
   return (
     <>
       <div className="drawer-overlay" onClick={clearPreview} />
       <aside className="preview-drawer">
         <div className="drawer-header">
-          {previewType === 'patient' && previewPayload?.patient ? (
-            <PatientDrawerHeader patient={previewPayload.patient as Patient} />
+          {patient ? (
+            <PatientDrawerHeader patient={patient} />
           ) : (
-            <>
-              <h3 className="drawer-title">
-                {previewType === 'icu-overview' && 'Visão Geral da UTI'}
-                {previewType === 'allPatients' && 'Todos os Pacientes da UTI'}
-                {previewType === 'ventilated' && 'Pacientes em Ventilação Mecânica'}
-                {previewType === 'vasopressors' && 'Pacientes em Droga Vasoativa'}
-                {previewType === 'high-risk' && 'Pacientes em Alto Risco (24h)'}
-                {previewType === 'lab-results' && 'Exames Laboratoriais Recentes'}
-                {previewType === 'unit-profile' && 'Perfil Epidemiológico da Unidade'}
-                {previewType === 'radiology-report' && 'Laudo Radiológico'}
-              </h3>
-              <button
-                type="button"
-                className="drawer-close-btn"
-                onClick={clearPreview}
-                aria-label="Fechar preview"
-              >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  strokeWidth={2}
-                  stroke="currentColor"
-                  className="drawer-close-icon"
-                >
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </>
+            <ListDrawerHeader 
+              title={
+                previewType === 'icu-overview' ? 'Visão Geral da UTI' :
+                previewType === 'allPatients' ? 'Todos os Pacientes da UTI' :
+                previewType === 'ventilated' ? 'Pacientes em Ventilação Mecânica' :
+                previewType === 'vasopressors' ? 'Pacientes em Droga Vasoativa' :
+                previewType === 'high-risk' ? 'Pacientes em Alto Risco (24h)' :
+                previewType === 'lab-results' ? 'Exames Laboratoriais Recentes' :
+                previewType === 'unit-profile' ? 'Perfil Epidemiológico da Unidade' :
+                previewType === 'radiology-report' ? 'Laudo Radiológico' :
+                'Preview'
+              }
+            />
           )}
         </div>
         <div className="drawer-body" style={{ padding: 0 }}>
@@ -111,10 +147,16 @@ export function PreviewDrawer() {
           {previewType === 'vasopressors' && <VasopressorsPreview />}
           {previewType === 'high-risk' && <HighRiskPreview />}
           {previewType === 'patient' && previewPayload?.patient && (
-            <PatientDetailPanel patient={previewPayload.patient as Patient} />
+            <div className="px-4 pb-6 pt-4">
+              <PatientDetailPanel patient={previewPayload.patient as Patient} />
+            </div>
           )}
           {previewType === 'radiology-report' && previewPayload?.report && (
-            <RadiologyReportDetails report={previewPayload.report as import("@/types/RadiologyOpinion").RadiologyReportFull} />
+            <div className="px-4 pb-6 pt-4">
+              <div className="patient-detail-refined">
+                <RadiologyReportDetails report={previewPayload.report as import("@/types/RadiologyOpinion").RadiologyReportFull} />
+              </div>
+            </div>
           )}
           {previewType === 'icu-overview' && <IcuOverviewPreview />}
         </div>
@@ -130,7 +172,7 @@ function IcuOverviewPreview() {
   const highRisk = getHighRiskPatients();
 
   return (
-    <div className="preview-content">
+    <div className="px-4 pb-6 pt-4">
       <div className="preview-stats">
         <div className="preview-stat">
           <div className="preview-stat-label">Total de Pacientes</div>
@@ -158,7 +200,7 @@ function AllPatientsPreview({ payload }: { payload: PreviewPayload | null }) {
   const { onSelectPatient } = usePreview();
 
   return (
-    <div className="flex flex-col gap-4 md:gap-4 px-4 pb-6 pt-4">
+    <div className="flex flex-col gap-3 md:gap-4 px-4 pb-6 pt-4">
       {patients.map((p) => (
         <PatientCard
           key={p.id}
@@ -229,28 +271,3 @@ function HighRiskPreview() {
     </div>
   );
 }
-
-function PatientPreview({ payload }: { payload: PreviewPayload | null }) {
-  if (!payload || !payload.patient) {
-    return (
-      <div className="preview-content">
-        <div className="preview-empty">
-          <p>Dados do paciente não disponíveis.</p>
-        </div>
-      </div>
-    );
-  }
-
-  const patient = payload.patient as Patient;
-  return (
-    <div className="preview-content">
-      <div className="preview-patient-details">
-        <div><strong>Idade:</strong> {patient.idade} {patient.idade === 1 ? "ano" : "anos"}</div>
-        <div><strong>Peso:</strong> {patient.peso?.toFixed(1) || "N/A"} kg</div>
-        <div><strong>Diagnóstico:</strong> {patient.diagnosticoPrincipal}</div>
-        <div><strong>Risco 24h:</strong> {(patient.riscoMortality24h * 100).toFixed(0)}%</div>
-      </div>
-    </div>
-  );
-}
-
