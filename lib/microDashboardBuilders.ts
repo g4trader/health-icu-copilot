@@ -1,5 +1,7 @@
-import type { Patient } from "@/types/Patient";
-import { mockPatients } from "@/lib/mockData";
+import type { MockPatientSnapshot } from "@/types/MockPatientSnapshot";
+import type { MockPatientHistory } from "@/types/MockPatientHistory";
+import { getPatientSnapshotById } from "./mockPatients/snapshots";
+import { getPatientHistoryById } from "./mockPatients/history";
 import { calculateRiskScore, riskLevelFromScore } from "@/lib/mockData";
 import type { 
   MicroDashboardPayload, 
@@ -38,6 +40,54 @@ function generateSparklinePoints(
 }
 
 /**
+ * Converte TimeSeries para SparklineSeries
+ */
+function timeSeriesToSparklineSeries(
+  timeSeries: { key: string; unit: string; points: { t: string; v: number }[] },
+  name: string
+): SparklineSeries {
+  const currentPoint = timeSeries.points.find(p => p.t === 'agora') || timeSeries.points[timeSeries.points.length - 1];
+  
+  return {
+    nome: name,
+    valor_atual: currentPoint.v,
+    unidade: timeSeries.unit,
+    pontos: timeSeries.points.map(p => ({ t: p.t, v: p.v }))
+  };
+}
+
+/**
+ * Calcula score de risco baseado em snapshot
+ */
+function calculateRiskScoreFromSnapshot(snapshot: MockPatientSnapshot): number {
+  let score = 0;
+
+  // Instabilidade de sinais vitais
+  if (snapshot.vitalSigns.pressaoArterialMedia < 65) score += 0.25;
+  if (snapshot.vitalSigns.frequenciaCardiaca > 150 || snapshot.vitalSigns.frequenciaCardiaca < 60) score += 0.15;
+  if (snapshot.vitalSigns.temperatura > 38.5 || snapshot.vitalSigns.temperatura < 36) score += 0.1;
+  if (snapshot.vitalSigns.saturacaoO2 < 92) score += 0.2;
+
+  // Uso de droga vasoativa
+  const temVasopressor = snapshot.medications.some(m => m.tipo === "vasopressor" && m.ativo);
+  if (temVasopressor) score += 0.25;
+
+  // Ventilação mecânica
+  if (snapshot.ventilationParams) score += 0.15;
+
+  // Lactato elevado
+  const lactato = snapshot.labResults.find(l => l.tipo === "lactato");
+  if (lactato && typeof lactato.valor === "number" && lactato.valor >= 3) score += 0.2;
+  if (lactato && lactato.tendencia === "subindo") score += 0.15;
+
+  // Tendência negativa
+  if (snapshot.fluidBalance.balanco24h > 5) score += 0.1;
+  if (snapshot.fluidBalance.diurese < 1) score += 0.15;
+
+  return Math.min(score, 1.0);
+}
+
+/**
  * Determina o nível de alerta baseado em valores críticos
  */
 function getAlertLevel(value: number, thresholds: { green: number; yellow: number; red: number }, higherIsWorse: boolean = true): 'green' | 'yellow' | 'red' {
@@ -54,19 +104,20 @@ function getAlertLevel(value: number, thresholds: { green: number; yellow: numbe
 
 /**
  * 1. Status do Paciente (NOW)
+ * Usa snapshot para dados atuais
  */
 export function buildStatusPaciente(patientId: string): MicroDashboardPayload {
-  const patient = mockPatients.find(p => p.id === patientId);
-  if (!patient) {
+  const snapshot = getPatientSnapshotById(patientId);
+  if (!snapshot) {
     throw new Error(`Paciente ${patientId} não encontrado`);
   }
 
-  const riskScore = calculateRiskScore(patient);
+  const riskScore = calculateRiskScoreFromSnapshot(snapshot);
   const riskLevel = riskLevelFromScore(riskScore);
-  const riskPercent = Math.round(patient.riscoMortality24h * 100);
+  const riskPercent = Math.round(snapshot.riscoMortality24h * 100);
   
-  const hasVM = !!patient.ventilationParams;
-  const hasVaso = patient.medications.some(m => m.tipo === "vasopressor" && m.ativo);
+  const hasVM = !!snapshot.ventilationParams;
+  const hasVaso = snapshot.medications.some(m => m.tipo === "vasopressor" && m.ativo);
   
   // Status global
   let statusGlobal = "";
@@ -91,62 +142,59 @@ export function buildStatusPaciente(patientId: string): MicroDashboardPayload {
     },
     {
       titulo: "Respiração",
-      nivel_alerta: patient.vitalSigns.saturacaoO2 < 92 ? 'red' : patient.vitalSigns.saturacaoO2 < 95 ? 'yellow' : 'green',
+      nivel_alerta: snapshot.vitalSigns.saturacaoO2 < 92 ? 'red' : snapshot.vitalSigns.saturacaoO2 < 95 ? 'yellow' : 'green',
       itens: [
-        `SpO₂: ${patient.vitalSigns.saturacaoO2}%`,
-        `FR: ${patient.vitalSigns.frequenciaRespiratoria} irpm`,
-        hasVM ? `VM: ${patient.ventilationParams?.modo} | FiO₂: ${patient.ventilationParams?.fiO2}% | PEEP: ${patient.ventilationParams?.peep}cmH₂O` : 'Sem ventilação mecânica'
+        `SpO₂: ${snapshot.vitalSigns.saturacaoO2}%`,
+        `FR: ${snapshot.vitalSigns.frequenciaRespiratoria} irpm`,
+        hasVM ? `VM: ${snapshot.ventilationParams?.modo} | FiO₂: ${snapshot.ventilationParams?.fiO2}% | PEEP: ${snapshot.ventilationParams?.peep}cmH₂O` : 'Sem ventilação mecânica'
       ],
-      sparklines: [
-        {
-          nome: "SpO₂",
-          valor_atual: patient.vitalSigns.saturacaoO2,
-          unidade: "%",
-          pontos: generateSparklinePoints(patient.vitalSigns.saturacaoO2, 24, patient.vitalSigns.saturacaoO2 < 92 ? 'down' : 'stable')
-        },
-        {
-          nome: "FR",
-          valor_atual: patient.vitalSigns.frequenciaRespiratoria,
-          unidade: "irpm",
-          pontos: generateSparklinePoints(patient.vitalSigns.frequenciaRespiratoria, 24, 'stable')
-        }
-      ]
+      sparklines: (() => {
+        const history = getPatientHistoryById(patientId);
+        if (!history) return undefined;
+        
+        const spo2Series = history.series_24h.find(s => s.key === 'spo2');
+        const frSeries = history.series_24h.find(s => s.key === 'fr');
+        
+        return [
+          spo2Series ? timeSeriesToSparklineSeries(spo2Series, 'SpO₂') : undefined,
+          frSeries ? timeSeriesToSparklineSeries(frSeries, 'FR') : undefined
+        ].filter(Boolean) as SparklineSeries[];
+      })()
     },
     {
       titulo: "Hemodinâmica",
-      nivel_alerta: getAlertLevel(patient.vitalSigns.pressaoArterialMedia, { green: 60, yellow: 55, red: 50 }, false),
+      nivel_alerta: getAlertLevel(snapshot.vitalSigns.pressaoArterialMedia, { green: 60, yellow: 55, red: 50 }, false),
       itens: [
-        `PAM: ${patient.vitalSigns.pressaoArterialMedia} mmHg`,
-        `FC: ${patient.vitalSigns.frequenciaCardiaca} bpm`,
-        hasVaso ? `Vasopressor: ${patient.medications.find(m => m.tipo === "vasopressor" && m.ativo)?.nome} ${patient.medications.find(m => m.tipo === "vasopressor" && m.ativo)?.dose} ${patient.medications.find(m => m.tipo === "vasopressor" && m.ativo)?.unidade}` : 'Sem vasopressor'
+        `PAM: ${snapshot.vitalSigns.pressaoArterialMedia} mmHg`,
+        `FC: ${snapshot.vitalSigns.frequenciaCardiaca} bpm`,
+        hasVaso ? `Vasopressor: ${snapshot.medications.find(m => m.tipo === "vasopressor" && m.ativo)?.nome} ${snapshot.medications.find(m => m.tipo === "vasopressor" && m.ativo)?.dose} ${snapshot.medications.find(m => m.tipo === "vasopressor" && m.ativo)?.unidade}` : 'Sem vasopressor'
       ],
-      sparklines: [
-        {
-          nome: "PAM",
-          valor_atual: patient.vitalSigns.pressaoArterialMedia,
-          unidade: "mmHg",
-          pontos: generateSparklinePoints(patient.vitalSigns.pressaoArterialMedia, 24, patient.vitalSigns.pressaoArterialMedia < 55 ? 'down' : 'stable')
-        }
-      ]
+      sparklines: (() => {
+        const history = getPatientHistoryById(patientId);
+        if (!history) return undefined;
+        
+        const pamSeries = history.series_24h.find(s => s.key === 'pam');
+        return pamSeries ? [timeSeriesToSparklineSeries(pamSeries, 'PAM')] : undefined;
+      })()
     },
     {
       titulo: "Rim / Balanço",
-      nivel_alerta: patient.fluidBalance.diurese < 1 ? 'red' : patient.fluidBalance.diurese < 2 ? 'yellow' : 'green',
+      nivel_alerta: snapshot.fluidBalance.diurese < 1 ? 'red' : snapshot.fluidBalance.diurese < 2 ? 'yellow' : 'green',
       itens: [
-        `Diurese: ${patient.fluidBalance.diurese} ml/kg/h`,
-        `Balanço 24h: ${patient.fluidBalance.balanco24h > 0 ? '+' : ''}${patient.fluidBalance.balanco24h.toFixed(1)} ml/kg/h`,
-        `Temperatura: ${patient.vitalSigns.temperatura.toFixed(1)}°C`
+        `Diurese: ${snapshot.fluidBalance.diurese} ml/kg/h`,
+        `Balanço 24h: ${snapshot.fluidBalance.balanco24h > 0 ? '+' : ''}${snapshot.fluidBalance.balanco24h.toFixed(1)} ml/kg/h`,
+        `Temperatura: ${snapshot.vitalSigns.temperatura.toFixed(1)}°C`
       ]
     }
   ];
 
   // Alertas (máx 5)
   const alertas: string[] = [];
-  if (patient.vitalSigns.pressaoArterialMedia < 55) alertas.push("Hipotensão crítica (PAM < 55 mmHg)");
-  if (patient.vitalSigns.saturacaoO2 < 92) alertas.push("Hipoxemia grave (SpO₂ < 92%)");
-  const lactato = patient.labResults.find(l => l.tipo === "lactato");
+  if (snapshot.vitalSigns.pressaoArterialMedia < 55) alertas.push("Hipotensão crítica (PAM < 55 mmHg)");
+  if (snapshot.vitalSigns.saturacaoO2 < 92) alertas.push("Hipoxemia grave (SpO₂ < 92%)");
+  const lactato = snapshot.labResults.find(l => l.tipo === "lactato");
   if (lactato && typeof lactato.valor === "number" && lactato.valor > 3) alertas.push(`Lactato elevado: ${lactato.valor} mmol/L`);
-  if (patient.fluidBalance.diurese < 1) alertas.push("Oligúria (diurese < 1 ml/kg/h)");
+  if (snapshot.fluidBalance.diurese < 1) alertas.push("Oligúria (diurese < 1 ml/kg/h)");
   if (riskPercent >= 70) alertas.push(`Alto risco de mortalidade: ${riskPercent}%`);
   
   if (alertas.length > 0) {
@@ -160,7 +208,7 @@ export function buildStatusPaciente(patientId: string): MicroDashboardPayload {
   return {
     tipo_dashboard: 'status_paciente',
     paciente_id: patientId,
-    titulo: `Status do Paciente • ${patient.leito} • ${patient.nome}`,
+    titulo: `Status do Paciente • ${snapshot.leito} • ${snapshot.nome}`,
     blocos,
     disclaimer: "Dados atualizados em tempo quase real. Avaliação clínica necessária."
   };
@@ -168,19 +216,35 @@ export function buildStatusPaciente(patientId: string): MicroDashboardPayload {
 
 /**
  * 2. Evolução 24h (ROUND / PASSAGEM)
+ * Usa history para séries temporais e snapshot para dados atuais
  */
 export function buildEvolucao24h(patientId: string): MicroDashboardPayload {
-  const patient = mockPatients.find(p => p.id === patientId);
-  if (!patient) {
+  const snapshot = getPatientSnapshotById(patientId);
+  const history = getPatientHistoryById(patientId);
+  
+  if (!snapshot) {
     throw new Error(`Paciente ${patientId} não encontrado`);
   }
-
-  const riskScore = calculateRiskScore(patient);
-  const riskLevel = riskLevelFromScore(riskScore);
-  const riskPercent = Math.round(patient.riscoMortality24h * 100);
   
-  // Simulação de tendência (determinística baseada em patientId)
-  const trend = riskPercent >= 60 ? 'piorou' : riskPercent <= 30 ? 'melhorou' : 'estável';
+  if (!history) {
+    throw new Error(`Histórico do paciente ${patientId} não encontrado`);
+  }
+
+  const riskScore = calculateRiskScoreFromSnapshot(snapshot);
+  const riskLevel = riskLevelFromScore(riskScore);
+  const riskPercent = Math.round(snapshot.riscoMortality24h * 100);
+  
+  // Determinar tendência baseada nas séries temporais
+  const pamSeries = history.series_24h.find(s => s.key === 'pam');
+  const spo2Series = history.series_24h.find(s => s.key === 'spo2');
+  
+  let trend: 'piorou' | 'melhorou' | 'estável' = 'estável';
+  if (pamSeries && pamSeries.points.length >= 2) {
+    const first = pamSeries.points[0].v;
+    const last = pamSeries.points[pamSeries.points.length - 1].v;
+    if (last < first - 5) trend = 'piorou';
+    else if (last > first + 5) trend = 'melhorou';
+  }
   
   const resumo24h = trend === 'piorou' 
     ? `Paciente apresentou piora nas últimas 24h. Risco atual: ${riskPercent}%. Necessário ajuste de terapêutica.`
@@ -188,8 +252,8 @@ export function buildEvolucao24h(patientId: string): MicroDashboardPayload {
     ? `Evolução favorável nas últimas 24h. Risco atual: ${riskPercent}%. Mantém monitorização.`
     : `Evolução estável nas últimas 24h. Risco atual: ${riskPercent}%.`;
 
-  const lactato = patient.labResults.find(l => l.tipo === "lactato");
-  const pcr = patient.labResults.find(l => l.tipo === "pcr");
+  const lactato = snapshot.labResults.find(l => l.tipo === "lactato");
+  const pcr = snapshot.labResults.find(l => l.tipo === "pcr");
   
   const blocos: DashboardBlock[] = [
     {
@@ -200,39 +264,33 @@ export function buildEvolucao24h(patientId: string): MicroDashboardPayload {
     {
       titulo: "Tendência de Vitais",
       nivel_alerta: trend === 'piorou' ? 'red' : 'yellow',
-      sparklines: [
-        {
-          nome: "PAM",
-          valor_atual: patient.vitalSigns.pressaoArterialMedia,
-          unidade: "mmHg",
-          pontos: generateSparklinePoints(patient.vitalSigns.pressaoArterialMedia, 24, trend === 'piorou' ? 'down' : trend === 'melhorou' ? 'up' : 'stable')
-        },
-        {
-          nome: "SpO₂",
-          valor_atual: patient.vitalSigns.saturacaoO2,
-          unidade: "%",
-          pontos: generateSparklinePoints(patient.vitalSigns.saturacaoO2, 24, trend === 'piorou' ? 'down' : trend === 'melhorou' ? 'up' : 'stable')
-        },
-        lactato ? {
-          nome: "Lactato",
-          valor_atual: typeof lactato.valor === 'number' ? lactato.valor : 0,
-          unidade: "mmol/L",
-          pontos: generateSparklinePoints(typeof lactato.valor === 'number' ? lactato.valor : 0, 24, lactato.tendencia === 'subindo' ? 'up' : lactato.tendencia === 'caindo' ? 'down' : 'stable')
-        } : undefined
-      ].filter(Boolean) as SparklineSeries[]
+      sparklines: (() => {
+        const sparklines: SparklineSeries[] = [];
+        
+        const pamSeries = history.series_24h.find(s => s.key === 'pam');
+        if (pamSeries) sparklines.push(timeSeriesToSparklineSeries(pamSeries, 'PAM'));
+        
+        const spo2Series = history.series_24h.find(s => s.key === 'spo2');
+        if (spo2Series) sparklines.push(timeSeriesToSparklineSeries(spo2Series, 'SpO₂'));
+        
+        const lactatoSeries = history.series_72h.find(s => s.key === 'lactato');
+        if (lactatoSeries) sparklines.push(timeSeriesToSparklineSeries(lactatoSeries, 'Lactato'));
+        
+        return sparklines;
+      })()
     },
     {
       titulo: "Intervenções Relevantes",
       nivel_alerta: 'yellow',
       itens: [
-        patient.medications.filter(m => m.ativo).map(m => `${m.nome} ${m.dose} ${m.unidade}`).join('; ') || 'Sem medicações ativas',
-        patient.ventilationParams ? `VM: ${patient.ventilationParams.modo} | PEEP: ${patient.ventilationParams.peep}cmH₂O` : 'Sem VM'
+        snapshot.medications.filter(m => m.ativo).map(m => `${m.nome} ${m.dose} ${m.unidade}`).join('; ') || 'Sem medicações ativas',
+        snapshot.ventilationParams ? `VM: ${snapshot.ventilationParams.modo} | PEEP: ${snapshot.ventilationParams.peep}cmH₂O` : 'Sem VM'
       ]
     },
     {
       titulo: "Exames Alterados",
-      nivel_alerta: patient.labResults.some(l => l.critico) ? 'red' : 'yellow',
-      itens: patient.labResults
+      nivel_alerta: snapshot.labResults.some(l => l.critico) ? 'red' : 'yellow',
+      itens: snapshot.labResults
         .filter(l => l.critico || (l.tipo === "lactato" && typeof l.valor === 'number' && l.valor > 2))
         .slice(0, 5)
         .map(l => `${l.nome}: ${l.valor} ${l.unidade} ${l.tendencia === 'subindo' ? '(↑)' : l.tendencia === 'caindo' ? '(↓)' : ''}`)
@@ -242,7 +300,7 @@ export function buildEvolucao24h(patientId: string): MicroDashboardPayload {
   return {
     tipo_dashboard: 'evolucao_24h',
     paciente_id: patientId,
-    titulo: `Evolução 24h • ${patient.leito} • ${patient.nome}`,
+    titulo: `Evolução 24h • ${snapshot.leito} • ${snapshot.nome}`,
     blocos,
     disclaimer: "Comparação com dados de 24h atrás. Valores aproximados."
   };
@@ -250,20 +308,23 @@ export function buildEvolucao24h(patientId: string): MicroDashboardPayload {
 
 /**
  * 3. Suporte Respiratório
+ * Usa snapshot para parâmetros atuais e history para tendências
  */
 export function buildSuporteRespiratorio(patientId: string): MicroDashboardPayload {
-  const patient = mockPatients.find(p => p.id === patientId);
-  if (!patient) {
+  const snapshot = getPatientSnapshotById(patientId);
+  const history = getPatientHistoryById(patientId);
+  
+  if (!snapshot) {
     throw new Error(`Paciente ${patientId} não encontrado`);
   }
 
-  const hasVM = !!patient.ventilationParams;
+  const hasVM = !!snapshot.ventilationParams;
   
   if (!hasVM) {
     return {
       tipo_dashboard: 'suporte_respiratorio',
       paciente_id: patientId,
-      titulo: `Suporte Respiratório • ${patient.leito} • ${patient.nome}`,
+      titulo: `Suporte Respiratório • ${snapshot.leito} • ${snapshot.nome}`,
       blocos: [{
         titulo: "Status",
         nivel_alerta: 'green',
@@ -273,7 +334,7 @@ export function buildSuporteRespiratorio(patientId: string): MicroDashboardPaylo
     };
   }
 
-  const vm = patient.ventilationParams!;
+  const vm = snapshot.ventilationParams!;
   const paO2FiO2 = vm.paO2FiO2 || 180;
   const pressaoSuporte = vm.pressaoSuporte || 0;
   const desmamePos = paO2FiO2 > 200 && pressaoSuporte <= 12 && vm.peep <= 8;
@@ -295,27 +356,24 @@ export function buildSuporteRespiratorio(patientId: string): MicroDashboardPaylo
     {
       titulo: "Tendência Ventilatória",
       nivel_alerta: 'yellow',
-      sparklines: [
-        {
-          nome: "FiO₂",
-          valor_atual: vm.fiO2,
-          unidade: "%",
-          pontos: generateSparklinePoints(vm.fiO2, 24, desmamePos ? 'down' : 'stable')
-        },
-        {
-          nome: "PEEP",
-          valor_atual: vm.peep,
-          unidade: "cmH₂O",
-          pontos: generateSparklinePoints(vm.peep, 24, desmamePos ? 'down' : 'stable')
-        }
-      ]
+      sparklines: history ? (() => {
+        const sparklines: SparklineSeries[] = [];
+        
+        const fio2Series = history.series_24h.find(s => s.key === 'fio2');
+        if (fio2Series) sparklines.push(timeSeriesToSparklineSeries(fio2Series, 'FiO₂'));
+        
+        const peepSeries = history.series_24h.find(s => s.key === 'peep');
+        if (peepSeries) sparklines.push(timeSeriesToSparklineSeries(peepSeries, 'PEEP'));
+        
+        return sparklines;
+      })() : undefined
     },
     {
       titulo: "Gasometria",
       nivel_alerta: paO2FiO2 < 200 ? 'red' : 'yellow',
       itens: [
         `PaO₂/FiO₂: ${paO2FiO2} (${paO2FiO2 < 200 ? 'Grave' : paO2FiO2 < 300 ? 'Moderada' : 'Leve'} SDRA)`,
-        `SpO₂: ${patient.vitalSigns.saturacaoO2}%`
+        `SpO₂: ${snapshot.vitalSigns.saturacaoO2}%`
       ]
     },
     {
@@ -325,8 +383,8 @@ export function buildSuporteRespiratorio(patientId: string): MicroDashboardPaylo
         desmamePos ? "✓ PaO₂/FiO₂ > 200" : "✗ PaO₂/FiO₂ < 200",
         pressaoSuporte <= 12 ? "✓ Pressão Suporte ≤ 12" : "✗ Pressão Suporte > 12",
         vm.peep <= 8 ? "✓ PEEP ≤ 8" : "✗ PEEP > 8",
-        patient.vitalSigns.frequenciaRespiratoria <= 40 ? "✓ FR ≤ 40" : "✗ FR > 40",
-        !patient.medications.some(m => m.tipo === "vasopressor" && m.ativo) ? "✓ Sem vasopressor" : "✗ Com vasopressor"
+        snapshot.vitalSigns.frequenciaRespiratoria <= 40 ? "✓ FR ≤ 40" : "✗ FR > 40",
+        !snapshot.medications.some(m => m.tipo === "vasopressor" && m.ativo) ? "✓ Sem vasopressor" : "✗ Com vasopressor"
       ]
     }
   ];
@@ -334,7 +392,7 @@ export function buildSuporteRespiratorio(patientId: string): MicroDashboardPaylo
   return {
     tipo_dashboard: 'suporte_respiratorio',
     paciente_id: patientId,
-    titulo: `Suporte Respiratório • ${patient.leito} • ${patient.nome}`,
+    titulo: `Suporte Respiratório • ${snapshot.leito} • ${snapshot.nome}`,
     blocos,
     disclaimer: "Avaliação clínica sempre necessária antes de iniciar desmame."
   };
@@ -342,26 +400,29 @@ export function buildSuporteRespiratorio(patientId: string): MicroDashboardPaylo
 
 /**
  * 4. Risco e Scores
+ * Usa snapshot para dados atuais e history para tendência de risco
  */
 export function buildRiscoScores(patientId: string): MicroDashboardPayload {
-  const patient = mockPatients.find(p => p.id === patientId);
-  if (!patient) {
+  const snapshot = getPatientSnapshotById(patientId);
+  const history = getPatientHistoryById(patientId);
+  
+  if (!snapshot) {
     throw new Error(`Paciente ${patientId} não encontrado`);
   }
 
-  const riskScore = calculateRiskScore(patient);
+  const riskScore = calculateRiskScoreFromSnapshot(snapshot);
   const riskLevel = riskLevelFromScore(riskScore);
-  const risk24h = Math.round(patient.riscoMortality24h * 100);
-  const risk7d = Math.round(patient.riscoMortality7d * 100);
+  const risk24h = Math.round(snapshot.riscoMortality24h * 100);
+  const risk7d = Math.round(snapshot.riscoMortality7d * 100);
   
   const fatoresRisco: string[] = [];
-  if (patient.vitalSigns.pressaoArterialMedia < 55) fatoresRisco.push("Hipotensão (PAM < 55)");
-  if (patient.vitalSigns.saturacaoO2 < 92) fatoresRisco.push("Hipoxemia grave");
-  if (patient.medications.some(m => m.tipo === "vasopressor" && m.ativo)) fatoresRisco.push("Uso de vasopressor");
-  const lactato = patient.labResults.find(l => l.tipo === "lactato");
+  if (snapshot.vitalSigns.pressaoArterialMedia < 55) fatoresRisco.push("Hipotensão (PAM < 55)");
+  if (snapshot.vitalSigns.saturacaoO2 < 92) fatoresRisco.push("Hipoxemia grave");
+  if (snapshot.medications.some(m => m.tipo === "vasopressor" && m.ativo)) fatoresRisco.push("Uso de vasopressor");
+  const lactato = snapshot.labResults.find(l => l.tipo === "lactato");
   if (lactato && typeof lactato.valor === "number" && lactato.valor > 3) fatoresRisco.push(`Lactato elevado (${lactato.valor})`);
-  if (patient.fluidBalance.diurese < 1) fatoresRisco.push("Oligúria");
-  if (!!patient.ventilationParams) fatoresRisco.push("Ventilação mecânica");
+  if (snapshot.fluidBalance.diurese < 1) fatoresRisco.push("Oligúria");
+  if (!!snapshot.ventilationParams) fatoresRisco.push("Ventilação mecânica");
   
   const blocos: DashboardBlock[] = [
     {
@@ -372,14 +433,7 @@ export function buildRiscoScores(patientId: string): MicroDashboardPayload {
         `Risco 7d: ${risk7d}%`,
         `Score Calculado: ${(riskScore * 100).toFixed(0)}%`
       ],
-      sparklines: [
-        {
-          nome: "Risco 24h",
-          valor_atual: risk24h,
-          unidade: "%",
-          pontos: generateSparklinePoints(risk24h, 24, risk24h >= 60 ? 'up' : 'down')
-        }
-      ]
+      sparklines: undefined // Risco não tem série temporal direta, mas pode ser calculado
     },
     {
       titulo: "Risco Estimado",
@@ -400,7 +454,7 @@ export function buildRiscoScores(patientId: string): MicroDashboardPayload {
   return {
     tipo_dashboard: 'risco_scores',
     paciente_id: patientId,
-    titulo: `Risco e Scores • ${patient.leito} • ${patient.nome}`,
+    titulo: `Risco e Scores • ${snapshot.leito} • ${snapshot.nome}`,
     blocos,
     disclaimer: "Scores são estimativas baseadas em modelos preditivos. Não substituem avaliação clínica."
   };
@@ -408,24 +462,27 @@ export function buildRiscoScores(patientId: string): MicroDashboardPayload {
 
 /**
  * 5. Antibiótico / Infecção
+ * Usa snapshot para dados atuais e history para tendência de PCR
  */
 export function buildAntibioticoInfeccao(patientId: string): MicroDashboardPayload {
-  const patient = mockPatients.find(p => p.id === patientId);
-  if (!patient) {
+  const snapshot = getPatientSnapshotById(patientId);
+  const history = getPatientHistoryById(patientId);
+  
+  if (!snapshot) {
     throw new Error(`Paciente ${patientId} não encontrado`);
   }
 
-  const antibioticos = patient.medications.filter(m => m.tipo === "antibiotico" && m.ativo);
-  const pcr = patient.labResults.find(l => l.tipo === "pcr");
-  const leucocitos = patient.labResults.find(l => l.tipo === "hemograma");
-  const culturas = patient.labResults.filter(l => l.nome.toLowerCase().includes("cultura"));
+  const antibioticos = snapshot.medications.filter(m => m.tipo === "antibiotico" && m.ativo);
+  const pcr = snapshot.labResults.find(l => l.tipo === "pcr");
+  const leucocitos = snapshot.labResults.find(l => l.tipo === "hemograma");
+  const culturas = snapshot.labResults.filter(l => l.nome.toLowerCase().includes("cultura"));
   
   const blocos: DashboardBlock[] = [
     {
       titulo: "Diagnóstico Infeccioso",
       nivel_alerta: antibioticos.length > 0 ? 'yellow' : 'green',
-      texto: patient.diagnosticoPrincipal.includes("infecc") || patient.diagnosticoPrincipal.includes("sepse")
-        ? patient.diagnosticoPrincipal
+      texto: snapshot.diagnosticoPrincipal.includes("infecc") || snapshot.diagnosticoPrincipal.includes("sepse")
+        ? snapshot.diagnosticoPrincipal
         : "Sem diagnóstico infeccioso principal documentado."
     },
     {
@@ -449,14 +506,10 @@ export function buildAntibioticoInfeccao(patientId: string): MicroDashboardPaylo
         pcr ? `PCR: ${pcr.valor} ${pcr.unidade || 'mg/L'}` : "PCR: Não disponível",
         leucocitos ? `Leucócitos: ${leucocitos.valor} ${leucocitos.unidade || ''}` : "Leucócitos: Não disponível"
       ],
-      sparklines: pcr && typeof pcr.valor === 'number' ? [
-        {
-          nome: "PCR",
-          valor_atual: pcr.valor,
-          unidade: pcr.unidade || "mg/L",
-          pontos: generateSparklinePoints(pcr.valor, 48, pcr.tendencia === 'subindo' ? 'up' : pcr.tendencia === 'caindo' ? 'down' : 'stable')
-        }
-      ] : undefined
+      sparklines: history ? (() => {
+        const pcrSeries = history.series_72h.find(s => s.key === 'pcr');
+        return pcrSeries ? [timeSeriesToSparklineSeries(pcrSeries, 'PCR')] : undefined;
+      })() : undefined
     }
   ];
 
@@ -473,7 +526,7 @@ export function buildAntibioticoInfeccao(patientId: string): MicroDashboardPaylo
   return {
     tipo_dashboard: 'antibiotico_infeccao',
     paciente_id: patientId,
-    titulo: `Antibiótico / Infecção • ${patient.leito} • ${patient.nome}`,
+    titulo: `Antibiótico / Infecção • ${snapshot.leito} • ${snapshot.nome}`,
     blocos,
     disclaimer: "Recomendações baseadas em protocolos. Sempre revisar com farmácia clínica."
   };
@@ -481,22 +534,23 @@ export function buildAntibioticoInfeccao(patientId: string): MicroDashboardPaylo
 
 /**
  * 6. Resumo para Família
+ * Usa snapshot para dados atuais
  */
 export function buildResumoFamilia(patientId: string): MicroDashboardPayload {
-  const patient = mockPatients.find(p => p.id === patientId);
-  if (!patient) {
+  const snapshot = getPatientSnapshotById(patientId);
+  if (!snapshot) {
     throw new Error(`Paciente ${patientId} não encontrado`);
   }
 
-  const riskPercent = Math.round(patient.riscoMortality24h * 100);
-  const hasVM = !!patient.ventilationParams;
-  const hasVaso = patient.medications.some(m => m.tipo === "vasopressor" && m.ativo);
+  const riskPercent = Math.round(snapshot.riscoMortality24h * 100);
+  const hasVM = !!snapshot.ventilationParams;
+  const hasVaso = snapshot.medications.some(m => m.tipo === "vasopressor" && m.ativo);
   
   const situacao = riskPercent >= 60
-    ? `${patient.nome} está em situação grave e requer cuidados intensivos. A equipe está monitorando de perto.`
+    ? `${snapshot.nome} está em situação grave e requer cuidados intensivos. A equipe está monitorando de perto.`
     : riskPercent >= 30
-    ? `${patient.nome} está estável mas requer monitorização constante. A equipe está acompanhando a evolução.`
-    : `${patient.nome} está estável e apresentando melhora. A equipe continua acompanhando.`;
+    ? `${snapshot.nome} está estável mas requer monitorização constante. A equipe está acompanhando a evolução.`
+    : `${snapshot.nome} está estável e apresentando melhora. A equipe continua acompanhando.`;
 
   const mudancas = [
     hasVM ? "Está com suporte respiratório (respirador) para ajudar na respiração." : "Respiração estável.",
@@ -513,7 +567,7 @@ export function buildResumoFamilia(patientId: string): MicroDashboardPayload {
   return {
     tipo_dashboard: 'resumo_familia',
     paciente_id: patientId,
-    titulo: `Resumo para a Família • ${patient.leito} • ${patient.nome}`,
+    titulo: `Resumo para a Família • ${snapshot.leito} • ${snapshot.nome}`,
     blocos: [
       {
         titulo: "Situação Geral",

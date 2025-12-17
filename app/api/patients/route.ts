@@ -1,6 +1,23 @@
 import { NextResponse } from "next/server";
-import { mockPatients } from "@/lib/mockData";
+import { patientsIndex } from "@/lib/mockPatients";
 
+/**
+ * GET /api/patients
+ * Retorna SOMENTE o índice leve de pacientes (sem dados completos)
+ * Performance: rápido, payload mínimo
+ */
 export async function GET() {
-  return NextResponse.json({ patients: mockPatients });
+  try {
+    return NextResponse.json({
+      patients: patientsIndex,
+      count: patientsIndex.length,
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error("Error fetching patients index:", error);
+    return NextResponse.json(
+      { error: "Erro ao buscar pacientes" },
+      { status: 500 }
+    );
+  }
 }
