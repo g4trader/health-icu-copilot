@@ -60,6 +60,24 @@ export function riskLevelFromScore(score: number): RiskLevel {
 }
 
 // Mock de pacientes pediátricos (versão original com novos tipos)
+// 
+// PERFIS CLÍNICOS (trajetórias esperadas):
+// p1 (Sophia): Bronquiolite grave, VM + vaso
+//   D0-D2: Piora progressiva respiratória, aumento FiO2/PEEP, lactato/PCR em subida, noradrenalina crescente
+//   D3-D6: Estabilização hemodinâmica, lenta melhora SpO2/PaO2/FiO2, lactato em queda
+//   D7-D10: Desmame ventilatório progressivo, retirada vasopressor, labs normalizando
+//   Alta UTI: D10-D12
+//
+// p2 (Gabriel): Pneumonia + derrame drenado
+//   Estadia curta (3-5 dias), rápida resposta a antibiótico e drenagem
+//   PCR cai acentuadamente, radiografia melhora, sem vasopressor prolongado
+//
+// p3 (Isabella): Sepse abdominal pós-op complicada
+//   D0-D3: Choque séptico, lactato alto, PAM baixa, vasopressor moderado/alto
+//   D4-D7: Resposta parcial, flutuações PAM/lactato (plateau)
+//   D8-D12: Franca melhora, redução vaso, função renal voltando
+//   Possível complicação pontual (nova febre, ajuste antibiótico)
+//
 const mockPatientsRaw: Patient[] = [
   {
     id: "p1",
@@ -131,19 +149,120 @@ const mockPatientsRaw: Patient[] = [
       ultimaAtualizacao: "2025-11-26T09:10:00Z"
     },
     labResults: [
+      // Lactato: série evolutiva (D0: subindo, D1-D2: pico, D3-D4: caindo)
       {
-        id: "l1",
+        id: "p1-lactato-1",
+        tipo: "lactato",
+        nome: "Lactato",
+        valor: 2.8,
+        unidade: "mmol/L",
+        referencia: "< 2.0",
+        data: "2025-11-22T08:00:00Z", // D1
+        tendencia: "subindo",
+        critico: true
+      },
+      {
+        id: "p1-lactato-2",
+        tipo: "lactato",
+        nome: "Lactato",
+        valor: 3.5,
+        unidade: "mmol/L",
+        referencia: "< 2.0",
+        data: "2025-11-23T08:00:00Z", // D2
+        tendencia: "subindo",
+        critico: true
+      },
+      {
+        id: "p1-lactato-3",
+        tipo: "lactato",
+        nome: "Lactato",
+        valor: 4.2,
+        unidade: "mmol/L",
+        referencia: "< 2.0",
+        data: "2025-11-24T08:00:00Z", // D3 (pico)
+        tendencia: "estavel",
+        critico: true
+      },
+      {
+        id: "p1-lactato-4",
         tipo: "lactato",
         nome: "Lactato",
         valor: 3.8,
         unidade: "mmol/L",
         referencia: "< 2.0",
-        data: "2025-11-26T08:30:00Z",
+        data: "2025-11-25T08:00:00Z", // D4
+        tendencia: "caindo",
+        critico: true
+      },
+      {
+        id: "p1-lactato-5",
+        tipo: "lactato",
+        nome: "Lactato",
+        valor: 3.2,
+        unidade: "mmol/L",
+        referencia: "< 2.0",
+        data: "2025-11-26T08:30:00Z", // D5 (atual)
+        tendencia: "caindo",
+        critico: true
+      },
+      // PCR: série evolutiva
+      {
+        id: "p1-pcr-1",
+        tipo: "pcr",
+        nome: "Proteína C Reativa",
+        valor: 180,
+        unidade: "mg/L",
+        referencia: "< 3.0",
+        data: "2025-11-23T08:00:00Z",
         tendencia: "subindo",
         critico: true
       },
       {
-        id: "l2",
+        id: "p1-pcr-2",
+        tipo: "pcr",
+        nome: "Proteína C Reativa",
+        valor: 220,
+        unidade: "mg/L",
+        referencia: "< 3.0",
+        data: "2025-11-24T08:00:00Z",
+        tendencia: "subindo",
+        critico: true
+      },
+      {
+        id: "p1-pcr-3",
+        tipo: "pcr",
+        nome: "Proteína C Reativa",
+        valor: 195,
+        unidade: "mg/L",
+        referencia: "< 3.0",
+        data: "2025-11-25T08:00:00Z",
+        tendencia: "caindo",
+        critico: true
+      },
+      {
+        id: "p1-pcr-4",
+        tipo: "pcr",
+        nome: "Proteína C Reativa",
+        valor: 165,
+        unidade: "mg/L",
+        referencia: "< 3.0",
+        data: "2025-11-26T08:00:00Z",
+        tendencia: "caindo",
+        critico: true
+      },
+      // Hemograma
+      {
+        id: "p1-hemograma-1",
+        tipo: "hemograma",
+        nome: "Hemograma completo",
+        valor: "Leucocitose com desvio",
+        unidade: "células/mm³",
+        referencia: "5.000-15.000",
+        data: "2025-11-24T08:00:00Z",
+        critico: true
+      },
+      {
+        id: "p1-hemograma-2",
         tipo: "hemograma",
         nome: "Hemograma completo",
         valor: "Leucocitose",
@@ -224,22 +343,90 @@ const mockPatientsRaw: Patient[] = [
       ultimaAtualizacao: "2025-11-26T09:05:00Z"
     },
     labResults: [
+      // Lactato: série com rápida melhora (resposta a antibiótico)
       {
-        id: "l3",
+        id: "p2-lactato-1",
+        tipo: "lactato",
+        nome: "Lactato",
+        valor: 2.8,
+        unidade: "mmol/L",
+        referencia: "< 2.0",
+        data: "2025-11-23T08:00:00Z", // D1
+        tendencia: "subindo",
+        critico: true
+      },
+      {
+        id: "p2-lactato-2",
+        tipo: "lactato",
+        nome: "Lactato",
+        valor: 2.9,
+        unidade: "mmol/L",
+        referencia: "< 2.0",
+        data: "2025-11-24T08:00:00Z", // D2
+        tendencia: "estavel",
+        critico: true
+      },
+      {
+        id: "p2-lactato-3",
         tipo: "lactato",
         nome: "Lactato",
         valor: 2.5,
         unidade: "mmol/L",
         referencia: "< 2.0",
-        data: "2025-11-26T08:00:00Z",
+        data: "2025-11-25T08:00:00Z", // D3
         tendencia: "caindo",
         critico: true
       },
       {
-        id: "l4",
+        id: "p2-lactato-4",
+        tipo: "lactato",
+        nome: "Lactato",
+        valor: 1.8,
+        unidade: "mmol/L",
+        referencia: "< 2.0",
+        data: "2025-11-26T08:00:00Z", // D4 (atual)
+        tendencia: "caindo",
+        critico: false
+      },
+      // PCR: queda acentuada (resposta rápida)
+      {
+        id: "p2-pcr-1",
+        tipo: "pcr",
+        nome: "Proteína C Reativa",
+        valor: 280,
+        unidade: "mg/L",
+        referencia: "< 3.0",
+        data: "2025-11-23T08:00:00Z",
+        tendencia: "subindo",
+        critico: true
+      },
+      {
+        id: "p2-pcr-2",
+        tipo: "pcr",
+        nome: "Proteína C Reativa",
+        valor: 240,
+        unidade: "mg/L",
+        referencia: "< 3.0",
+        data: "2025-11-24T08:00:00Z",
+        tendencia: "caindo",
+        critico: true
+      },
+      {
+        id: "p2-pcr-3",
         tipo: "pcr",
         nome: "Proteína C Reativa",
         valor: 180,
+        unidade: "mg/L",
+        referencia: "< 3.0",
+        data: "2025-11-25T08:00:00Z",
+        tendencia: "caindo",
+        critico: true
+      },
+      {
+        id: "p2-pcr-4",
+        tipo: "pcr",
+        nome: "Proteína C Reativa",
+        valor: 120,
         unidade: "mg/L",
         referencia: "< 3.0",
         data: "2025-11-26T08:00:00Z",
@@ -319,22 +506,135 @@ const mockPatientsRaw: Patient[] = [
       }
     ],
     labResults: [
+      // Lactato: pico inicial, depois plateau e queda
       {
-        id: "l5",
+        id: "p3-lactato-1",
+        tipo: "lactato",
+        nome: "Lactato",
+        valor: 3.8,
+        unidade: "mmol/L",
+        referencia: "< 2.0",
+        data: "2025-11-24T08:00:00Z", // D1
+        tendencia: "subindo",
+        critico: true
+      },
+      {
+        id: "p3-lactato-2",
         tipo: "lactato",
         nome: "Lactato",
         valor: 4.5,
         unidade: "mmol/L",
         referencia: "< 2.0",
-        data: "2025-11-26T08:00:00Z",
+        data: "2025-11-25T08:00:00Z", // D2 (pico)
         tendencia: "subindo",
         critico: true
       },
       {
-        id: "l6",
+        id: "p3-lactato-3",
+        tipo: "lactato",
+        nome: "Lactato",
+        valor: 4.4,
+        unidade: "mmol/L",
+        referencia: "< 2.0",
+        data: "2025-11-25T20:00:00Z", // D2 tarde (plateau)
+        tendencia: "estavel",
+        critico: true
+      },
+      {
+        id: "p3-lactato-4",
+        tipo: "lactato",
+        nome: "Lactato",
+        valor: 3.5,
+        unidade: "mmol/L",
+        referencia: "< 2.0",
+        data: "2025-11-26T08:00:00Z", // D3 (começa a cair)
+        tendencia: "caindo",
+        critico: true
+      },
+      // PCR: evolução típica de sepse
+      {
+        id: "p3-pcr-1",
+        tipo: "pcr",
+        nome: "Proteína C Reativa",
+        valor: 250,
+        unidade: "mg/L",
+        referencia: "< 3.0",
+        data: "2025-11-24T08:00:00Z",
+        tendencia: "subindo",
+        critico: true
+      },
+      {
+        id: "p3-pcr-2",
+        tipo: "pcr",
+        nome: "Proteína C Reativa",
+        valor: 280,
+        unidade: "mg/L",
+        referencia: "< 3.0",
+        data: "2025-11-25T08:00:00Z",
+        tendencia: "subindo",
+        critico: true
+      },
+      {
+        id: "p3-pcr-3",
+        tipo: "pcr",
+        nome: "Proteína C Reativa",
+        valor: 220,
+        unidade: "mg/L",
+        referencia: "< 3.0",
+        data: "2025-11-26T08:00:00Z",
+        tendencia: "caindo",
+        critico: true
+      },
+      // Função renal: pico e depois melhora
+      {
+        id: "p3-creatinina-1",
+        tipo: "funcao_renal",
+        nome: "Creatinina",
+        valor: 1.2,
+        unidade: "mg/dL",
+        referencia: "0.3-1.0",
+        data: "2025-11-24T08:00:00Z",
+        tendencia: "subindo",
+        critico: true
+      },
+      {
+        id: "p3-creatinina-2",
+        tipo: "funcao_renal",
+        nome: "Creatinina",
+        valor: 1.5,
+        unidade: "mg/dL",
+        referencia: "0.3-1.0",
+        data: "2025-11-25T08:00:00Z",
+        tendencia: "subindo",
+        critico: true
+      },
+      {
+        id: "p3-creatinina-3",
+        tipo: "funcao_renal",
+        nome: "Creatinina",
+        valor: 1.3,
+        unidade: "mg/dL",
+        referencia: "0.3-1.0",
+        data: "2025-11-26T08:00:00Z",
+        tendencia: "caindo",
+        critico: true
+      },
+      // Hemograma
+      {
+        id: "p3-hemograma-1",
         tipo: "hemograma",
         nome: "Hemograma completo",
         valor: "Leucocitose com desvio",
+        unidade: "células/mm³",
+        referencia: "5.000-15.000",
+        data: "2025-11-25T08:00:00Z",
+        critico: true
+      },
+      {
+        id: "p3-hemograma-2",
+        tipo: "hemograma",
+        nome: "Hemograma completo",
+        valor: "Leucocitose",
         unidade: "células/mm³",
         referencia: "5.000-15.000",
         data: "2025-11-26T08:00:00Z",
@@ -739,16 +1039,95 @@ const mockPatientsRaw: Patient[] = [
       ultimaAtualizacao: "2025-11-26T08:35:00Z"
     },
     labResults: [
+      // Lactato: leve elevação inicial, rápida normalização
       {
-        id: "l12",
+        id: "p8-lactato-1",
+        tipo: "lactato",
+        nome: "Lactato",
+        valor: 2.5,
+        unidade: "mmol/L",
+        referencia: "< 2.0",
+        data: "2025-11-22T08:00:00Z",
+        tendencia: "subindo",
+        critico: true
+      },
+      {
+        id: "p8-lactato-2",
+        tipo: "lactato",
+        nome: "Lactato",
+        valor: 2.3,
+        unidade: "mmol/L",
+        referencia: "< 2.0",
+        data: "2025-11-23T08:00:00Z",
+        tendencia: "caindo",
+        critico: true
+      },
+      {
+        id: "p8-lactato-3",
         tipo: "lactato",
         nome: "Lactato",
         valor: 2.0,
         unidade: "mmol/L",
         referencia: "< 2.0",
+        data: "2025-11-24T08:00:00Z",
+        tendencia: "caindo",
+        critico: false
+      },
+      {
+        id: "p8-lactato-4",
+        tipo: "lactato",
+        nome: "Lactato",
+        valor: 1.8,
+        unidade: "mmol/L",
+        referencia: "< 2.0",
         data: "2025-11-26T08:00:00Z",
         tendencia: "caindo",
         critico: false
+      },
+      // PCR: queda acentuada após drenagem
+      {
+        id: "p8-pcr-1",
+        tipo: "pcr",
+        nome: "Proteína C Reativa",
+        valor: 220,
+        unidade: "mg/L",
+        referencia: "< 3.0",
+        data: "2025-11-22T08:00:00Z",
+        tendencia: "subindo",
+        critico: true
+      },
+      {
+        id: "p8-pcr-2",
+        tipo: "pcr",
+        nome: "Proteína C Reativa",
+        valor: 180,
+        unidade: "mg/L",
+        referencia: "< 3.0",
+        data: "2025-11-23T08:00:00Z",
+        tendencia: "caindo",
+        critico: true
+      },
+      {
+        id: "p8-pcr-3",
+        tipo: "pcr",
+        nome: "Proteína C Reativa",
+        valor: 120,
+        unidade: "mg/L",
+        referencia: "< 3.0",
+        data: "2025-11-24T08:00:00Z",
+        tendencia: "caindo",
+        critico: true
+      },
+      {
+        id: "p8-pcr-4",
+        tipo: "pcr",
+        nome: "Proteína C Reativa",
+        valor: 85,
+        unidade: "mg/L",
+        referencia: "< 3.0",
+        data: "2025-11-26T08:00:00Z",
+        tendencia: "caindo",
+        critico: true
       }
     ]
   },

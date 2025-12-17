@@ -456,10 +456,9 @@ async function handleFocusedPatientIntent(
     try {
       const dailyEvolution = getDailyStatus(focusedPatientId);
       
-      // Gerar últimos 3 exames de imagem para o paciente (mock determinístico)
-      // Por enquanto, geramos apenas 1 exame recente - pode ser estendido para gerar 3
-      const radiologyReport = buildRadiologyReport(p);
-      const radiologyReports: RadiologyReportSummary[] = [radiologyReport.summary];
+      // Gerar série de exames de imagem ao longo do tempo para o paciente
+      const { getRadiologyReportSeriesForPatient } = await import("@/lib/radiologyReportSeries");
+      const radiologyReports = getRadiologyReportSeriesForPatient(p);
       
       const llmAnswer = await getLlmPatientAnswer(p, dailyEvolution, mockUnitProfile, message, radiologyReports);
       
