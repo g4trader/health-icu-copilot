@@ -42,12 +42,9 @@ export function PatientCard({
     <div
       onClick={handleCardClick}
       className={`
+        detail-card
         w-full
         p-5
-        bg-white
-        border rounded-2xl
-        border-slate-200
-        shadow-sm
         text-left
         transition-all
         hover:shadow-md hover:border-slate-300
