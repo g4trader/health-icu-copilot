@@ -80,6 +80,16 @@ export function PatientCard({
           VM: {hasVM ? "Sim" : "Não"} <span className="text-slate-400">•</span> Vasopressor: {hasVaso ? "Sim" : "Não"}
         </p>
       </div>
+
+      {/* Botão Ver paciente */}
+      <div className="mt-3 pt-3 border-t border-slate-200">
+        <button
+          onClick={handleCardClick}
+          className="w-full px-4 py-2 bg-blue-50 hover:bg-blue-100 text-blue-700 font-medium rounded-lg transition-colors text-sm"
+        >
+          Ver paciente
+        </button>
+      </div>
     </div>
   );
 }
