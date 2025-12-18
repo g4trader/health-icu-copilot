@@ -81,7 +81,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 2. Verificar se é um comando de voz (navegação de paciente)
+    // 2. Verificar se é um comando de voz (navegação de paciente ou atualização de parecer)
     const voiceCommand = detectVoiceCommand(transcribedText);
     console.log("[API] Comando detectado:", voiceCommand);
 
@@ -94,6 +94,20 @@ export async function POST(request: NextRequest) {
           bed: voiceCommand.bed,
         },
       });
+    }
+
+    // Se for comando de atualização de parecer, verificar se há paciente ativo
+    // Se não houver, retornar erro; se houver, seguir com LLM normalmente
+    if (voiceCommand.type === "update-opinion") {
+      // Verificar se há contexto de paciente
+      if (!patientContext.patientId && !patientContext.bed) {
+        return NextResponse.json({
+          text: transcribedText,
+          error: "Para atualizar o parecer, é necessário ter um paciente selecionado primeiro.",
+        });
+      }
+      // Se houver paciente, seguir com o fluxo normal (chamar LLM)
+      // O comando será processado no frontend para garantir que só atualiza parecer
     }
 
     // 3. Se não for comando, seguir fluxo normal: enviar texto para LLM API para parsing

@@ -640,13 +640,19 @@ export default function HomePage() {
   }, [handleSend]);
 
   // Handler para resultado de nota de voz (pode ser comando ou nota clínica)
-  const handleVoiceNoteResult = useCallback((result: { text: string; structured?: any; command?: any }) => {
-    // Verificar se é um comando de navegação
+  const handleVoiceNoteResult = useCallback((result: { text: string; structured?: any; command?: any; error?: string }) => {
+    // Verificar se há erro na resposta
+    if (result.error) {
+      handleSend(result.error);
+      return;
+    }
+
+    // Verificar se é um comando de navegação de paciente
     if (result.command && result.command.type === "select-patient") {
       const bedNumber = result.command.bed;
       console.log("[handleVoiceNoteResult] Comando de seleção detectado:", { bed: bedNumber });
       
-      // IMPORTANTE: Para comandos, apenas mudar o foco do paciente
+      // IMPORTANTE: Para comandos de seleção, apenas abrir o drawer do paciente
       // NÃO chamar LLM, NÃO atualizar voiceNoteSummary, NÃO atualizar snapshots
       
       // Buscar paciente pelo leito
@@ -662,6 +668,7 @@ export default function HomePage() {
         // Definir como paciente ativo
         setActivePatientId(patientByBed.id);
         // Abrir o overview completo do paciente (mesmo comportamento do clique no card)
+        // Isso abre o drawer com o quadro clínico completo, não apenas o parecer
         openPatientPreviewDrawer(patientByBed.id);
         // Mensagem já foi adicionada no ChatInput: "Comando de voz: mostrando paciente do leito X"
         // Não fazer mais nada - encerrar o fluxo aqui
@@ -673,8 +680,18 @@ export default function HomePage() {
         return; // Encerrar fluxo mesmo se não encontrou
       }
     }
+
+    // Verificar se é comando de atualização de parecer
+    const isUpdateOpinionCommand = result.command && result.command.type === "update-opinion";
     
-    // Se não for comando, processar como nota clínica normal
+    // Se não for comando de parecer E não houver paciente ativo, não processar
+    if (!isUpdateOpinionCommand && !activePatientId && !result.structured?.patientId && !result.structured?.bed) {
+      console.warn("[handleVoiceNoteResult] Nota de voz recebida sem paciente ativo e sem comando de parecer");
+      handleSend("Por favor, selecione um paciente primeiro ou use um comando de voz (ex: 'parecer do paciente...').");
+      return;
+    }
+    
+    // Se não for comando de seleção, processar como nota clínica ou parecer
     const { structured } = result;
     
     if (!structured) {
@@ -682,14 +699,17 @@ export default function HomePage() {
       return;
     }
     
-    console.log("[handleVoiceNoteResult] Dados recebidos:", { structured, text: result.text });
+    console.log("[handleVoiceNoteResult] Dados recebidos:", { structured, text: result.text, isUpdateOpinionCommand });
     
     // Priorizar patientId do structured (mais confiável que extrair do texto)
-    let targetPatientId = structured.patientId || activePatientId;
+    // Para comandos de parecer, usar SEMPRE o paciente ativo
+    let targetPatientId = isUpdateOpinionCommand 
+      ? activePatientId 
+      : (structured.patientId || activePatientId);
     let targetPatient = targetPatientId ? mockPatients.find(p => p.id === targetPatientId) : activePatient;
     
-    // Se não encontrou por ID, tentar por leito
-    if (!targetPatient && structured.bed) {
+    // Se não encontrou por ID, tentar por leito (mas não para comandos de parecer)
+    if (!targetPatient && !isUpdateOpinionCommand && structured.bed) {
       const bedStr = String(structured.bed).padStart(2, '0');
       const patientByBed = mockPatients.find(p => 
         p.leito.includes(bedStr) || 
@@ -712,17 +732,20 @@ export default function HomePage() {
       console.warn("Não foi possível identificar o paciente para atualizar com a nota de voz", {
         structuredBed: structured.bed,
         structuredPatientId: structured.patientId,
-        activePatientId
+        activePatientId,
+        isUpdateOpinionCommand
       });
+      handleSend("Por favor, selecione um paciente primeiro antes de atualizar o parecer.");
       return;
     }
     
-    console.log("[handleVoiceNoteResult] Paciente identificado:", { targetPatientId, patientName: targetPatient.nome });
+    console.log("[handleVoiceNoteResult] Paciente identificado:", { targetPatientId, patientName: targetPatient.nome, isUpdateOpinionCommand });
     
     // Processar nota de voz (inclui geração do resumo)
+    // Para comandos de parecer, só atualizar o voiceNoteSummary, não outros dados
     const { event, updates, summary } = processVoiceNote(targetPatientId, structured, result.text, targetPatient);
     
-    if (event) {
+    if (event && !isUpdateOpinionCommand) {
       console.log("Evento de nota de voz adicionado:", event);
     }
     
@@ -731,7 +754,12 @@ export default function HomePage() {
       // Atualizar o paciente no array mockPatients para que o componente re-renderize
       const patientIndex = mockPatients.findIndex(p => p.id === targetPatientId);
       if (patientIndex >= 0) {
-        Object.assign(mockPatients[patientIndex], updates);
+        // Se for comando de parecer, só atualizar o voiceNoteSummary
+        if (isUpdateOpinionCommand) {
+          mockPatients[patientIndex].voiceNoteSummary = updates.voiceNoteSummary || summary || undefined;
+        } else {
+          Object.assign(mockPatients[patientIndex], updates);
+        }
         // Forçar re-render atualizando o estado do paciente ativo
         setActivePatientId(targetPatientId); // Isso força re-render
       }
@@ -741,7 +769,7 @@ export default function HomePage() {
     if (!activePatientId && targetPatientId) {
       setActivePatientId(targetPatientId);
     }
-  }, [activePatientId, activePatient, showPatientOverviewInline, handleSend, openPatientPreviewDrawer]);
+  }, [activePatientId, activePatient, handleSend, openPatientPreviewDrawer]);
 
   return (
     <div className="app-wrapper">

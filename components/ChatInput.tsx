@@ -15,7 +15,7 @@ interface ChatInputProps {
   onAgentChange: (agent: ClinicalAgentType) => void;
   patients?: Patient[];
   onSelectPatientFromUI?: (patientId: string) => void;
-  onVoiceResult?: (result: { text: string; structured?: any; command?: any }) => void;
+  onVoiceResult?: (result: { text: string; structured?: any; command?: any; error?: string }) => void;
   activePatientId?: string | null;
 }
 
@@ -197,17 +197,37 @@ export function ChatInput({
       
       const data = await response.json();
       
-      // Verificar se é um comando de voz (navegação)
-      if (data.command && data.command.type === "select-patient") {
-        // Comando de navegação - apenas mudar foco, não processar como nota clínica
-        console.log("[ChatInput] Comando de voz detectado, apenas mudando foco do paciente");
-        
-        // Adicionar mensagem no chat informando o comando
-        onSend(`Comando de voz: mostrando paciente do leito ${data.command.bed}.`);
-        
-        // Chamar handler para mudar foco do paciente (sem processar como nota clínica)
+      // Verificar se é um comando de voz (navegação ou atualização de parecer)
+      if (data.command) {
+        if (data.command.type === "select-patient") {
+          // Comando de navegação - apenas mudar foco, não processar como nota clínica
+          console.log("[ChatInput] Comando de seleção de paciente detectado");
+          
+          // Adicionar mensagem no chat informando o comando
+          onSend(`Comando de voz: mostrando paciente do leito ${data.command.bed}.`);
+          
+          // Chamar handler para mudar foco do paciente (sem processar como nota clínica)
+          if (onVoiceResult) {
+            onVoiceResult({ text: data.text, command: data.command });
+          }
+        } else if (data.command.type === "update-opinion") {
+          // Comando de atualização de parecer - processar normalmente
+          console.log("[ChatInput] Comando de atualização de parecer detectado");
+          
+          if (data.structured) {
+            if (onVoiceResult) {
+              onVoiceResult({ text: data.text, structured: data.structured, command: data.command });
+            }
+            if (data.text) {
+              onSend(`Parecer atualizado: ${data.text}`);
+            }
+          }
+        }
+      } else if (data.error) {
+        // Erro na API (ex: tentou atualizar parecer sem paciente selecionado)
+        onSend(data.error);
         if (onVoiceResult) {
-          onVoiceResult({ text: data.text, command: data.command });
+          onVoiceResult({ text: data.text, error: data.error });
         }
       } else if (data.structured) {
         // Nota clínica normal
