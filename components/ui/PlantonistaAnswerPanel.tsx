@@ -58,8 +58,9 @@ export function PlantonistaAnswerPanel({
   };
 
   // Buscar paciente e dailyStatus se houver focusPayload
+  // IMPORTANTE: Sempre buscar do array mockPatients para ter versão mais recente com voiceNoteSummary
   const patient = content.focusPayload?.patientId 
-    ? mockPatients.find(p => p.id === content.focusPayload!.patientId)
+    ? mockPatients.find(p => p.id === content.focusPayload!.patientId) || null
     : null;
   const dailyStatus = patient ? getRecentDailyStatus(patient.id, 14) : [];
 
@@ -142,11 +143,15 @@ export function PlantonistaAnswerPanel({
       )}
 
       {/* Andar 4: Parecer resumido - dentro de card */}
-      {content.plainTextAnswer && (
-        <section className="plantonista-section plantonista-section-opinion">
+      {/* Priorizar voiceNoteSummary do paciente se disponível, senão usar plainTextAnswer */}
+      {(patient?.voiceNoteSummary || content.plainTextAnswer) && (
+        <section 
+          className="plantonista-section plantonista-section-opinion"
+          key={`parecer-${patient?.id || 'default'}-${patient?.voiceNoteSummary?.substring(0, 20) || 'default'}`}
+        >
           <div className="plantonista-opinion-card">
             <h3 className="plantonista-section-title">Parecer do Plantonista</h3>
-            <OpinionBullets text={content.plainTextAnswer} />
+            <OpinionBullets text={patient?.voiceNoteSummary || content.plainTextAnswer || ''} />
           </div>
         </section>
       )}
