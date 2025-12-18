@@ -2,6 +2,7 @@
 
 import type { Patient } from "@/types/Patient";
 import { PatientPinButton } from "@/components/PatientPinButton";
+import { usePreview } from "@/components/PreviewProvider";
 
 interface PatientCardProps {
   patient: Patient;
@@ -28,6 +29,7 @@ export function PatientCard({
   className = "",
 }: PatientCardProps) {
   const riskPercent = Math.round(patient.riscoMortality24h * 100);
+  const { onSendMessage, onSelectPatient } = usePreview();
   
   const hasVM = !!patient.ventilationParams;
   const hasVaso = patient.medications.some(
@@ -35,7 +37,16 @@ export function PatientCard({
   );
 
   const handleCardClick = () => {
-    onSelect?.(patient.id);
+    // Se houver onSelect customizado, usar ele (ex: HighRiskPreview)
+    if (onSelect) {
+      onSelect(patient.id);
+      return;
+    }
+    
+    // Caso contrário, usar comportamento padrão: enviar mensagem no chat
+    const message = `Me dê um resumo do paciente da UTI ${patient.leito}`;
+    onSendMessage?.(message, patient.id);
+    onSelectPatient?.(patient.id);
   };
 
   return (

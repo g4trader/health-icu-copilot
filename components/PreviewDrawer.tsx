@@ -271,17 +271,20 @@ function VasopressorsPreview() {
 }
 
 function HighRiskPreview() {
+  // Alto risco: riscoMortality24h >= 0.61 (conforme definido em icuSummary.ts)
   const highRisk = mockPatients.filter(p => {
-    const riskScore = calculateRiskScore(p);
-    return riskLevelFromScore(riskScore) === "alto" || p.riscoMortality24h >= 0.7;
+    return p.riscoMortality24h >= 0.61;
   });
   const { onSelectPatient, onSendMessage } = usePreview();
 
   const handleCardClick = (patientId: string) => {
     const patient = highRisk.find(p => p.id === patientId);
-    const patientName = patient ? `${patient.leito} (${patient.nome})` : patientId;
-    onSendMessage?.(`Como está o paciente da ${patientName}?`, patientId);
-    onSelectPatient?.(patientId);
+    if (patient) {
+      // Enviar mensagem no chat: "Me dê um resumo do paciente da UTI [número do leito]"
+      const message = `Me dê um resumo do paciente da UTI ${patient.leito}`;
+      onSendMessage?.(message, patientId);
+      onSelectPatient?.(patientId);
+    }
   };
 
   return (
