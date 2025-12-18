@@ -17,32 +17,34 @@ function generate30DayEvolution(patient: Patient): DailyPatientStatus[] {
   const currentDiaUti = patient.diasDeUTI;
   const currentRisk = patient.riscoMortality24h;
   
+  // Determinar estado atual baseado no risco
+  // Usar riskLevelFromScore para categorizar
+  const riskLevel = currentRisk >= 0.61 ? "alto" : currentRisk >= 0.21 ? "moderado" : "baixo";
+  
+  // Determinar status atual esperado baseado no risco
+  let currentStatus: PatientStatusGlobal;
+  if (riskLevel === "baixo") {
+    // Risco baixo: deve estar em melhora ou alta
+    const hasVM = !!patient.ventilationParams;
+    const hasVaso = patient.medications.some(m => m.tipo === "vasopressor" && m.ativo);
+    currentStatus = (!hasVM && !hasVaso) ? "alta_uti" : "melhora";
+  } else if (riskLevel === "moderado") {
+    // Risco moderado: estável ou grave
+    currentStatus = currentRisk >= 0.4 ? "grave" : "estavel";
+  } else {
+    // Risco alto: crítico ou grave
+    currentStatus = currentRisk >= 0.75 ? "critico" : "grave";
+  }
+  
   // Tentar usar perfil clínico se disponível
   const profile = getClinicalProfile(patient.id);
-  
-  // Calcular dia de alta (se aplicável)
-  let altaDay = profile?.altaDay || 30;
-  if (!profile) {
-    // Fallback: determinar trajetória baseada no diagnóstico e estado atual
-    const isCritical = currentRisk >= 0.65;
-    const isImproving = currentRisk < 0.5 && currentDiaUti > 3;
-    const hasShortStay = currentDiaUti <= 3 && currentRisk < 0.4;
-    
-    if (hasShortStay) {
-      altaDay = currentDiaUti + 2; // Alta em 2-3 dias
-    } else if (isImproving) {
-      altaDay = Math.min(25, currentDiaUti + 5); // Melhora gradual
-    } else if (isCritical) {
-      altaDay = 30; // Permanece crítico por mais tempo
-    }
-  }
   
   // Calcular data de admissão (hoje menos currentDiaUti dias)
   const admissionDate = new Date(baseDate);
   admissionDate.setDate(admissionDate.getDate() - currentDiaUti + 1);
   
-  // Gerar status para cada dia (30 dias totais: até max(30, altaDay) dias desde admissão)
-  const maxDays = Math.max(30, altaDay);
+  // Gerar status para cada dia (30 dias totais)
+  const maxDays = 30;
   for (let day = 1; day <= maxDays; day++) {
     const date = new Date(admissionDate);
     date.setDate(date.getDate() + (day - 1));
@@ -60,65 +62,105 @@ function generate30DayEvolution(patient: Patient): DailyPatientStatus[] {
         const phaseProgress = (day - phase.days[0]) / (phase.days[1] - phase.days[0] + 1);
         riskScore = maxRisk - (phaseProgress * (maxRisk - minRisk));
       } else {
-        // Fora das fases definidas: considerar se é futuro ou passado
-        if (day > altaDay && day > currentDiaUti) {
-          // Passou do dia de alta e já passou do dia atual = alta
-          statusGlobal = "alta_uti";
-          riskScore = 0.1;
-        } else if (day > currentDiaUti) {
-          // Dia futuro (ainda não aconteceu): usar status do último dia conhecido
-          const lastPhase = profile.phases[profile.phases.length - 1];
-          statusGlobal = lastPhase.statusGlobal;
-          riskScore = lastPhase.riskScoreRange[0];
+        // Fora das fases: usar estado atual se for o último dia, senão interpolar
+        if (day >= currentDiaUti) {
+          // Dia atual ou futuro: usar estado atual
+          statusGlobal = currentStatus;
+          riskScore = currentRisk;
         } else {
-          // Dentro do período esperado mas sem fase definida: usar última fase anterior
-          const previousPhases = profile.phases.filter(p => p.days[1] < day);
-          if (previousPhases.length > 0) {
-            const lastPhase = previousPhases[previousPhases.length - 1];
-            statusGlobal = lastPhase.statusGlobal;
-            riskScore = lastPhase.riskScoreRange[0];
+          // Dias anteriores: interpolar do início (crítico) até o estado atual
+          const progress = day / currentDiaUti;
+          if (riskLevel === "baixo") {
+            // Trajetória de melhora: crítico → grave → estável → melhora → alta
+            if (progress < 0.15) {
+              statusGlobal = "critico";
+              riskScore = 0.85 - progress * 0.3;
+            } else if (progress < 0.35) {
+              statusGlobal = "grave";
+              riskScore = 0.6 - (progress - 0.15) * 0.25;
+            } else if (progress < 0.65) {
+              statusGlobal = "estavel";
+              riskScore = 0.35 - (progress - 0.35) * 0.2;
+            } else if (progress < 0.85) {
+              statusGlobal = "melhora";
+              riskScore = 0.2 - (progress - 0.65) * 0.1;
+            } else {
+              statusGlobal = currentStatus; // Pode ser "melhora" ou "alta_uti"
+              riskScore = Math.max(0.1, currentRisk);
+            }
+          } else if (riskLevel === "moderado") {
+            // Trajetória moderada: crítico → grave → estável
+            if (progress < 0.25) {
+              statusGlobal = "critico";
+              riskScore = 0.75 - progress * 0.15;
+            } else if (progress < 0.65) {
+              statusGlobal = "grave";
+              riskScore = 0.6 - (progress - 0.25) * 0.25;
+            } else {
+              statusGlobal = currentStatus; // "estavel" ou "grave"
+              riskScore = Math.max(0.3, currentRisk);
+            }
           } else {
-            // Se não há fase anterior, usar primeira fase
-            statusGlobal = profile.phases[0].statusGlobal;
-            riskScore = profile.phases[0].riskScoreRange[0];
+            // Trajetória de alto risco: crítico → grave (ou crítico contínuo)
+            if (progress < 0.4) {
+              statusGlobal = "critico";
+              riskScore = 0.9 - progress * 0.1;
+            } else {
+              statusGlobal = currentStatus; // "critico" ou "grave"
+              riskScore = Math.max(0.6, currentRisk);
+            }
           }
         }
       }
     } else {
-      // Fallback: lógica original
-      if (day > altaDay) {
-        statusGlobal = "alta_uti";
-        riskScore = 0.1;
-      } else if (day === altaDay) {
-        statusGlobal = "alta_uti";
-        riskScore = 0.15;
-      } else if (day >= altaDay - 2) {
-        statusGlobal = "melhora";
-        riskScore = Math.max(0.2, currentRisk - 0.3);
+      // Sem perfil: gerar trajetória coerente baseada no risco atual
+      if (day >= currentDiaUti) {
+        // Dia atual ou futuro: usar estado atual
+        statusGlobal = currentStatus;
+        riskScore = currentRisk;
       } else {
-        const isCritical = currentRisk >= 0.65;
-        if (isCritical && day <= currentDiaUti) {
-          if (day <= 3) {
+        // Dias anteriores: gerar trajetória progressiva
+        const progress = day / currentDiaUti;
+        
+        if (riskLevel === "baixo") {
+          // Trajetória de melhora: crítico → grave → estável → melhora → alta
+          if (progress < 0.15) {
             statusGlobal = "critico";
-            riskScore = Math.min(1.0, currentRisk + (3 - day) * 0.05);
-          } else if (day <= 10) {
+            riskScore = 0.85 - progress * 0.3;
+          } else if (progress < 0.35) {
             statusGlobal = "grave";
-            riskScore = Math.max(0.5, currentRisk - (day - 3) * 0.03);
-          } else {
+            riskScore = 0.6 - (progress - 0.15) * 0.25;
+          } else if (progress < 0.65) {
             statusGlobal = "estavel";
-            riskScore = Math.max(0.4, currentRisk - (day - 10) * 0.02);
+            riskScore = 0.35 - (progress - 0.35) * 0.2;
+          } else if (progress < 0.85) {
+            statusGlobal = "melhora";
+            riskScore = 0.2 - (progress - 0.65) * 0.1;
+          } else {
+            statusGlobal = "alta_uti";
+            riskScore = 0.1;
           }
-        } else if (day <= currentDiaUti) {
-          if (day <= 2) {
+        } else if (riskLevel === "moderado") {
+          // Trajetória moderada: crítico → grave → estável
+          if (progress < 0.25) {
+            statusGlobal = "critico";
+            riskScore = 0.75 - progress * 0.15;
+          } else if (progress < 0.65) {
             statusGlobal = "grave";
-            riskScore = Math.min(0.7, currentRisk + 0.1);
+            riskScore = 0.6 - (progress - 0.25) * 0.25;
           } else {
             statusGlobal = "estavel";
-            riskScore = Math.max(0.3, currentRisk - (day - 2) * 0.05);
+            riskScore = 0.4 - (progress - 0.65) * 0.15;
           }
         } else {
-          statusGlobal = day < altaDay - 5 ? "estavel" : "melhora";
-          riskScore = Math.max(0.2, currentRisk - (day - currentDiaUti) * 0.03);
+          // Trajetória de alto risco: crítico → grave (ou crítico contínuo)
+          if (progress < 0.4) {
+            statusGlobal = "critico";
+            riskScore = 0.9 - progress * 0.1;
+          } else {
+            statusGlobal = "grave";
+            riskScore = 0.8 - (progress - 0.4) * 0.15;
+          }
         }
       }
     }
@@ -126,8 +168,10 @@ function generate30DayEvolution(patient: Patient): DailyPatientStatus[] {
     // Determinar fase atual (se usando perfil)
     const phase = profile?.phases.find(p => day >= p.days[0] && day <= p.days[1]);
     
-    // Suporte ventilatório
+    // Suporte ventilatório - coerente com a trajetória
     let suporteVentilatorio: DailyPatientStatus["suporteVentilatorio"] = {};
+    const hasVMNow = !!patient.ventilationParams;
+    
     if (phase) {
       if (phase.hasVM) {
         const baseFiO2 = patient.ventilationParams?.fiO2 || 50;
@@ -148,18 +192,57 @@ function generate30DayEvolution(patient: Patient): DailyPatientStatus[] {
         };
       }
     } else {
-      // Fallback: lógica original
-      if (day <= altaDay - 3 && patient.ventilationParams) {
+      // Sem perfil: gerar suporte coerente com trajetória
+      if (hasVMNow) {
+        // Se tem VM agora, manter nos dias anteriores (pode aumentar no início)
+        const baseFiO2 = patient.ventilationParams?.fiO2 || 50;
+        const basePEEP = patient.ventilationParams?.peep || 6;
+        let fiO2 = baseFiO2;
+        
+        // Nos primeiros dias, pode ter FiO2 mais alto
+        if (day <= 3 && riskLevel === "alto") {
+          fiO2 = Math.min(100, baseFiO2 + 20);
+        } else if (day <= 5 && riskLevel === "moderado") {
+          fiO2 = Math.min(80, baseFiO2 + 10);
+        }
+        
         suporteVentilatorio = {
-          mode: patient.ventilationParams.modo,
-          fiO2: Math.max(21, patient.ventilationParams.fiO2 - (30 - day) * 2),
-          peep: Math.max(5, patient.ventilationParams.peep - (30 - day) * 0.5)
+          mode: patient.ventilationParams?.modo || "CMV",
+          fiO2: Math.round(fiO2),
+          peep: basePEEP
         };
+      } else if (riskLevel === "baixo" && day < currentDiaUti - 2) {
+        // Para baixo risco sem VM agora, deve ter tido VM nos primeiros dias
+        if (day <= Math.floor(currentDiaUti * 0.4)) {
+          suporteVentilatorio = {
+            mode: "CMV",
+            fiO2: Math.round(60 - (day - 1) * 2),
+            peep: Math.round(10 - (day - 1) * 0.3)
+          };
+        } else if (day <= Math.floor(currentDiaUti * 0.7)) {
+          // Desmame progressivo
+          suporteVentilatorio = {
+            mode: "PSV",
+            fiO2: Math.round(40 - (day - Math.floor(currentDiaUti * 0.4)) * 1.5),
+            peep: Math.round(7 - (day - Math.floor(currentDiaUti * 0.4)) * 0.2)
+          };
+        }
+        // Depois disso, sem VM (já desmamado)
+      } else if (riskLevel === "moderado" && day < currentDiaUti - 1) {
+        // Moderado pode ter VM nos primeiros dias
+        if (day <= Math.floor(currentDiaUti * 0.5)) {
+          suporteVentilatorio = {
+            mode: "CMV",
+            fiO2: Math.round(50 - (day - 1) * 1.5),
+            peep: Math.round(8 - (day - 1) * 0.2)
+          };
+        }
       }
     }
     
-    // Suporte hemodinâmico
+    // Suporte hemodinâmico - coerente com a trajetória
     const vasopressor = patient.medications.find(m => m.tipo === "vasopressor" && m.ativo);
+    const hasVasoNow = !!vasopressor && vasopressor.ativo;
     let suporteHemodinamico: DailyPatientStatus["suporteHemodinamico"] = {
       hasVasopressor: false
     };
@@ -178,13 +261,46 @@ function generate30DayEvolution(patient: Patient): DailyPatientStatus[] {
         suporteHemodinamico.dose = `${dose.toFixed(1)} ${vasopressor.unidade}`;
       }
     } else {
-      // Fallback
-      if (day <= altaDay - 2 && vasopressor) {
+      // Sem perfil: gerar suporte coerente com trajetória
+      if (hasVasoNow) {
+        // Se tem vaso agora, manter nos dias anteriores (pode aumentar no início)
+        const baseDose = vasopressor?.dose || 0.5;
+        let dose = baseDose;
+        
+        // Nos primeiros dias, pode ter dose mais alta
+        if (day <= 3 && riskLevel === "alto") {
+          dose = baseDose * 1.3;
+        } else if (day <= 5 && riskLevel === "moderado") {
+          dose = baseDose * 1.2;
+        }
+        
         suporteHemodinamico = {
           hasVasopressor: true,
-          mainDrug: vasopressor.nome,
-          dose: `${vasopressor.dose} ${vasopressor.unidade}`
+          mainDrug: vasopressor?.nome || "Noradrenalina",
+          dose: `${dose.toFixed(1)} ${vasopressor?.unidade || "mcg/kg/min"}`
         };
+      } else if (riskLevel === "baixo" && day < currentDiaUti - 2) {
+        // Para baixo risco sem vaso agora, deve ter tido vaso nos primeiros dias
+        if (day <= Math.floor(currentDiaUti * 0.3) && vasopressor) {
+          const progress = day / Math.floor(currentDiaUti * 0.3);
+          const dose = 0.8 * (1 - progress * 0.7); // Redução progressiva
+          suporteHemodinamico = {
+            hasVasopressor: true,
+            mainDrug: vasopressor.nome,
+            dose: `${dose.toFixed(1)} ${vasopressor.unidade}`
+          };
+        }
+      } else if (riskLevel === "moderado" && day < currentDiaUti - 1) {
+        // Moderado pode ter vaso nos primeiros dias
+        if (day <= Math.floor(currentDiaUti * 0.4) && vasopressor) {
+          const progress = day / Math.floor(currentDiaUti * 0.4);
+          const dose = 0.6 * (1 - progress * 0.5);
+          suporteHemodinamico = {
+            hasVasopressor: true,
+            mainDrug: vasopressor.nome,
+            dose: `${dose.toFixed(1)} ${vasopressor.unidade}`
+          };
+        }
       }
     }
     
@@ -237,11 +353,11 @@ function generate30DayEvolution(patient: Patient): DailyPatientStatus[] {
           principaisEventos.push("Estado crítico - monitorização intensiva");
         }
       } else if (!isHighRisk) {
-        // Para pacientes de baixo/moderado risco, manter eventos de alta apenas se for o dia de alta
-        if (day === altaDay - 1 && day >= currentDiaUti - 1) {
+        // Para pacientes de baixo/moderado risco, eventos de alta apenas se status for alta_uti ou melhora
+        if (statusGlobal === "melhora" && day >= currentDiaUti - 1) {
           principaisEventos.push("Preparação para alta da UTI");
         }
-        if (day === altaDay && day >= currentDiaUti - 1) {
+        if (statusGlobal === "alta_uti" && day >= currentDiaUti - 1) {
           principaisEventos.push("Alta da UTI");
         }
       }
