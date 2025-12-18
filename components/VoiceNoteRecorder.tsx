@@ -32,70 +32,7 @@ export function VoiceNoteRecorder({
   const audioChunksRef = useRef<Blob[]>([]);
   const streamRef = useRef<MediaStream | null>(null);
 
-  const startRecording = useCallback(async () => {
-    try {
-      setErrorMessage(null);
-      setTranscriptionText(null);
-      
-      // Solicitar permissão de microfone
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      streamRef.current = stream;
-      
-      // Criar MediaRecorder
-      const mediaRecorder = new MediaRecorder(stream, {
-        mimeType: MediaRecorder.isTypeSupported("audio/webm") 
-          ? "audio/webm" 
-          : MediaRecorder.isTypeSupported("audio/mp4")
-          ? "audio/mp4"
-          : "audio/webm" // fallback
-      });
-      
-      mediaRecorderRef.current = mediaRecorder;
-      audioChunksRef.current = [];
-      
-      mediaRecorder.ondataavailable = (event) => {
-        if (event.data.size > 0) {
-          audioChunksRef.current.push(event.data);
-        }
-      };
-      
-      mediaRecorder.onstop = async () => {
-        // Parar todas as tracks do stream
-        if (streamRef.current) {
-          streamRef.current.getTracks().forEach(track => track.stop());
-          streamRef.current = null;
-        }
-        
-        // Criar blob do áudio
-        const audioBlob = new Blob(audioChunksRef.current, { type: mediaRecorder.mimeType });
-        
-        // Enviar para API
-        setState("sending");
-        await sendAudioToAPI(audioBlob);
-      };
-      
-      mediaRecorder.start();
-      setState("recording");
-    } catch (error: any) {
-      const errorMsg = error.name === "NotAllowedError" || error.name === "PermissionDeniedError"
-        ? "Permissão de microfone negada. Por favor, permita o acesso ao microfone."
-        : error.name === "NotFoundError" || error.name === "DevicesNotFoundError"
-        ? "Nenhum microfone encontrado."
-        : `Erro ao iniciar gravação: ${error.message}`;
-      
-      setErrorMessage(errorMsg);
-      setState("error");
-      onError?.(errorMsg);
-    }
-  }, [onError]);
-
-  const stopRecording = useCallback(() => {
-    if (mediaRecorderRef.current && state === "recording") {
-      mediaRecorderRef.current.stop();
-    }
-  }, [state]);
-
-  const sendAudioToAPI = async (audioBlob: Blob) => {
+  const sendAudioToAPI = useCallback(async (audioBlob: Blob) => {
     try {
       setState("transcribing");
       
@@ -145,7 +82,69 @@ export function VoiceNoteRecorder({
       setState("error");
       onError?.(errorMsg);
     }
-  };
+  }, [patientContext, onTranscription, onStructuredData, onError]);
+
+  const startRecording = useCallback(async () => {
+    try {
+      setErrorMessage(null);
+      setTranscriptionText(null);
+      
+      // Solicitar permissão de microfone
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      streamRef.current = stream;
+      
+      // Criar MediaRecorder
+      const mediaRecorder = new MediaRecorder(stream, {
+        mimeType: MediaRecorder.isTypeSupported("audio/webm") 
+          ? "audio/webm" 
+          : MediaRecorder.isTypeSupported("audio/mp4")
+          ? "audio/mp4"
+          : "audio/webm" // fallback
+      });
+      
+      mediaRecorderRef.current = mediaRecorder;
+      audioChunksRef.current = [];
+      
+      mediaRecorder.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          audioChunksRef.current.push(event.data);
+        }
+      };
+      
+      mediaRecorder.onstop = async () => {
+        // Parar todas as tracks do stream
+        if (streamRef.current) {
+          streamRef.current.getTracks().forEach(track => track.stop());
+          streamRef.current = null;
+        }
+        
+        // Criar blob do áudio
+        const audioBlob = new Blob(audioChunksRef.current, { type: mediaRecorder.mimeType });
+        
+        // Enviar para API
+        await sendAudioToAPI(audioBlob);
+      };
+      
+      mediaRecorder.start();
+      setState("recording");
+    } catch (error: any) {
+      const errorMsg = error.name === "NotAllowedError" || error.name === "PermissionDeniedError"
+        ? "Permissão de microfone negada. Por favor, permita o acesso ao microfone."
+        : error.name === "NotFoundError" || error.name === "DevicesNotFoundError"
+        ? "Nenhum microfone encontrado."
+        : `Erro ao iniciar gravação: ${error.message}`;
+      
+      setErrorMessage(errorMsg);
+      setState("error");
+      onError?.(errorMsg);
+    }
+  }, [onError, sendAudioToAPI]);
+
+  const stopRecording = useCallback(() => {
+    if (mediaRecorderRef.current && state === "recording") {
+      mediaRecorderRef.current.stop();
+    }
+  }, [state]);
 
   const handleClick = () => {
     if (state === "recording") {

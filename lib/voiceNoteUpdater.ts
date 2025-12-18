@@ -140,12 +140,13 @@ export function updatePatientFromVoiceNote(
           existingMeds.push({
             id: `med-${Date.now()}-${Math.random()}`,
             nome: drug.name,
-            tipo: isVasopressor ? "vasopressor" : isSedation ? "sedacao" : "outro",
+            tipo: isVasopressor ? "vasopressor" : isSedation ? "sedativo" : "outro",
             dose: drug.dose || 0,
             unidade: drug.unit || (isVasopressor ? "mcg/kg/min" : null),
             via: "EV",
             frequencia: "contínuo",
             diasDeUso: 0,
+            inicio: new Date().toISOString(),
             ativo: true,
           });
         }

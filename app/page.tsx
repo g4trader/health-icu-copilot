@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect, useCallback } from "react";
+import Image from "next/image";
 import { mockPatients, getTopPatients, riskLevelFromScore, mockUnitProfile, type Patient } from "@/lib/mockData";
 import { clinicalAgents, type ClinicalAgentType, type ClinicalAgentId } from "@/lib/clinicalAgents";
 import { ContextSnapshot } from "@/components/ContextSnapshot";
@@ -395,7 +396,7 @@ export default function HomePage() {
     if (!activePatientId && targetPatientId) {
       setActivePatientId(targetPatientId);
     }
-  }, [activePatientId, mockPatients]);
+  }, [activePatientId]);
   const { setPreview, clearPreview, setOnSelectPatient, setOnSendMessage } = usePreview();
   const { setActivePatient: setActivePatientFromContext, addOpinion, setLastAnswerForPatient } = useClinicalSession();
 
@@ -549,7 +550,7 @@ export default function HomePage() {
     } finally {
       setLoading(false);
     }
-  }, [activePatientId, sessionIdRef, currentAgent, setConversation, setInput, loading, addOpinion, input, setLastAnswerForPatient]);
+  }, [activePatientId, sessionIdRef, currentAgent, loading, addOpinion, input, setLastAnswerForPatient]);
 
   // Função para mostrar overview inline no chat - agora usa handleSend
   const showPatientOverviewInline = useCallback((patientId: string) => {
@@ -684,7 +685,7 @@ export default function HomePage() {
     <div className="app-wrapper">
       <header className="hc-topbar">
         <div className="hc-brand">
-          <img src="/favicon.png" alt="Health Copilot" className="hc-icon" />
+          <Image src="/favicon.png" alt="Health Copilot" className="hc-icon" width={32} height={32} />
           <div className="hc-brand-text">
             <div className="hc-title">
               HEALTH COPILOT<span className="hc-reg">®</span>
