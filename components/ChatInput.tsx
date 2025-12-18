@@ -34,7 +34,7 @@ export function ChatInput({
 }: ChatInputProps) {
   const [showMenu, setShowMenu] = useState(false);
   const [isPatientMenuOpen, setIsPatientMenuOpen] = useState(false);
-  const [voiceState, setVoiceState] = useState<"idle" | "recording" | "ready">("idle");
+  const [voiceState, setVoiceState] = useState<"idle" | "recording">("idle");
   const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -105,15 +105,15 @@ export function ChatInput({
         }
       };
       
-      mediaRecorder.onstop = () => {
+      mediaRecorder.onstop = async () => {
         if (streamRef.current) {
           streamRef.current.getTracks().forEach(track => track.stop());
           streamRef.current = null;
         }
         
         const blob = new Blob(audioChunksRef.current, { type: mediaRecorder.mimeType });
-        setAudioBlob(blob);
-        setVoiceState("ready");
+        // Enviar automaticamente após parar a gravação
+        await sendAudioToAPI(blob);
       };
       
       mediaRecorder.start();
@@ -133,6 +133,8 @@ export function ChatInput({
   function stopRecording() {
     if (mediaRecorderRef.current && voiceState === "recording") {
       mediaRecorderRef.current.stop();
+      // O áudio será enviado automaticamente quando onstop criar o blob e setVoiceState("ready")
+      // Mas vamos aguardar o blob estar pronto antes de enviar
     }
   }
 
@@ -149,19 +151,16 @@ export function ChatInput({
     setVoiceState("idle");
   }
 
-  function discardAudio() {
-    setAudioBlob(null);
-    setVoiceState("idle");
-  }
 
-  async function sendAudioToAPI() {
-    if (!audioBlob) return;
+  async function sendAudioToAPI(blob?: Blob) {
+    const audioToSend = blob || audioBlob;
+    if (!audioToSend) return;
     
     try {
       setErrorMessage(null);
       
       const formData = new FormData();
-      formData.append("file", audioBlob, "voice-note.webm");
+      formData.append("file", audioToSend, "voice-note.webm");
       
       // Adicionar contexto do paciente completo se disponível
       const activePatient = patients.find(p => p.id === activePatientId);
@@ -243,13 +242,7 @@ export function ChatInput({
   }
 
   function handleSendClick() {
-    // Se houver áudio pronto, enviar áudio em vez de texto
-    if (audioBlob && voiceState === "ready") {
-      sendAudioToAPI();
-      return;
-    }
-    
-    // Caso contrário, enviar texto normalmente
+    // Enviar texto normalmente (áudio já é enviado automaticamente ao parar gravação)
     const trimmedValue = value.trim();
     if (trimmedValue && !loading && onSend) {
       onSend(trimmedValue);
@@ -378,14 +371,9 @@ export function ChatInput({
             if (e.key === "Enter" && !e.shiftKey) {
               e.preventDefault();
               e.stopPropagation();
-              // Se houver áudio pronto, enviar áudio
-              if (audioBlob && voiceState === "ready") {
-                sendAudioToAPI();
-              } else {
-                const trimmedValue = value.trim();
-                if (trimmedValue && !loading && onSend) {
-                  onSend(trimmedValue);
-                }
+              const trimmedValue = value.trim();
+              if (trimmedValue && !loading && onSend) {
+                onSend(trimmedValue);
               }
               return false; // Não processar mais nada para Enter
             }
@@ -453,9 +441,9 @@ export function ChatInput({
         ) : (
           <button
             type="button"
-            className={`chat-input-voice-btn ${voiceState === "ready" ? "voice-ready" : ""}`}
-            aria-label={voiceState === "ready" ? "Áudio pronto" : "Iniciar gravação"}
-            title={voiceState === "ready" ? "Áudio pronto para enviar" : "Gravar nota de voz"}
+            className="chat-input-voice-btn"
+            aria-label="Iniciar gravação"
+            title="Gravar nota de voz"
             onClick={handleVoiceButtonClick}
             disabled={loading}
           >
@@ -478,9 +466,6 @@ export function ChatInput({
                 d="M19 10v2a7 7 0 01-14 0v-2M12 19v4M8 23h8"
               />
             </svg>
-            {voiceState === "ready" && (
-              <span className="voice-ready-dot"></span>
-            )}
           </button>
         )}
         
@@ -492,7 +477,7 @@ export function ChatInput({
           className="chat-input-send-btn"
           type="button"
           onClick={handleSendClick}
-          disabled={loading || (!value.trim() && voiceState !== "ready")}
+          disabled={loading || !value.trim()}
           aria-label="Enviar mensagem"
         >
           <svg
