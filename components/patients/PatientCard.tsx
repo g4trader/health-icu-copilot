@@ -42,20 +42,33 @@ export function PatientCard({
     e.preventDefault();
     e.stopPropagation();
     
+    console.log('[PatientCard] Botão Ver paciente clicado', {
+      patientId: patient.id,
+      patientName: patient.nome,
+      leito: patient.leito,
+      hasOnSendPatientMessage: !!onSendPatientMessage,
+      hasOnSelect: !!onSelect,
+      hasOnSendMessage: !!onSendMessage,
+      hasOnSelectPatient: !!onSelectPatient
+    });
+    
     // Mensagem que garante detecção de intent PACIENTE_ESPECIFICO e mostra overview completo
     const message = `Me dê um overview clínico completo do paciente da UTI ${patient.leito} (${patient.nome}).`;
     
     // Prioridade 1: usar onSendPatientMessage se fornecido (mais direto)
     if (onSendPatientMessage) {
+      console.log('[PatientCard] Usando onSendPatientMessage', { patientId: patient.id, message });
       onSendPatientMessage(patient.id, message);
       return;
     }
     
     // Prioridade 2: usar onSelect customizado se fornecido (ex: HighRiskPreview)
     if (onSelect) {
+      console.log('[PatientCard] Usando onSelect', { patientId: patient.id });
       onSelect(patient.id);
       // Mas ainda tentar enviar mensagem se possível
       if (onSendMessage) {
+        console.log('[PatientCard] Também enviando mensagem via onSendMessage', { patientId: patient.id, message });
         onSendMessage(message, patient.id);
       }
       return;
@@ -63,13 +76,18 @@ export function PatientCard({
     
     // Prioridade 3: usar onSendMessage do contexto Preview
     if (onSendMessage) {
+      console.log('[PatientCard] Usando onSendMessage do contexto', { patientId: patient.id, message });
       onSendMessage(message, patient.id);
       onSelectPatient?.(patient.id);
       return;
     }
     
     // Fallback: log de erro se nenhuma opção disponível
-    console.error('PatientCard: Nenhum handler disponível para enviar mensagem do paciente', patient.id);
+    console.error('[PatientCard] Nenhum handler disponível para enviar mensagem do paciente', {
+      patientId: patient.id,
+      patientName: patient.nome,
+      leito: patient.leito
+    });
   };
 
   return (
@@ -118,7 +136,16 @@ export function PatientCard({
         <button
           type="button"
           onClick={handleVerPacienteClick}
-          className="w-full px-4 py-2 bg-blue-50 hover:bg-blue-100 text-blue-700 font-medium rounded-lg transition-colors text-sm"
+          onMouseDown={(e) => {
+            console.log('[PatientCard] Botão mouseDown', { patientId: patient.id });
+            e.stopPropagation();
+          }}
+          onMouseUp={(e) => {
+            console.log('[PatientCard] Botão mouseUp', { patientId: patient.id });
+            e.stopPropagation();
+          }}
+          className="w-full px-4 py-2 bg-blue-50 hover:bg-blue-100 text-blue-700 font-medium rounded-lg transition-colors text-sm cursor-pointer relative z-10"
+          style={{ pointerEvents: 'auto' }}
         >
           Ver paciente
         </button>

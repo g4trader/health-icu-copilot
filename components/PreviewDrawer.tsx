@@ -278,12 +278,16 @@ function HighRiskPreview() {
   const { onSelectPatient, onSendMessage } = usePreview();
 
   const handleCardClick = (patientId: string) => {
+    console.log('[HighRiskPreview] handleCardClick chamado', { patientId });
     const patient = highRisk.find(p => p.id === patientId);
     if (patient) {
-      // Enviar mensagem no chat: "Me dê um resumo do paciente da UTI [número do leito]"
-      const message = `Me dê um resumo do paciente da UTI ${patient.leito}`;
+      // Enviar mensagem no chat: "Me dê um overview clínico completo do paciente da UTI [número do leito]"
+      const message = `Me dê um overview clínico completo do paciente da UTI ${patient.leito} (${patient.nome}).`;
+      console.log('[HighRiskPreview] Enviando mensagem', { message, patientId, hasOnSendMessage: !!onSendMessage });
       onSendMessage?.(message, patientId);
       onSelectPatient?.(patientId);
+    } else {
+      console.error('[HighRiskPreview] Paciente não encontrado', { patientId });
     }
   };
 

@@ -521,6 +521,7 @@ export default function HomePage() {
   
   // Função para enviar mensagem de paciente (usada pelo PatientCard)
   const handleSendPatientMessage = useCallback((patientId: string, message: string) => {
+    console.log('[app/page] handleSendPatientMessage chamado', { patientId, message });
     void handleSend(message, undefined, patientId);
   }, [handleSend]);
 
