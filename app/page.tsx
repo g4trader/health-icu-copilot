@@ -684,7 +684,6 @@ export default function HomePage() {
                 value={input}
                 onChange={setInput}
                 onSend={handleSend}
-                onKeyDown={() => {}} // Handler vazio - ChatInput gerencia internamente
                 loading={loading}
                 currentAgent={currentAgent}
                 onAgentChange={setCurrentAgent}
