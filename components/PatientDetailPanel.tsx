@@ -241,7 +241,7 @@ export function PatientDetailPanel({ patient, microDashboards: propsMicroDashboa
       {microDashboards && microDashboards.length > 0 && (
         <>
           <h3 className="patient-detail-section-title">Dashboards de decisão</h3>
-          <div className="mb-6 space-y-4">
+          <div className="mb-6 micro-dashboards-list">
             {microDashboards.map((dashboard, idx) => (
               <MicroDashboardV2Renderer key={idx} dashboard={dashboard} />
             ))}

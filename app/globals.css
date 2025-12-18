@@ -4112,6 +4112,12 @@ a {
    MICRO DASHBOARD CARD (V2)
    ======================================== */
 
+.micro-dashboards-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px; /* Espaçamento de 10px entre os cards */
+}
+
 .micro-dashboard-card {
   background: #ffffff;
   border-radius: 0.75rem; /* rounded-lg */
