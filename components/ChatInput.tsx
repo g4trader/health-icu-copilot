@@ -176,6 +176,7 @@ export function ChatInput({
           value={value}
           onChange={(e) => {
             // Apenas atualizar o estado, sem fazer submit
+            // NÃO usar preventDefault/stopPropagation aqui - isso interfere com o comportamento normal
             onChange(e.target.value);
           }}
           onKeyDown={(e) => {
@@ -186,11 +187,10 @@ export function ChatInput({
               if (value.trim() && !loading) {
                 onSend(value.trim());
               }
+              return; // Não processar mais nada para Enter
             }
-            // Chamar onKeyDown do pai apenas se fornecido (para compatibilidade)
-            if (onKeyDown) {
-              onKeyDown(e);
-            }
+            // Para outras teclas, não fazer nada - apenas permitir digitação normal
+            // NÃO chamar onKeyDown do pai para evitar submit indesejado
           }}
           disabled={loading}
         />
