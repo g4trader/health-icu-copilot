@@ -390,9 +390,10 @@ export function ChatInput({
               type="button"
               className="chat-input-voice-btn voice-rec-btn"
               aria-label="Gravando"
-              title="Gravando"
+              title="Gravando (clique para cancelar)"
               onClick={handleVoiceButtonClick}
               disabled={loading}
+              style={{ position: 'relative', zIndex: 0 }}
             >
               <div className="voice-rec-indicator">
                 <svg
@@ -422,9 +423,14 @@ export function ChatInput({
               type="button"
               className="chat-input-voice-btn voice-stop-btn"
               aria-label="Parar gravação"
-              title="Parar gravação"
-              onClick={stopRecording}
+              title="Parar gravação e enviar"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                stopRecording();
+              }}
               disabled={loading}
+              style={{ position: 'relative', zIndex: 10 }}
             >
               <svg
                 xmlns="http://www.w3.org/2000/svg"

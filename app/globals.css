@@ -2020,6 +2020,7 @@ a {
   border-radius: 50%;
   color: #ef4444;
   animation: pulse 1.5s ease-in-out infinite;
+  pointer-events: none; /* Permitir cliques passarem através */
 }
 
 .voice-ready {
@@ -2040,11 +2041,18 @@ a {
 
 .voice-stop-btn {
   color: #ef4444;
+  position: relative;
+  z-index: 1; /* Garantir que está acima de outros elementos */
+  pointer-events: auto; /* Garantir que é clicável */
 }
 
 .voice-stop-btn:hover {
   background: #fef2f2;
   color: #dc2626;
+}
+
+.voice-stop-btn:active {
+  transform: scale(0.95);
 }
 
 .chat-input-send-btn {
