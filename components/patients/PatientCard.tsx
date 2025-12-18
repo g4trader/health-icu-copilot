@@ -44,7 +44,9 @@ export function PatientCard({
     }
     
     // Caso contrário, usar comportamento padrão: enviar mensagem no chat
-    const message = `Me dê um resumo do paciente da UTI ${patient.leito}`;
+    // Mensagem que garante detecção de intent PACIENTE_ESPECIFICO e mostra overview completo
+    // Usar formato similar ao showPatientOverviewInline para garantir consistência
+    const message = `Me dê um overview clínico completo do paciente da UTI ${patient.leito} (${patient.nome}).`;
     onSendMessage?.(message, patient.id);
     onSelectPatient?.(patient.id);
   };
