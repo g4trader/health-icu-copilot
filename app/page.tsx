@@ -692,13 +692,19 @@ export default function HomePage() {
     
     // Verificar se é comando explícito de atualização de parecer OU intenção detectada no texto
     const isUpdateOpinionCommand = result.command && result.command.type === "update-opinion";
-    const hasUpdateOpinionIntent = activePatientId && isUpdateOpinionIntent(text);
+    
+    // Verificar intenção no texto (mesmo sem comando explícito)
+    const detectedIntent = isUpdateOpinionIntent(text);
+    const hasUpdateOpinionIntent = activePatientId && detectedIntent;
     
     console.log("[handleVoiceNoteResult] Verificando intenção:", {
       activePatientId,
+      activePatient: activePatient?.nome,
       isUpdateOpinionCommand,
+      detectedIntent,
       hasUpdateOpinionIntent,
-      text: text.substring(0, 50)
+      text: text.substring(0, 100),
+      structured: structured ? "presente" : "ausente"
     });
     
     // Se houver paciente ativo e intenção de parecer, tratar como atualização de parecer
@@ -715,6 +721,13 @@ export default function HomePage() {
       console.log("[handleVoiceNoteResult] Paciente encontrado:", { id: targetPatient.id, nome: targetPatient.nome });
       console.log("[handleVoiceNoteResult] Structured data:", structured);
       
+      // Verificar se structured está disponível
+      if (!structured) {
+        console.warn("[handleVoiceNoteResult] Structured data não disponível para gerar parecer");
+        handleSend("Erro: não foi possível processar os dados da nota de voz. Tente novamente.");
+        return;
+      }
+      
       // Gerar parecer do plantonista a partir do JSON estruturado
       const opinion = buildPlantonistaOpinion(targetPatient, structured);
       console.log("[handleVoiceNoteResult] Parecer gerado:", opinion);
@@ -722,12 +735,23 @@ export default function HomePage() {
       // Atualizar apenas o voiceNoteSummary, sem alterar outros dados clínicos
       const patientIndex = mockPatients.findIndex(p => p.id === activePatientId);
       if (patientIndex >= 0) {
+        const oldSummary = mockPatients[patientIndex].voiceNoteSummary;
         mockPatients[patientIndex].voiceNoteSummary = opinion;
-        console.log("[handleVoiceNoteResult] ✅ voiceNoteSummary atualizado no índice:", patientIndex);
-        // Forçar re-render
+        console.log("[handleVoiceNoteResult] ✅ voiceNoteSummary atualizado:", {
+          index: patientIndex,
+          oldSummary: oldSummary?.substring(0, 50),
+          newSummary: opinion.substring(0, 50)
+        });
+        // Forçar re-render atualizando o estado
         setActivePatientId(activePatientId);
+        // Também atualizar o activePatient se estiver disponível
+        if (activePatient) {
+          activePatient.voiceNoteSummary = opinion;
+        }
       } else {
-        console.error("[handleVoiceNoteResult] ❌ Paciente não encontrado no array mockPatients");
+        console.error("[handleVoiceNoteResult] ❌ Paciente não encontrado no array mockPatients:", activePatientId);
+        handleSend("Erro: paciente não encontrado. Por favor, selecione um paciente primeiro.");
+        return;
       }
       
       // Adicionar mensagem no chat
