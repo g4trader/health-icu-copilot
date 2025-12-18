@@ -354,9 +354,12 @@ export default function HomePage() {
   const [currentAgent, setCurrentAgent] = useState<ClinicalAgentType>("default");
   const [activePatientId, setActivePatientId] = useState<string | null>(null);
   const [expandedPatientId, setExpandedPatientId] = useState<string | null>(null);
+  // Estado para forçar re-render quando voiceNoteSummary for atualizado
+  const [patientUpdateKey, setPatientUpdateKey] = useState(0);
+  // Buscar paciente com a chave de atualização para forçar re-render
   const activePatient = mockPatients.find(p => p.id === activePatientId) || null;
   const expandedPatient = mockPatients.find(p => p.id === expandedPatientId) || null;
-  const { setPreview, clearPreview, setOnSelectPatient, setOnSendMessage } = usePreview();
+  const { setPreview, clearPreview, setOnSelectPatient, setOnSendMessage, previewPayload, previewType } = usePreview();
   const { setActivePatient: setActivePatientFromContext, addOpinion, setLastAnswerForPatient } = useClinicalSession();
 
   // Sincronizar activePatientId com o contexto
@@ -744,11 +747,17 @@ export default function HomePage() {
           oldSummary: oldSummary?.substring(0, 50),
           newSummary: opinion.substring(0, 50)
         });
-        // Forçar re-render atualizando o estado
-        setActivePatientId(activePatientId);
-        // Também atualizar o activePatient se estiver disponível
+        // Forçar re-render incrementando a chave de atualização
+        // Isso força o React a re-renderizar componentes que dependem do paciente
+        setPatientUpdateKey(prev => prev + 1);
+        // Também atualizar o activePatient se estiver disponível (para garantir sincronização)
         if (activePatient) {
           activePatient.voiceNoteSummary = opinion;
+        }
+        // Se o drawer de preview estiver aberto para este paciente, atualizar o payload também
+        if (previewType === 'patient' && previewPayload?.patient && (previewPayload.patient as Patient).id === activePatientId) {
+          const updatedPatient = { ...mockPatients[patientIndex] };
+          setPreview('patient', { patient: updatedPatient });
         }
       } else {
         console.error("[handleVoiceNoteResult] ❌ Paciente não encontrado no array mockPatients:", activePatientId);

@@ -420,7 +420,7 @@ export function PatientFocusMode({
         <PatientTimeline patient={patient} />
 
         {/* 9. Parecer do Plantonista */}
-        <section>
+        <section key={`parecer-${patient.id}-${patient.voiceNoteSummary?.substring(0, 20) || 'default'}`}>
           <SectionHeader title="Parecer do Plantonista" />
           <div className="mt-3 p-4 bg-white border border-slate-200 rounded-2xl shadow-sm">
             {patient.voiceNoteSummary ? (
