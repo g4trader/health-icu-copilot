@@ -234,15 +234,25 @@ export function ChatInput({
         }
       } else if (data.structured) {
         // Nota clínica normal - verificar se foi processada como parecer
+        // IMPORTANTE: Chamar onVoiceResult ANTES de decidir se envia mensagem
+        console.log("[ChatInput] Processando structured data, chamando onVoiceResult...");
         let wasProcessedAsOpinion = false;
         if (onVoiceResult) {
           const result = onVoiceResult({ text: data.text, structured: data.structured });
           // Se o handler retornou true, significa que foi processado como parecer
           wasProcessedAsOpinion = result === true;
+          console.log("[ChatInput] Resultado do onVoiceResult:", { wasProcessedAsOpinion, result, resultType: typeof result });
+        } else {
+          console.log("[ChatInput] onVoiceResult não está definido");
         }
         // Só enviar como mensagem normal se NÃO foi processado como parecer
         if (!wasProcessedAsOpinion && data.text) {
+          console.log("[ChatInput] ✅ Enviando nota como mensagem normal (não foi parecer)");
           onSend(`Nota de voz: ${data.text}`);
+        } else if (wasProcessedAsOpinion) {
+          console.log("[ChatInput] ✅ Nota processada como parecer - NÃO enviando como mensagem normal");
+        } else {
+          console.log("[ChatInput] ⚠️ Condição não atendida - wasProcessedAsOpinion:", wasProcessedAsOpinion, "data.text:", !!data.text);
         }
       }
       
