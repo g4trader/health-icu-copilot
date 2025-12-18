@@ -26,5 +26,8 @@ export interface Patient {
   medications: Medication[];
   ventilationParams?: VentilationParams;
   labResults: LabResult[];
+  
+  // Parecer derivado de nota de voz
+  voiceNoteSummary?: string;
 }
 

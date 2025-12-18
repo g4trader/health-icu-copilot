@@ -362,6 +362,7 @@ export default function HomePage() {
     
     // Identificar paciente ativo ou usar bed do structured
     let targetPatientId = activePatientId;
+    let targetPatient = activePatient;
     
     if (!targetPatientId && structured.bed) {
       // Buscar paciente pelo leito
@@ -371,16 +372,17 @@ export default function HomePage() {
       );
       if (patientByBed) {
         targetPatientId = patientByBed.id;
+        targetPatient = patientByBed;
       }
     }
     
-    if (!targetPatientId) {
+    if (!targetPatientId || !targetPatient) {
       console.warn("Não foi possível identificar o paciente para atualizar com a nota de voz");
       return;
     }
     
-    // Processar nota de voz
-    const { event, updates } = processVoiceNote(targetPatientId, structured, result.text);
+    // Processar nota de voz (inclui geração do resumo)
+    const { event, updates, summary } = processVoiceNote(targetPatientId, structured, result.text, targetPatient);
     
     if (event) {
       console.log("Evento de nota de voz adicionado:", event);
@@ -388,15 +390,20 @@ export default function HomePage() {
     
     if (updates) {
       console.log("Paciente atualizado com:", updates);
-      // Forçar re-render atualizando o estado (em produção, isso seria uma atualização de estado global)
-      // Por enquanto, apenas logamos
+      // Atualizar o paciente no array mockPatients para que o componente re-renderize
+      const patientIndex = mockPatients.findIndex(p => p.id === targetPatientId);
+      if (patientIndex >= 0) {
+        Object.assign(mockPatients[patientIndex], updates);
+        // Forçar re-render atualizando o estado do paciente ativo
+        setActivePatientId(targetPatientId); // Isso força re-render
+      }
     }
     
     // Se não havia paciente ativo, definir agora
     if (!activePatientId && targetPatientId) {
       setActivePatientId(targetPatientId);
     }
-  }, [activePatientId]);
+  }, [activePatientId, activePatient]);
   const { setPreview, clearPreview, setOnSelectPatient, setOnSendMessage } = usePreview();
   const { setActivePatient: setActivePatientFromContext, addOpinion, setLastAnswerForPatient } = useClinicalSession();
 

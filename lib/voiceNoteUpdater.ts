@@ -8,6 +8,54 @@ import { getPatientHistoryById } from "./mockPatients/history";
 import { patientsSnapshots } from "./mockPatients/snapshots";
 
 /**
+ * Constrói um resumo em português a partir dos dados estruturados da nota de voz
+ */
+export function buildVoiceNoteSummary(patient: Patient, structured: any): string {
+  const parts: string[] = [];
+  
+  // Nome e leito
+  const bedNumber = structured.bed || patient.leito.replace(/\D/g, '') || '';
+  parts.push(`Paciente ${patient.nome}${bedNumber ? `, leito ${bedNumber}` : ''}.`);
+  
+  // Status clínico
+  if (structured.statusClinico) {
+    const statusMap: Record<string, string> = {
+      'estavel': 'estável',
+      'instavel': 'instável',
+      'melhorando': 'em melhora',
+      'piorando': 'em piora',
+      'critico': 'crítico'
+    };
+    const statusText = statusMap[structured.statusClinico] || structured.statusClinico;
+    parts.push(`Estado clínico: ${statusText}.`);
+  }
+  
+  // Diurese e sinais vitais
+  const statusDetails: string[] = [];
+  if (structured.diureseAdequada === true) {
+    statusDetails.push('diurese adequada');
+  }
+  if (structured.sinaisVitaisBons === true) {
+    statusDetails.push('sinais vitais bons');
+  }
+  if (statusDetails.length > 0) {
+    parts.push(statusDetails.join(', ').charAt(0).toUpperCase() + statusDetails.join(', ').slice(1) + '.');
+  }
+  
+  // Plano
+  if (structured.plano) {
+    parts.push(`Plano: ${structured.plano}.`);
+  }
+  
+  // Se não houver informações suficientes, criar um resumo básico
+  if (parts.length === 1) {
+    parts.push('Avaliação clínica realizada via nota de voz.');
+  }
+  
+  return parts.join(' ');
+}
+
+/**
  * Adiciona um evento de nota de voz na timeline do paciente
  */
 export function addVoiceNoteToTimeline(
@@ -174,11 +222,21 @@ export function updatePatientFromVoiceNote(
 export function processVoiceNote(
   patientId: string,
   structuredData: any,
-  rawText: string
-): { event: TimelineEvent | null; updates: Partial<Patient> | null } {
+  rawText: string,
+  patient?: Patient
+): { event: TimelineEvent | null; updates: Partial<Patient> | null; summary: string | null } {
   const event = addVoiceNoteToTimeline(patientId, structuredData, rawText);
   const updates = updatePatientFromVoiceNote(patientId, structuredData);
   
-  return { event, updates };
+  // Gerar resumo se o paciente estiver disponível
+  let summary: string | null = null;
+  if (patient) {
+    summary = buildVoiceNoteSummary(patient, structuredData);
+    if (updates) {
+      updates.voiceNoteSummary = summary;
+    }
+  }
+  
+  return { event, updates, summary };
 }
 

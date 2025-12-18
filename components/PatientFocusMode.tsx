@@ -423,7 +423,11 @@ export function PatientFocusMode({
         <section>
           <SectionHeader title="Parecer do Plantonista" />
           <div className="mt-3 p-4 bg-white border border-slate-200 rounded-2xl shadow-sm">
-            {focusPayload?.narrativaAgente ? (
+            {patient.voiceNoteSummary ? (
+              <p className="text-sm text-slate-700 leading-relaxed">
+                {patient.voiceNoteSummary}
+              </p>
+            ) : focusPayload?.narrativaAgente ? (
               <p className="text-sm text-slate-700 leading-relaxed">
                 {focusPayload.narrativaAgente}
               </p>
