@@ -12,14 +12,36 @@ import { patientsSnapshots } from "./mockPatients/snapshots";
  * Formato específico para o card "Parecer do Plantonista"
  */
 export function buildPlantonistaOpinion(patient: Patient, structured: any): string {
+  if (!structured) {
+    return `Paciente ${patient.nome} (${patient.idade} anos), leito ${patient.leito}. Avaliação clínica realizada via nota de voz.`;
+  }
+  
   const status = structured.statusClinico ?? "estável";
   const plano = structured.plano ?? "Plano não especificado.";
   
-  return [
-    `Paciente ${patient.nome} (${patient.idade} anos), leito ${patient.leito}.`,
-    `Encontra-se ${status}.`,
-    `Plano: ${plano}`
-  ].join(" ");
+  const parts: string[] = [
+    `Paciente ${patient.nome} (${patient.idade} anos), leito ${patient.leito}.`
+  ];
+  
+  // Adicionar status clínico se disponível
+  if (structured.statusClinico) {
+    parts.push(`Encontra-se ${status}.`);
+  }
+  
+  // Adicionar informações adicionais se disponíveis
+  if (structured.diureseAdequada === true) {
+    parts.push("Diurese adequada.");
+  }
+  if (structured.sinaisVitaisBons === true) {
+    parts.push("Sinais vitais bons.");
+  }
+  
+  // Adicionar plano
+  if (structured.plano) {
+    parts.push(`Plano: ${plano}`);
+  }
+  
+  return parts.join(" ");
 }
 
 /**

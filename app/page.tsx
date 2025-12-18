@@ -694,9 +694,16 @@ export default function HomePage() {
     const isUpdateOpinionCommand = result.command && result.command.type === "update-opinion";
     const hasUpdateOpinionIntent = activePatientId && isUpdateOpinionIntent(text);
     
+    console.log("[handleVoiceNoteResult] Verificando intenção:", {
+      activePatientId,
+      isUpdateOpinionCommand,
+      hasUpdateOpinionIntent,
+      text: text.substring(0, 50)
+    });
+    
     // Se houver paciente ativo e intenção de parecer, tratar como atualização de parecer
     if (activePatientId && (isUpdateOpinionCommand || hasUpdateOpinionIntent)) {
-      console.log("[handleVoiceNoteResult] Intenção de atualizar parecer detectada");
+      console.log("[handleVoiceNoteResult] ✅ Intenção de atualizar parecer detectada");
       
       const targetPatient = activePatient;
       if (!targetPatient) {
@@ -705,15 +712,22 @@ export default function HomePage() {
         return;
       }
       
+      console.log("[handleVoiceNoteResult] Paciente encontrado:", { id: targetPatient.id, nome: targetPatient.nome });
+      console.log("[handleVoiceNoteResult] Structured data:", structured);
+      
       // Gerar parecer do plantonista a partir do JSON estruturado
       const opinion = buildPlantonistaOpinion(targetPatient, structured);
+      console.log("[handleVoiceNoteResult] Parecer gerado:", opinion);
       
       // Atualizar apenas o voiceNoteSummary, sem alterar outros dados clínicos
       const patientIndex = mockPatients.findIndex(p => p.id === activePatientId);
       if (patientIndex >= 0) {
         mockPatients[patientIndex].voiceNoteSummary = opinion;
+        console.log("[handleVoiceNoteResult] ✅ voiceNoteSummary atualizado no índice:", patientIndex);
         // Forçar re-render
         setActivePatientId(activePatientId);
+      } else {
+        console.error("[handleVoiceNoteResult] ❌ Paciente não encontrado no array mockPatients");
       }
       
       // Adicionar mensagem no chat
@@ -722,6 +736,8 @@ export default function HomePage() {
       // Finalizar - não processar outros dados clínicos
       return;
     }
+    
+    console.log("[handleVoiceNoteResult] Não é intenção de parecer, processando como nota clínica completa");
     
     // Se não houver paciente ativo e não for comando, não processar
     if (!activePatientId && !structured.patientId && !structured.bed) {
