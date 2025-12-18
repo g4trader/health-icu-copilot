@@ -565,23 +565,39 @@ export function getRecentDailyStatus(patientId: string, days: number = 14): Dail
   // remover qualquer "alta_uti" dos últimos 14 dias e substituir por status apropriado
   const isHighRisk = patient.riscoMortality24h >= 0.61;
   
-  if (isHighRisk) {
-    // Para pacientes de alto risco, garantir coerência: nunca mostrar "alta_uti", "melhora" ou "estavel" nos últimos dias
+  // Determinar categoria de risco para aplicar coerência
+  const riskLevel = patient.riscoMortality24h >= 0.61 ? "alto" : patient.riscoMortality24h >= 0.21 ? "moderado" : "baixo";
+  
+  // Para pacientes de alto ou moderado risco, garantir coerência nos últimos dias
+  if (riskLevel === "alto" || riskLevel === "moderado") {
     return recent.map((day) => {
       const daysFromCurrent = currentDiaUti - day.diaUti;
-      // Se está marcado como "alta_uti", "melhora" ou "estavel" e é um dia recente (últimos 5 dias), substituir
-      if (daysFromCurrent >= 0 && daysFromCurrent <= 5 && 
-          (day.statusGlobal === "alta_uti" || day.statusGlobal === "melhora" || day.statusGlobal === "estavel")) {
-        // Substituir por "critico" ou "grave" baseado no risco atual
-        const shouldBeCritico = patient.riscoMortality24h >= 0.75;
-        return {
-          ...day,
-          statusGlobal: shouldBeCritico ? "critico" : "grave",
-          riskScore: Math.max(day.riskScore, patient.riscoMortality24h * 0.9),
-          resumoDiario: shouldBeCritico 
-            ? "Estado crítico - monitorização intensiva"
-            : "Estado grave - atenção contínua"
-        };
+      
+      // Para alto risco: nunca mostrar "alta_uti", "melhora" ou "estavel" nos últimos 5 dias
+      // Para moderado risco: nunca mostrar "alta_uti" ou "melhora" nos últimos 3 dias (pode ter "estavel")
+      if (daysFromCurrent >= 0 && daysFromCurrent <= (riskLevel === "alto" ? 5 : 3)) {
+        if (riskLevel === "alto" && (day.statusGlobal === "alta_uti" || day.statusGlobal === "melhora" || day.statusGlobal === "estavel")) {
+          // Alto risco: substituir por "critico" ou "grave"
+          const shouldBeCritico = patient.riscoMortality24h >= 0.75;
+          return {
+            ...day,
+            statusGlobal: shouldBeCritico ? "critico" : "grave",
+            riskScore: Math.max(day.riskScore, patient.riscoMortality24h * 0.9),
+            resumoDiario: shouldBeCritico 
+              ? "Estado crítico - monitorização intensiva"
+              : "Estado grave - atenção contínua"
+          };
+        } else if (riskLevel === "moderado" && (day.statusGlobal === "alta_uti" || day.statusGlobal === "melhora")) {
+          // Moderado risco: substituir "alta_uti" ou "melhora" por "estavel" ou "grave"
+          return {
+            ...day,
+            statusGlobal: patient.riscoMortality24h >= 0.4 ? "grave" : "estavel",
+            riskScore: Math.max(day.riskScore, patient.riscoMortality24h * 0.85),
+            resumoDiario: patient.riscoMortality24h >= 0.4 
+              ? "Estado grave - atenção contínua"
+              : "Estado estável - manutenção do tratamento"
+          };
+        }
       }
       return day;
     });
