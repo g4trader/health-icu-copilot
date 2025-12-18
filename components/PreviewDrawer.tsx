@@ -222,10 +222,26 @@ function VentilatedPreview() {
   const ventilated = mockPatients.filter(p => p.ventilationParams !== undefined);
   const { onSelectPatient, onSendMessage } = usePreview();
 
-  const handleCardClick = (patientId: string) => {
+  const handleCardClick = async (patientId: string) => {
     const patient = ventilated.find(p => p.id === patientId);
-    const patientName = patient ? `${patient.leito} (${patient.nome})` : patientId;
-    onSendMessage?.(`Como está o paciente da ${patientName}?`, patientId);
+    const message = patient 
+      ? `Me dê um overview clínico completo do paciente da UTI ${patient.leito} (${patient.nome}).`
+      : `Me dê um overview clínico completo do paciente ${patientId}.`;
+    
+    if (onSendMessage) {
+      onSendMessage(message, patientId);
+    } else {
+      try {
+        await fetch('/api/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ message, focusedPatientId: patientId, patientId })
+        });
+        window.location.reload();
+      } catch (error) {
+        console.error('[VentilatedPreview] Erro ao enviar mensagem:', error);
+      }
+    }
     onSelectPatient?.(patientId);
   };
 
@@ -249,10 +265,26 @@ function VasopressorsPreview() {
   );
   const { onSelectPatient, onSendMessage } = usePreview();
 
-  const handleCardClick = (patientId: string) => {
+  const handleCardClick = async (patientId: string) => {
     const patient = onVaso.find(p => p.id === patientId);
-    const patientName = patient ? `${patient.leito} (${patient.nome})` : patientId;
-    onSendMessage?.(`Como está o paciente da ${patientName}?`, patientId);
+    const message = patient 
+      ? `Me dê um overview clínico completo do paciente da UTI ${patient.leito} (${patient.nome}).`
+      : `Me dê um overview clínico completo do paciente ${patientId}.`;
+    
+    if (onSendMessage) {
+      onSendMessage(message, patientId);
+    } else {
+      try {
+        await fetch('/api/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ message, focusedPatientId: patientId, patientId })
+        });
+        window.location.reload();
+      } catch (error) {
+        console.error('[VasopressorsPreview] Erro ao enviar mensagem:', error);
+      }
+    }
     onSelectPatient?.(patientId);
   };
 
@@ -277,7 +309,7 @@ function HighRiskPreview() {
   });
   const { onSelectPatient, onSendMessage } = usePreview();
 
-  const handleCardClick = (patientId: string) => {
+  const handleCardClick = async (patientId: string) => {
     console.log('[HighRiskPreview] handleCardClick chamado', { patientId, hasOnSendMessage: !!onSendMessage, hasOnSelectPatient: !!onSelectPatient });
     const patient = highRisk.find(p => p.id === patientId);
     if (!patient) {
@@ -294,10 +326,32 @@ function HighRiskPreview() {
       console.log('[HighRiskPreview] Chamando onSendMessage', { message, patientId });
       onSendMessage(message, patientId);
     } else {
-      console.error('[HighRiskPreview] onSendMessage não disponível - mensagem não será enviada!');
+      // Fallback: fazer chamada direta à API
+      console.warn('[HighRiskPreview] onSendMessage não disponível - usando fallback direto à API', { message, patientId });
+      try {
+        const response = await fetch('/api/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            message,
+            focusedPatientId: patientId,
+            patientId: patientId
+          })
+        });
+        
+        if (!response.ok) {
+          throw new Error('Falha ao enviar mensagem');
+        }
+        
+        console.log('[HighRiskPreview] Mensagem enviada diretamente à API com sucesso');
+        // Nota: A resposta da API não é processada aqui, mas o servidor já processou a mensagem
+        // O usuário precisará recarregar a página manualmente ou usar o chat normalmente
+      } catch (error) {
+        console.error('[HighRiskPreview] Erro ao enviar mensagem diretamente:', error);
+      }
     }
     
-    // Depois selecionar paciente
+    // Depois selecionar paciente (se disponível)
     if (onSelectPatient) {
       console.log('[HighRiskPreview] Chamando onSelectPatient', { patientId });
       onSelectPatient(patientId);
