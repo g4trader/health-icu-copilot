@@ -186,8 +186,9 @@ export function ChatInput({
               if (value.trim() && !loading) {
                 onSend(value.trim());
               }
-            } else {
-              // Passar outros eventos de teclado para o handler pai se necessário
+            }
+            // Chamar onKeyDown do pai apenas se fornecido (para compatibilidade)
+            if (onKeyDown) {
               onKeyDown(e);
             }
           }}

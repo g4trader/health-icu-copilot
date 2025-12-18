@@ -548,18 +548,8 @@ export default function HomePage() {
     return () => setOnSendMessage(undefined);
   }, [setOnSendMessage, handleSend]);
 
-  const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLInputElement>) => {
-    // Só fazer submit com Enter, não com outras teclas
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault();
-      e.stopPropagation();
-      console.log("[ChatInput] Enter pressed, input:", input);
-      if (input.trim() && !loading) {
-        void handleSend(input.trim());
-      }
-    }
-    // Para outras teclas, não fazer nada (não fazer submit)
-  }, [handleSend, input, loading]);
+  // Removido handleKeyDown - agora o ChatInput gerencia isso internamente
+  // Não precisamos mais deste handler aqui
 
   const handlePromptClick = useCallback((prompt: string) => {
     // Enviar a pergunta automaticamente
@@ -694,7 +684,7 @@ export default function HomePage() {
                 value={input}
                 onChange={setInput}
                 onSend={handleSend}
-                onKeyDown={handleKeyDown}
+                onKeyDown={() => {}} // Handler vazio - ChatInput gerencia internamente
                 loading={loading}
                 currentAgent={currentAgent}
                 onAgentChange={setCurrentAgent}
