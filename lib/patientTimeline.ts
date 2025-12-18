@@ -60,15 +60,28 @@ function generate30DayEvolution(patient: Patient): DailyPatientStatus[] {
         const phaseProgress = (day - phase.days[0]) / (phase.days[1] - phase.days[0] + 1);
         riskScore = maxRisk - (phaseProgress * (maxRisk - minRisk));
       } else {
-        // Fora das fases definidas = alta (se depois do dia de alta)
-        if (day > altaDay) {
+        // Fora das fases definidas: considerar se é futuro ou passado
+        if (day > altaDay && day > currentDiaUti) {
+          // Passou do dia de alta e já passou do dia atual = alta
           statusGlobal = "alta_uti";
           riskScore = 0.1;
-        } else {
-          // Se ainda não chegou ao dia de alta, usar última fase conhecida
+        } else if (day > currentDiaUti) {
+          // Dia futuro (ainda não aconteceu): usar status do último dia conhecido
           const lastPhase = profile.phases[profile.phases.length - 1];
           statusGlobal = lastPhase.statusGlobal;
           riskScore = lastPhase.riskScoreRange[0];
+        } else {
+          // Dentro do período esperado mas sem fase definida: usar última fase anterior
+          const previousPhases = profile.phases.filter(p => p.days[1] < day);
+          if (previousPhases.length > 0) {
+            const lastPhase = previousPhases[previousPhases.length - 1];
+            statusGlobal = lastPhase.statusGlobal;
+            riskScore = lastPhase.riskScoreRange[0];
+          } else {
+            // Se não há fase anterior, usar primeira fase
+            statusGlobal = profile.phases[0].statusGlobal;
+            riskScore = profile.phases[0].riskScoreRange[0];
+          }
         }
       }
     } else {
@@ -407,3 +420,4 @@ export const eventTypeLabels: Record<TimelineEventType, string> = {
 
 // Re-exportar TimelineEvent type
 export type { TimelineEvent } from "@/types/MockPatientHistory";
+
