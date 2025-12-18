@@ -37,10 +37,15 @@ function generate30DayEvolution(patient: Patient): DailyPatientStatus[] {
     }
   }
   
-  // Gerar status para cada dia (30 dias, começando 29 dias atrás)
-  for (let day = 1; day <= 30; day++) {
-    const date = new Date(baseDate);
-    date.setDate(date.getDate() - (30 - day));
+  // Calcular data de admissão (hoje menos currentDiaUti dias)
+  const admissionDate = new Date(baseDate);
+  admissionDate.setDate(admissionDate.getDate() - currentDiaUti + 1);
+  
+  // Gerar status para cada dia (30 dias totais: até max(30, altaDay) dias desde admissão)
+  const maxDays = Math.max(30, altaDay);
+  for (let day = 1; day <= maxDays; day++) {
+    const date = new Date(admissionDate);
+    date.setDate(date.getDate() + (day - 1));
     
     let statusGlobal: PatientStatusGlobal;
     let riskScore: number;
@@ -55,9 +60,16 @@ function generate30DayEvolution(patient: Patient): DailyPatientStatus[] {
         const phaseProgress = (day - phase.days[0]) / (phase.days[1] - phase.days[0] + 1);
         riskScore = maxRisk - (phaseProgress * (maxRisk - minRisk));
       } else {
-        // Fora das fases definidas = alta
-        statusGlobal = "alta_uti";
-        riskScore = 0.1;
+        // Fora das fases definidas = alta (se depois do dia de alta)
+        if (day > altaDay) {
+          statusGlobal = "alta_uti";
+          riskScore = 0.1;
+        } else {
+          // Se ainda não chegou ao dia de alta, usar última fase conhecida
+          const lastPhase = profile.phases[profile.phases.length - 1];
+          statusGlobal = lastPhase.statusGlobal;
+          riskScore = lastPhase.riskScoreRange[0];
+        }
       }
     } else {
       // Fallback: lógica original
