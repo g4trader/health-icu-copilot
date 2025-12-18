@@ -147,9 +147,7 @@ export function PreviewDrawer() {
           {previewType === 'vasopressors' && <VasopressorsPreview />}
           {previewType === 'high-risk' && <HighRiskPreview />}
           {previewType === 'patient' && previewPayload?.patient && (
-            <div className="px-4 pb-6 pt-4">
-              <PatientDetailPanel patient={previewPayload.patient as Patient} />
-            </div>
+            <PatientDetailPanel patient={previewPayload.patient as Patient} />
           )}
           {previewType === 'radiology-report' && previewPayload?.report && (
             <div className="px-4 pb-6 pt-4">
