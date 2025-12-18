@@ -659,9 +659,10 @@ export default function HomePage() {
       
       if (patientByBed) {
         console.log("[handleVoiceNoteResult] Paciente encontrado:", { id: patientByBed.id, nome: patientByBed.nome, leito: patientByBed.leito });
-        // Apenas mudar o foco: abrir o paciente e definir como ativo
-        showPatientOverviewInline(patientByBed.id);
+        // Definir como paciente ativo
         setActivePatientId(patientByBed.id);
+        // Abrir o overview completo do paciente (mesmo comportamento do clique no card)
+        openPatientPreviewDrawer(patientByBed.id);
         // Mensagem já foi adicionada no ChatInput: "Comando de voz: mostrando paciente do leito X"
         // Não fazer mais nada - encerrar o fluxo aqui
         return;
@@ -740,7 +741,7 @@ export default function HomePage() {
     if (!activePatientId && targetPatientId) {
       setActivePatientId(targetPatientId);
     }
-  }, [activePatientId, activePatient, showPatientOverviewInline, handleSend]);
+  }, [activePatientId, activePatient, showPatientOverviewInline, handleSend, openPatientPreviewDrawer]);
 
   return (
     <div className="app-wrapper">
