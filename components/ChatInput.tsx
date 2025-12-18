@@ -206,13 +206,26 @@ export function ChatInput({
       
       // Verificar se é um comando de voz (navegação)
       if (data.command && data.command.type === "select-patient") {
-        // Comando de navegação - não processar como nota clínica
+        // Comando de navegação - apenas mudar foco, não processar como nota clínica
+        // IMPORTANTE: Não chamar LLM, não atualizar dados clínicos
+        console.log("[ChatInput] Comando de voz detectado, apenas mudando foco do paciente");
+        
+        // Adicionar mensagem no chat informando o comando
+        onSend(`Comando de voz: mostrando paciente do leito ${data.command.bed}.`);
+        
+        // Chamar handler para mudar foco do paciente (sem processar como nota clínica)
         if (onVoiceResult) {
           onVoiceResult({ text: data.text, command: data.command });
         }
-        // Adicionar mensagem no chat informando o comando
-        onSend(`Comando de voz: mostrando paciente do leito ${data.command.bed}.`);
-      } else if (data.structured) {
+        
+        // Limpar e voltar para idle
+        setAudioBlob(null);
+        setVoiceState("idle");
+        return; // Encerrar fluxo - não processar como nota clínica
+      }
+      
+      // Se não for comando, processar como nota clínica normal
+      if (data.structured) {
         // Nota clínica normal
         if (onVoiceResult) {
           onVoiceResult({ text: data.text, structured: data.structured });

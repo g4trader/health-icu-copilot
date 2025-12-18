@@ -646,6 +646,9 @@ export default function HomePage() {
       const bedNumber = result.command.bed;
       console.log("[handleVoiceNoteResult] Comando de seleção detectado:", { bed: bedNumber });
       
+      // IMPORTANTE: Para comandos, apenas mudar o foco do paciente
+      // NÃO chamar LLM, NÃO atualizar voiceNoteSummary, NÃO atualizar snapshots
+      
       // Buscar paciente pelo leito
       const bedStr = String(bedNumber).padStart(2, '0');
       const patientByBed = mockPatients.find(p => 
@@ -656,15 +659,18 @@ export default function HomePage() {
       
       if (patientByBed) {
         console.log("[handleVoiceNoteResult] Paciente encontrado:", { id: patientByBed.id, nome: patientByBed.nome, leito: patientByBed.leito });
-        // Abrir o paciente usando a mesma função que o clique no card usa
+        // Apenas mudar o foco: abrir o paciente e definir como ativo
         showPatientOverviewInline(patientByBed.id);
         setActivePatientId(patientByBed.id);
+        // Mensagem já foi adicionada no ChatInput: "Comando de voz: mostrando paciente do leito X"
+        // Não fazer mais nada - encerrar o fluxo aqui
+        return;
       } else {
         console.warn("[handleVoiceNoteResult] Paciente não encontrado para leito:", bedNumber);
         // Adicionar mensagem de erro no chat
         handleSend(`Paciente do leito ${bedNumber} não encontrado.`);
+        return; // Encerrar fluxo mesmo se não encontrou
       }
-      return; // Não processar como nota clínica
     }
     
     // Se não for comando, processar como nota clínica normal

@@ -42,10 +42,8 @@ export async function POST(request: NextRequest) {
       patientContext.patientId = patientIdParam;
     }
     
-    // Default se não houver contexto
-    if (!patientContext.bed && !patientContext.patientId) {
-      patientContext.bed = 8; // Fallback para simplificar
-    }
+    // NÃO usar fallback hardcoded - deixar null se não houver contexto
+    // Isso evita que comandos de voz usem paciente errado
     if (!patientContext.unit) {
       patientContext.unit = "UTI 1";
     }
@@ -99,8 +97,21 @@ export async function POST(request: NextRequest) {
     }
 
     // 3. Se não for comando, seguir fluxo normal: enviar texto para LLM API para parsing
+    // IMPORTANTE: Só chamar LLM se NÃO for comando de voz
     let structuredData = null;
     try {
+      // Só enviar patientContext se houver (não usar fallback hardcoded)
+      const llmPatientContext: any = {};
+      if (patientContext.bed) {
+        llmPatientContext.bed = patientContext.bed;
+      }
+      if (patientContext.patientId) {
+        llmPatientContext.patientId = patientContext.patientId;
+      }
+      if (patientContext.unit) {
+        llmPatientContext.unit = patientContext.unit;
+      }
+      
       const llmResponse = await fetch(`${LLM_API_URL}/parse-audio-note`, {
         method: "POST",
         headers: {
@@ -108,11 +119,7 @@ export async function POST(request: NextRequest) {
         },
         body: JSON.stringify({
           rawText: transcribedText,
-          patientContext: {
-            bed: patientContext.bed || null,
-            patientId: patientContext.patientId || null,
-            unit: patientContext.unit || null,
-          },
+          patientContext: Object.keys(llmPatientContext).length > 0 ? llmPatientContext : null,
         }),
       });
 
