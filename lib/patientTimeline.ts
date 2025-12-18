@@ -102,10 +102,12 @@ function generate30DayEvolution(patient: Patient): DailyPatientStatus[] {
         } else {
           // Dias anteriores: interpolar da ADMISSÃO (crítico) até o estado ATUAL
           // Progress: 0 = admissão (dia 1), 1 = hoje (currentDiaUti)
-          const progress = (day - 1) / (currentDiaUti - 1);
+          // Se currentDiaUti = 1, usar progress = 0 (sempre admissão)
+          const progress = currentDiaUti > 1 ? (day - 1) / (currentDiaUti - 1) : 0;
           riskScore = admissionRisk - (progress * (admissionRisk - currentRisk));
           
           // Determinar status baseado no risco interpolado
+          // Usar thresholds para garantir evolução visível
           if (riskScore >= 0.75) {
             statusGlobal = "critico";
           } else if (riskScore >= 0.5) {
@@ -131,41 +133,44 @@ function generate30DayEvolution(patient: Patient): DailyPatientStatus[] {
         riskScore = currentRisk;
       } else {
         // Dias anteriores: interpolar da ADMISSÃO até o estado ATUAL
-        // Progress: 0 = admissão, 1 = hoje
-        const progress = (day - 1) / (currentDiaUti - 1);
+        // Progress: 0 = admissão (dia 1), 1 = hoje (currentDiaUti)
+        // Se currentDiaUti = 1, usar progress = 0 (sempre admissão)
+        const progress = currentDiaUti > 1 ? (day - 1) / (currentDiaUti - 1) : 0;
         
         // Interpolar risco: da admissão (alto) até o atual
         riskScore = admissionRisk - (progress * (admissionRisk - currentRisk));
         
         // Determinar status baseado no risco interpolado e na trajetória esperada
+        // Para garantir evolução visível mesmo com poucos dias, usar thresholds baseados em progress
         if (riskLevel === "baixo") {
           // Trajetória de melhora completa: crítico → grave → estável → melhora → alta
-          if (progress < 0.1) {
-            statusGlobal = "critico"; // Primeiros 10%: crítico
-          } else if (progress < 0.3) {
-            statusGlobal = "grave"; // 10-30%: grave
-          } else if (progress < 0.6) {
-            statusGlobal = "estavel"; // 30-60%: estável
+          // Distribuir fases ao longo da progressão
+          if (progress < 0.15) {
+            statusGlobal = "critico"; // Primeiros 15%: crítico (admissão)
+          } else if (progress < 0.35) {
+            statusGlobal = "grave"; // 15-35%: grave
+          } else if (progress < 0.65) {
+            statusGlobal = "estavel"; // 35-65%: estável
           } else if (progress < 0.85) {
-            statusGlobal = "melhora"; // 60-85%: melhora
+            statusGlobal = "melhora"; // 65-85%: melhora
           } else {
-            statusGlobal = currentStatus; // 85-100%: melhora ou alta
+            statusGlobal = currentStatus; // 85-100%: melhora ou alta (hoje)
           }
         } else if (riskLevel === "moderado") {
           // Trajetória moderada: crítico → grave → estável
-          if (progress < 0.2) {
-            statusGlobal = "critico";
-          } else if (progress < 0.6) {
-            statusGlobal = "grave";
+          if (progress < 0.25) {
+            statusGlobal = "critico"; // Primeiros 25%: crítico
+          } else if (progress < 0.65) {
+            statusGlobal = "grave"; // 25-65%: grave
           } else {
-            statusGlobal = "estavel";
+            statusGlobal = "estavel"; // 65-100%: estável
           }
         } else {
           // Trajetória de alto risco: crítico → grave (ou crítico contínuo)
-          if (progress < 0.5) {
-            statusGlobal = "critico";
+          if (progress < 0.4) {
+            statusGlobal = "critico"; // Primeiros 40%: crítico
           } else {
-            statusGlobal = "grave";
+            statusGlobal = "grave"; // 40-100%: grave
           }
         }
       }
@@ -178,7 +183,10 @@ function generate30DayEvolution(patient: Patient): DailyPatientStatus[] {
     let suporteVentilatorio: DailyPatientStatus["suporteVentilatorio"] = {};
     const hasVMNow = !!patient.ventilationParams;
     // Progress: 0 = admissão (dia 1), 1 = hoje (currentDiaUti)
-    const progress = day <= currentDiaUti ? (day - 1) / Math.max(1, currentDiaUti - 1) : 1;
+    // Se currentDiaUti = 1, usar progress = 0 (sempre admissão)
+    const progress = day <= currentDiaUti && currentDiaUti > 1 
+      ? (day - 1) / (currentDiaUti - 1) 
+      : (day <= currentDiaUti ? 0 : 1);
     
     if (phase) {
       if (phase.hasVM) {
