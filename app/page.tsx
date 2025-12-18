@@ -670,9 +670,10 @@ export default function HomePage() {
         // Apenas mudar o foco do paciente no chat (não abrir drawer lateral)
         // O drawer só abre quando o usuário clica manualmente
         setActivePatientId(patientByBed.id);
-        // Mostrar overview inline no chat (sem abrir drawer)
-        showPatientOverviewInline(patientByBed.id);
-        // Mensagem já foi adicionada no ChatInput: "Comando de voz: mostrando paciente do leito X"
+        // NÃO chamar showPatientOverviewInline para comandos de voz
+        // Isso evitaria a duplicação de mensagens
+        // A mensagem "Comando de voz: mostrando paciente do leito X" já foi adicionada no ChatInput
+        // Se o usuário quiser ver o overview completo, pode clicar no card do paciente
         // Não fazer mais nada - encerrar o fluxo aqui
         return false;
       } else {
