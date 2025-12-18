@@ -71,7 +71,15 @@ export function ChatInput({
   }
 
   return (
-    <div className="chat-input-wrapper">
+    <div 
+      className="chat-input-wrapper"
+      onKeyDown={(e) => {
+        // Prevenir submit de form se houver algum form envolvendo
+        if (e.key === "Enter" && e.target !== e.currentTarget) {
+          e.stopPropagation();
+        }
+      }}
+    >
         <div className="chat-input-left-buttons">
           <button
             type="button"
@@ -174,9 +182,9 @@ export function ChatInput({
           placeholder="Digite sua pergunta..."
           className="chat-input-field"
           value={value}
+          autoComplete="off"
           onChange={(e) => {
             // Apenas atualizar o estado, sem fazer submit
-            // NÃO usar preventDefault/stopPropagation aqui - isso interfere com o comportamento normal
             onChange(e.target.value);
           }}
           onKeyDown={(e) => {
@@ -187,10 +195,9 @@ export function ChatInput({
               if (value.trim() && !loading) {
                 onSend(value.trim());
               }
-              return; // Não processar mais nada para Enter
+              return false; // Não processar mais nada para Enter
             }
             // Para outras teclas, não fazer nada - apenas permitir digitação normal
-            // NÃO chamar onKeyDown do pai para evitar submit indesejado
           }}
           disabled={loading}
         />
