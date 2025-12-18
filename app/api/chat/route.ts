@@ -302,6 +302,7 @@ function detectIntent(
     msg.match(/(?:UTI|leito)\s*\d+/i) ||
     mockPatients.some(p => msg.toLowerCase().includes(p.nome.toLowerCase())) ||
     (msg.includes("resumo") && (msg.includes("paciente") || msg.match(/(?:UTI|leito)/i))) ||
+    (msg.includes("overview") && (msg.includes("paciente") || msg.match(/(?:UTI|leito)/i))) ||
     msg.includes("dados do paciente") ||
     msg.includes("informações do paciente") ||
     (msg.includes("esse paciente") || msg.includes("este paciente") || msg.includes("desse paciente") || msg.includes("deste paciente")) ||
