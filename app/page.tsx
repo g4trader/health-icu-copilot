@@ -757,12 +757,30 @@ export default function HomePage() {
         // Se o drawer de preview estiver aberto para este paciente, atualizar o payload também
         // IMPORTANTE: Criar uma nova referência do objeto para forçar re-render
         if (previewType === 'patient' && previewPayload?.patient && (previewPayload.patient as Patient).id === activePatientId) {
+          // Buscar o paciente atualizado do array mockPatients para garantir que temos a versão mais recente
           const updatedPatient = { ...mockPatients[patientIndex] };
           console.log("[handleVoiceNoteResult] Atualizando previewPayload com novo parecer:", {
             patientId: updatedPatient.id,
-            voiceNoteSummary: updatedPatient.voiceNoteSummary?.substring(0, 50)
+            voiceNoteSummary: updatedPatient.voiceNoteSummary?.substring(0, 50),
+            previewType,
+            hasPreviewPayload: !!previewPayload,
+            currentPreviewPatientId: (previewPayload.patient as Patient).id
           });
-          setPreview('patient', { patient: updatedPatient });
+          // Fechar e reabrir o preview para forçar re-render completo
+          console.log("[handleVoiceNoteResult] Fechando preview drawer...");
+          clearPreview();
+          // Usar setTimeout para garantir que o clearPreview seja processado antes de reabrir
+          setTimeout(() => {
+            console.log("[handleVoiceNoteResult] Reabrindo preview drawer com paciente atualizado...");
+            setPreview('patient', { patient: updatedPatient });
+          }, 50);
+        } else {
+          console.log("[handleVoiceNoteResult] Preview drawer não está aberto ou paciente diferente:", {
+            previewType,
+            hasPreviewPayload: !!previewPayload,
+            previewPatientId: previewPayload?.patient ? (previewPayload.patient as Patient).id : null,
+            activePatientId
+          });
         }
         // Forçar re-render do activePatientId para garantir que componentes que dependem dele sejam atualizados
         // Usar um pequeno delay para garantir que o estado seja atualizado

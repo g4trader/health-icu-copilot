@@ -117,14 +117,23 @@ export function PreviewDrawer() {
 
   // Obter paciente se disponível
   const patient = getPatientFromPreview(previewType, previewPayload);
+  
+  // Se for preview de paciente, buscar sempre do array mockPatients para ter versão mais recente
+  const currentPatient = previewType === 'patient' && previewPayload?.patient 
+    ? (() => {
+        const patientId = (previewPayload.patient as Patient).id;
+        const latestPatient = mockPatients.find(p => p.id === patientId);
+        return latestPatient || (previewPayload.patient as Patient);
+      })()
+    : patient;
 
   return (
     <>
       <div className="drawer-overlay" onClick={clearPreview} />
       <aside className="preview-drawer">
         <div className="drawer-header">
-          {patient ? (
-            <PatientDrawerHeader patient={patient} />
+          {currentPatient ? (
+            <PatientDrawerHeader patient={currentPatient} />
           ) : (
             <ListDrawerHeader 
               title={
@@ -146,15 +155,14 @@ export function PreviewDrawer() {
           {previewType === 'ventilated' && <VentilatedPreview />}
           {previewType === 'vasopressors' && <VasopressorsPreview />}
           {previewType === 'high-risk' && <HighRiskPreview />}
-          {previewType === 'patient' && previewPayload?.patient && (() => {
-            const patient = previewPayload.patient as Patient;
-            const summaryKey = patient.voiceNoteSummary 
-              ? patient.voiceNoteSummary.substring(0, 30).replace(/\s/g, '-') 
+          {previewType === 'patient' && currentPatient && (() => {
+            const summaryKey = currentPatient.voiceNoteSummary 
+              ? currentPatient.voiceNoteSummary.substring(0, 30).replace(/\s/g, '-') 
               : 'default';
             return (
               <PatientDetailPanel 
-                key={`patient-detail-${patient.id}-${summaryKey}-${Date.now()}`}
-                patient={patient} 
+                key={`patient-detail-${currentPatient.id}-${summaryKey}-${Date.now()}`}
+                patient={currentPatient} 
               />
             );
           })()}
