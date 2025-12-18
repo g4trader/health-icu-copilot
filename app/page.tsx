@@ -353,7 +353,7 @@ export default function HomePage() {
   const [expandedPatientId, setExpandedPatientId] = useState<string | null>(null);
   const activePatient = mockPatients.find(p => p.id === activePatientId) || null;
   const expandedPatient = mockPatients.find(p => p.id === expandedPatientId) || null;
-  const { setPreview, setOnSelectPatient, setOnSendMessage } = usePreview();
+  const { setPreview, clearPreview, setOnSelectPatient, setOnSendMessage } = usePreview();
   const { setActivePatient: setActivePatientFromContext, addOpinion, setLastAnswerForPatient } = useClinicalSession();
 
   // Sincronizar activePatientId com o contexto
@@ -560,6 +560,8 @@ export default function HomePage() {
         return;
       }
       console.log('[app/page] handleSendMessage chamado - Enviando mensagem ao chat:', { message, patientId });
+      // Fechar preview antes de enviar para direcionar atenção ao chat
+      clearPreview();
       void handleSend(message, undefined, patientId);
     };
     console.log('[app/page] Configurando handleSendMessage no PreviewProvider');
@@ -568,7 +570,7 @@ export default function HomePage() {
       console.log('[app/page] Limpando handleSendMessage do PreviewProvider');
       setOnSendMessage(undefined);
     };
-  }, [setOnSendMessage, handleSend]);
+  }, [setOnSendMessage, handleSend, clearPreview]);
 
   // Listener para eventos de mensagens enviadas diretamente à API (fallback do drawer)
   useEffect(() => {
@@ -616,13 +618,16 @@ export default function HomePage() {
       if (plantonistaContent.focusPayload?.patientId) {
         setLastAnswerForPatient(plantonistaContent.focusPayload.patientId, plantonistaContent);
       }
+      
+      // Fechar preview drawer para direcionar atenção ao chat
+      clearPreview();
     };
 
     window.addEventListener('chatMessageSent', handleChatMessageSent);
     return () => {
       window.removeEventListener('chatMessageSent', handleChatMessageSent);
     };
-  }, [setLastAnswerForPatient]);
+  }, [setLastAnswerForPatient, clearPreview]);
 
   // Removido handleKeyDown - agora o ChatInput gerencia isso internamente
   // Não precisamos mais deste handler aqui
