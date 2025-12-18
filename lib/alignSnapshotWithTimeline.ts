@@ -10,6 +10,7 @@ import { getLatestDailyStatus } from "./patientTimeline";
 /**
  * Alinha o snapshot do paciente com o último status da timeline
  * Se a timeline termina em "alta_uti", ajusta o snapshot para baixo risco
+ * NOTA: Esta função só deve ser chamada para pacientes com targetRisk "low"
  */
 export function alignSnapshotWithLatestStatus(patient: Patient): Patient {
   const latestStatus = getLatestDailyStatus(patient.id);

@@ -30,12 +30,12 @@ export function getPatientsOnVasopressors(): number {
 }
 
 /**
- * Retorna número de pacientes em alto risco (score >= 0.7)
+ * Retorna número de pacientes em alto risco (riscoMortality24h >= 0.61)
  */
 export function getHighRiskPatients(): number {
+  // Alto risco: riscoMortality24h >= 0.61 (range padronizado: 0.61-1.00)
   return mockPatients.filter(p => {
-    const riskScore = calculateRiskScore(p);
-    return riskLevelFromScore(riskScore) === "alto" || p.riscoMortality24h >= 0.7;
+    return p.riscoMortality24h >= 0.61 || riskLevelFromScore(p.riscoMortality24h) === "alto";
   }).length;
 }
 

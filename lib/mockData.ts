@@ -1,6 +1,7 @@
 import type { Patient, VitalSigns, FluidBalance, Medication, VentilationParams, LabResult, UnitProfile } from "@/types";
 
 import { alignSnapshotWithLatestStatus } from "./alignSnapshotWithTimeline";
+import { applyTargetRisk, type TargetRiskCategory } from "./applyTargetRisk";
 
 export type RiskLevel = "alto" | "moderado" | "baixo";
 
@@ -294,6 +295,7 @@ const mockPatientsRaw: Patient[] = [
     id: "p2",
     leito: "UTI 02",
     nome: "Gabriel",
+    // targetRisk: low
     idade: 8,
     peso: 28.0,
     diagnosticoPrincipal: "Pneumonia bacteriana grave com derrame pleural",
@@ -456,6 +458,7 @@ const mockPatientsRaw: Patient[] = [
     id: "p3",
     leito: "UTI 03",
     nome: "Isabella",
+    // targetRisk: low
     idade: 6,
     peso: 22.0,
     diagnosticoPrincipal: "Sepse de foco abdominal pós-cirurgia de apendicite complicada",
@@ -663,6 +666,7 @@ const mockPatientsRaw: Patient[] = [
     id: "p4",
     leito: "UTI 04",
     nome: "Lucas",
+    // targetRisk: moderate
     idade: 12,
     peso: 42.0,
     diagnosticoPrincipal: "Trauma cranioencefálico grave pós-acidente",
@@ -792,6 +796,7 @@ const mockPatientsRaw: Patient[] = [
     id: "p5",
     leito: "UTI 05",
     nome: "Maria Eduarda",
+    // targetRisk: high
     idade: 2,
     peso: 11.5,
     diagnosticoPrincipal: "Cardiopatia congênita descompensada (CIV + CIA)",
@@ -875,6 +880,7 @@ const mockPatientsRaw: Patient[] = [
     id: "p6",
     leito: "UTI 06",
     nome: "João Pedro",
+    // targetRisk: moderate
     idade: 5,
     peso: 18.0,
     diagnosticoPrincipal: "Bronquiolite viral moderada com necessidade de suporte ventilatório",
@@ -976,6 +982,7 @@ const mockPatientsRaw: Patient[] = [
     id: "p7",
     leito: "UTI 07",
     nome: "Ana Clara",
+    // targetRisk: moderate
     idade: 4,
     peso: 16.0,
     diagnosticoPrincipal: "Sepse de foco pulmonar com choque séptico",
@@ -1150,6 +1157,7 @@ const mockPatientsRaw: Patient[] = [
     id: "p8",
     leito: "UTI 08",
     nome: "Rafael",
+    // targetRisk: moderate
     idade: 7,
     peso: 24.0,
     diagnosticoPrincipal: "Pneumonia comunitária grave com derrame pleural bilateral",
@@ -1300,6 +1308,7 @@ const mockPatientsRaw: Patient[] = [
     id: "p9",
     leito: "UTI 09",
     nome: "Laura",
+    // targetRisk: high
     idade: 1,
     peso: 8.5,
     diagnosticoPrincipal: "Bronquiolite viral grave em lactente",
@@ -1413,6 +1422,7 @@ const mockPatientsRaw: Patient[] = [
     id: "p10",
     leito: "UTI 10",
     nome: "Enzo",
+    // targetRisk: high
     idade: 9,
     peso: 32.0,
     diagnosticoPrincipal: "Cardiopatia congênita (Tetralogia de Fallot) pós-cirúrgica",
