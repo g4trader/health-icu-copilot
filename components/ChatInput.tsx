@@ -9,7 +9,7 @@ interface ChatInputProps {
   value: string;
   onChange: (value: string) => void;
   onSend: (message?: string) => void;
-  onKeyDown: (e: React.KeyboardEvent<HTMLInputElement>) => void;
+  onKeyDown?: (e: React.KeyboardEvent<HTMLInputElement>) => void; // Opcional - ChatInput gerencia internamente
   loading: boolean;
   currentAgent: ClinicalAgentType;
   onAgentChange: (agent: ClinicalAgentType) => void;
