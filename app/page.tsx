@@ -355,103 +355,6 @@ export default function HomePage() {
   const [expandedPatientId, setExpandedPatientId] = useState<string | null>(null);
   const activePatient = mockPatients.find(p => p.id === activePatientId) || null;
   const expandedPatient = mockPatients.find(p => p.id === expandedPatientId) || null;
-  
-  // Handler para resultado de nota de voz (pode ser comando ou nota clínica)
-  const handleVoiceNoteResult = useCallback((result: { text: string; structured?: any; command?: any }) => {
-    // Verificar se é um comando de navegação
-    if (result.command && result.command.type === "select-patient") {
-      const bedNumber = result.command.bed;
-      console.log("[handleVoiceNoteResult] Comando de seleção detectado:", { bed: bedNumber });
-      
-      // Buscar paciente pelo leito
-      const bedStr = String(bedNumber).padStart(2, '0');
-      const patientByBed = mockPatients.find(p => 
-        p.leito.includes(bedStr) || 
-        p.leito.includes(String(bedNumber)) ||
-        p.leito.replace(/\D/g, '') === String(bedNumber)
-      );
-      
-      if (patientByBed) {
-        console.log("[handleVoiceNoteResult] Paciente encontrado:", { id: patientByBed.id, nome: patientByBed.nome, leito: patientByBed.leito });
-        // Abrir o paciente usando a mesma função que o clique no card usa
-        showPatientOverviewInline(patientByBed.id);
-        setActivePatientId(patientByBed.id);
-      } else {
-        console.warn("[handleVoiceNoteResult] Paciente não encontrado para leito:", bedNumber);
-        // Adicionar mensagem de erro no chat
-        handleSend(`Paciente do leito ${bedNumber} não encontrado.`);
-      }
-      return; // Não processar como nota clínica
-    }
-    
-    // Se não for comando, processar como nota clínica normal
-    const { structured } = result;
-    
-    if (!structured) {
-      console.warn("handleVoiceNoteResult: structured data não disponível");
-      return;
-    }
-    
-    console.log("[handleVoiceNoteResult] Dados recebidos:", { structured, text: result.text });
-    
-    // Priorizar patientId do structured (mais confiável que extrair do texto)
-    let targetPatientId = structured.patientId || activePatientId;
-    let targetPatient = targetPatientId ? mockPatients.find(p => p.id === targetPatientId) : activePatient;
-    
-    // Se não encontrou por ID, tentar por leito
-    if (!targetPatient && structured.bed) {
-      const bedStr = String(structured.bed).padStart(2, '0');
-      const patientByBed = mockPatients.find(p => 
-        p.leito.includes(bedStr) || 
-        p.leito.includes(String(structured.bed)) ||
-        p.leito.replace(/\D/g, '') === String(structured.bed)
-      );
-      if (patientByBed) {
-        targetPatientId = patientByBed.id;
-        targetPatient = patientByBed;
-      }
-    }
-    
-    // Se ainda não encontrou, usar paciente ativo
-    if (!targetPatient && activePatient) {
-      targetPatientId = activePatient.id;
-      targetPatient = activePatient;
-    }
-    
-    if (!targetPatientId || !targetPatient) {
-      console.warn("Não foi possível identificar o paciente para atualizar com a nota de voz", {
-        structuredBed: structured.bed,
-        structuredPatientId: structured.patientId,
-        activePatientId
-      });
-      return;
-    }
-    
-    console.log("[handleVoiceNoteResult] Paciente identificado:", { targetPatientId, patientName: targetPatient.nome });
-    
-    // Processar nota de voz (inclui geração do resumo)
-    const { event, updates, summary } = processVoiceNote(targetPatientId, structured, result.text, targetPatient);
-    
-    if (event) {
-      console.log("Evento de nota de voz adicionado:", event);
-    }
-    
-    if (updates) {
-      console.log("Paciente atualizado com:", updates);
-      // Atualizar o paciente no array mockPatients para que o componente re-renderize
-      const patientIndex = mockPatients.findIndex(p => p.id === targetPatientId);
-      if (patientIndex >= 0) {
-        Object.assign(mockPatients[patientIndex], updates);
-        // Forçar re-render atualizando o estado do paciente ativo
-        setActivePatientId(targetPatientId); // Isso força re-render
-      }
-    }
-    
-    // Se não havia paciente ativo, definir agora
-    if (!activePatientId && targetPatientId) {
-      setActivePatientId(targetPatientId);
-    }
-  }, [activePatientId, activePatient, mockPatients, showPatientOverviewInline, handleSend]);
   const { setPreview, clearPreview, setOnSelectPatient, setOnSendMessage } = usePreview();
   const { setActivePatient: setActivePatientFromContext, addOpinion, setLastAnswerForPatient } = useClinicalSession();
 
@@ -735,6 +638,103 @@ export default function HomePage() {
     // Enviar a pergunta automaticamente
     void handleSend(prompt);
   }, [handleSend]);
+
+  // Handler para resultado de nota de voz (pode ser comando ou nota clínica)
+  const handleVoiceNoteResult = useCallback((result: { text: string; structured?: any; command?: any }) => {
+    // Verificar se é um comando de navegação
+    if (result.command && result.command.type === "select-patient") {
+      const bedNumber = result.command.bed;
+      console.log("[handleVoiceNoteResult] Comando de seleção detectado:", { bed: bedNumber });
+      
+      // Buscar paciente pelo leito
+      const bedStr = String(bedNumber).padStart(2, '0');
+      const patientByBed = mockPatients.find(p => 
+        p.leito.includes(bedStr) || 
+        p.leito.includes(String(bedNumber)) ||
+        p.leito.replace(/\D/g, '') === String(bedNumber)
+      );
+      
+      if (patientByBed) {
+        console.log("[handleVoiceNoteResult] Paciente encontrado:", { id: patientByBed.id, nome: patientByBed.nome, leito: patientByBed.leito });
+        // Abrir o paciente usando a mesma função que o clique no card usa
+        showPatientOverviewInline(patientByBed.id);
+        setActivePatientId(patientByBed.id);
+      } else {
+        console.warn("[handleVoiceNoteResult] Paciente não encontrado para leito:", bedNumber);
+        // Adicionar mensagem de erro no chat
+        handleSend(`Paciente do leito ${bedNumber} não encontrado.`);
+      }
+      return; // Não processar como nota clínica
+    }
+    
+    // Se não for comando, processar como nota clínica normal
+    const { structured } = result;
+    
+    if (!structured) {
+      console.warn("handleVoiceNoteResult: structured data não disponível");
+      return;
+    }
+    
+    console.log("[handleVoiceNoteResult] Dados recebidos:", { structured, text: result.text });
+    
+    // Priorizar patientId do structured (mais confiável que extrair do texto)
+    let targetPatientId = structured.patientId || activePatientId;
+    let targetPatient = targetPatientId ? mockPatients.find(p => p.id === targetPatientId) : activePatient;
+    
+    // Se não encontrou por ID, tentar por leito
+    if (!targetPatient && structured.bed) {
+      const bedStr = String(structured.bed).padStart(2, '0');
+      const patientByBed = mockPatients.find(p => 
+        p.leito.includes(bedStr) || 
+        p.leito.includes(String(structured.bed)) ||
+        p.leito.replace(/\D/g, '') === String(structured.bed)
+      );
+      if (patientByBed) {
+        targetPatientId = patientByBed.id;
+        targetPatient = patientByBed;
+      }
+    }
+    
+    // Se ainda não encontrou, usar paciente ativo
+    if (!targetPatient && activePatient) {
+      targetPatientId = activePatient.id;
+      targetPatient = activePatient;
+    }
+    
+    if (!targetPatientId || !targetPatient) {
+      console.warn("Não foi possível identificar o paciente para atualizar com a nota de voz", {
+        structuredBed: structured.bed,
+        structuredPatientId: structured.patientId,
+        activePatientId
+      });
+      return;
+    }
+    
+    console.log("[handleVoiceNoteResult] Paciente identificado:", { targetPatientId, patientName: targetPatient.nome });
+    
+    // Processar nota de voz (inclui geração do resumo)
+    const { event, updates, summary } = processVoiceNote(targetPatientId, structured, result.text, targetPatient);
+    
+    if (event) {
+      console.log("Evento de nota de voz adicionado:", event);
+    }
+    
+    if (updates) {
+      console.log("Paciente atualizado com:", updates);
+      // Atualizar o paciente no array mockPatients para que o componente re-renderize
+      const patientIndex = mockPatients.findIndex(p => p.id === targetPatientId);
+      if (patientIndex >= 0) {
+        Object.assign(mockPatients[patientIndex], updates);
+        // Forçar re-render atualizando o estado do paciente ativo
+        setActivePatientId(targetPatientId); // Isso força re-render
+      }
+    }
+    
+    // Se não havia paciente ativo, definir agora
+    if (!activePatientId && targetPatientId) {
+      setActivePatientId(targetPatientId);
+    }
+  }, [activePatientId, activePatient, showPatientOverviewInline, handleSend]);
 
   return (
     <div className="app-wrapper">
