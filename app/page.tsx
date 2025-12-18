@@ -552,14 +552,18 @@ export default function HomePage() {
     const handleSendMessage = (message: string | undefined, patientId?: string) => {
       // Proteção: não enviar se message for undefined ou vazio
       if (!message || !message.trim()) {
-        console.warn('handleSendMessage called without valid message, ignoring');
+        console.warn('[app/page] handleSendMessage called without valid message, ignoring', { message, patientId });
         return;
       }
-      console.log('Enviando mensagem ao chat:', { message, patientId });
+      console.log('[app/page] handleSendMessage chamado - Enviando mensagem ao chat:', { message, patientId });
       void handleSend(message, undefined, patientId);
     };
+    console.log('[app/page] Configurando handleSendMessage no PreviewProvider');
     setOnSendMessage(handleSendMessage);
-    return () => setOnSendMessage(undefined);
+    return () => {
+      console.log('[app/page] Limpando handleSendMessage do PreviewProvider');
+      setOnSendMessage(undefined);
+    };
   }, [setOnSendMessage, handleSend]);
 
   // Removido handleKeyDown - agora o ChatInput gerencia isso internamente

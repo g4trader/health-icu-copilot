@@ -38,7 +38,7 @@ export function PatientCard({
     (m) => m.tipo === "vasopressor" && m.ativo
   );
 
-  const handleVerPacienteClick = (e: React.MouseEvent) => {
+  const handleVerPacienteClick = async (e: React.MouseEvent<HTMLButtonElement>) => {
     e.preventDefault();
     e.stopPropagation();
     
@@ -55,39 +55,59 @@ export function PatientCard({
     // Mensagem que garante detecção de intent PACIENTE_ESPECIFICO e mostra overview completo
     const message = `Me dê um overview clínico completo do paciente da UTI ${patient.leito} (${patient.nome}).`;
     
-    // Prioridade 1: usar onSendPatientMessage se fornecido (mais direto)
-    if (onSendPatientMessage) {
-      console.log('[PatientCard] Usando onSendPatientMessage', { patientId: patient.id, message });
-      onSendPatientMessage(patient.id, message);
-      return;
-    }
-    
-    // Prioridade 2: usar onSelect customizado se fornecido (ex: HighRiskPreview)
-    if (onSelect) {
-      console.log('[PatientCard] Usando onSelect', { patientId: patient.id });
-      onSelect(patient.id);
-      // Mas ainda tentar enviar mensagem se possível
-      if (onSendMessage) {
-        console.log('[PatientCard] Também enviando mensagem via onSendMessage', { patientId: patient.id, message });
-        onSendMessage(message, patient.id);
+    try {
+      // Prioridade 1: usar onSendPatientMessage se fornecido (mais direto)
+      if (onSendPatientMessage) {
+        console.log('[PatientCard] Usando onSendPatientMessage', { patientId: patient.id, message });
+        onSendPatientMessage(patient.id, message);
+        return;
       }
-      return;
+      
+      // Prioridade 2: usar onSelect customizado se fornecido (ex: HighRiskPreview)
+      if (onSelect) {
+        console.log('[PatientCard] Usando onSelect', { patientId: patient.id });
+        onSelect(patient.id);
+        // Mas ainda tentar enviar mensagem se possível
+        if (onSendMessage) {
+          console.log('[PatientCard] Também enviando mensagem via onSendMessage', { patientId: patient.id, message });
+          onSendMessage(message, patient.id);
+        }
+        return;
+      }
+      
+      // Prioridade 3: usar onSendMessage do contexto Preview
+      if (onSendMessage) {
+        console.log('[PatientCard] Usando onSendMessage do contexto', { patientId: patient.id, message });
+        onSendMessage(message, patient.id);
+        onSelectPatient?.(patient.id);
+        return;
+      }
+      
+      // Fallback: fazer chamada direta à API se nenhum handler disponível
+      console.warn('[PatientCard] Nenhum handler disponível, fazendo chamada direta à API', {
+        patientId: patient.id,
+        message
+      });
+      
+      // Chamada direta à API como último recurso
+      const response = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          message,
+          focusedPatientId: patient.id,
+          patientId: patient.id
+        })
+      });
+      
+      if (!response.ok) {
+        throw new Error('Falha ao enviar mensagem');
+      }
+      
+      console.log('[PatientCard] Mensagem enviada diretamente à API com sucesso');
+    } catch (error) {
+      console.error('[PatientCard] Erro ao enviar mensagem:', error);
     }
-    
-    // Prioridade 3: usar onSendMessage do contexto Preview
-    if (onSendMessage) {
-      console.log('[PatientCard] Usando onSendMessage do contexto', { patientId: patient.id, message });
-      onSendMessage(message, patient.id);
-      onSelectPatient?.(patient.id);
-      return;
-    }
-    
-    // Fallback: log de erro se nenhuma opção disponível
-    console.error('[PatientCard] Nenhum handler disponível para enviar mensagem do paciente', {
-      patientId: patient.id,
-      patientName: patient.nome,
-      leito: patient.leito
-    });
   };
 
   return (
@@ -100,6 +120,14 @@ export function PatientCard({
         ${selected ? "border-emerald-500 shadow-md ring-2 ring-emerald-100" : ""}
         ${className}
       `}
+      onClick={(e) => {
+        // Prevenir que cliques no card inteiro disparem ações indesejadas
+        // Apenas permitir cliques diretos no botão
+        if (e.target === e.currentTarget || (e.target as HTMLElement).closest('button')) {
+          return;
+        }
+        e.stopPropagation();
+      }}
     >
       {/* Header row: UTI • Nome + PIN */}
       <div className="flex items-start justify-between gap-3">
