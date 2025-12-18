@@ -2005,6 +2005,100 @@ a {
   height: 20px;
 }
 
+/* Barra de estado de voz */
+.voice-state-bar {
+  width: 100%;
+  padding: 8px 12px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  margin-bottom: 8px;
+}
+
+.voice-state-content {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 0.875rem;
+  color: #475569;
+}
+
+.voice-state-indicator {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.voice-recording-dot {
+  width: 8px;
+  height: 8px;
+  background: #ef4444;
+  border-radius: 50%;
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+.voice-state-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.voice-action-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 12px;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  background: white;
+  font-size: 0.875rem;
+  color: #475569;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.voice-action-btn:hover:not(:disabled) {
+  background: #f1f5f9;
+  border-color: #94a3b8;
+}
+
+.voice-action-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.voice-stop-btn {
+  color: #ef4444;
+  border-color: #fecaca;
+}
+
+.voice-stop-btn:hover:not(:disabled) {
+  background: #fef2f2;
+  border-color: #fca5a5;
+}
+
+.voice-send-btn {
+  color: #3b82f6;
+  border-color: #bfdbfe;
+}
+
+.voice-send-btn:hover:not(:disabled) {
+  background: #eff6ff;
+  border-color: #93c5fd;
+}
+
+.voice-cancel-btn,
+.voice-discard-btn {
+  color: #64748b;
+}
+
+.voice-cancel-btn:hover:not(:disabled),
+.voice-discard-btn:hover:not(:disabled) {
+  background: #f1f5f9;
+  color: #475569;
+}
+
 .chat-input-send-btn {
   display: flex;
   align-items: center;

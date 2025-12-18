@@ -34,10 +34,10 @@ export function ChatInput({
 }: ChatInputProps) {
   const [showMenu, setShowMenu] = useState(false);
   const [isPatientMenuOpen, setIsPatientMenuOpen] = useState(false);
-  const [isRecording, setIsRecording] = useState(false);
-  const [isTranscribing, setIsTranscribing] = useState(false);
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [voiceState, setVoiceState] = useState<"idle" | "recording" | "preview" | "sending">("idle");
+  const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
   const [transcriptionPreview, setTranscriptionPreview] = useState<string | null>(null);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const menuRef = useRef<HTMLDivElement>(null);
   const patientMenuRef = useRef<HTMLDivElement>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
@@ -85,6 +85,7 @@ export function ChatInput({
     try {
       setErrorMessage(null);
       setTranscriptionPreview(null);
+      setAudioBlob(null);
       
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       streamRef.current = stream;
@@ -106,18 +107,19 @@ export function ChatInput({
         }
       };
       
-      mediaRecorder.onstop = async () => {
+      mediaRecorder.onstop = () => {
         if (streamRef.current) {
           streamRef.current.getTracks().forEach(track => track.stop());
           streamRef.current = null;
         }
         
-        const audioBlob = new Blob(audioChunksRef.current, { type: mediaRecorder.mimeType });
-        await sendAudioToAPI(audioBlob);
+        const blob = new Blob(audioChunksRef.current, { type: mediaRecorder.mimeType });
+        setAudioBlob(blob);
+        setVoiceState("preview");
       };
       
       mediaRecorder.start();
-      setIsRecording(true);
+      setVoiceState("recording");
     } catch (error: any) {
       const errorMsg = error.name === "NotAllowedError" || error.name === "PermissionDeniedError"
         ? "Permissão de microfone negada. Por favor, permita o acesso ao microfone."
@@ -126,20 +128,40 @@ export function ChatInput({
         : `Erro ao iniciar gravação: ${error.message}`;
       
       setErrorMessage(errorMsg);
-      setIsRecording(false);
+      setVoiceState("idle");
     }
   }
 
   function stopRecording() {
-    if (mediaRecorderRef.current && isRecording) {
+    if (mediaRecorderRef.current && voiceState === "recording") {
       mediaRecorderRef.current.stop();
-      setIsRecording(false);
     }
   }
 
-  async function sendAudioToAPI(audioBlob: Blob) {
+  function cancelRecording() {
+    if (mediaRecorderRef.current && voiceState === "recording") {
+      mediaRecorderRef.current.stop();
+    }
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach(track => track.stop());
+      streamRef.current = null;
+    }
+    setAudioBlob(null);
+    setTranscriptionPreview(null);
+    setVoiceState("idle");
+  }
+
+  function discardAudio() {
+    setAudioBlob(null);
+    setTranscriptionPreview(null);
+    setVoiceState("idle");
+  }
+
+  async function sendAudioToAPI() {
+    if (!audioBlob) return;
+    
     try {
-      setIsTranscribing(true);
+      setVoiceState("sending");
       setErrorMessage(null);
       
       const formData = new FormData();
@@ -185,25 +207,25 @@ export function ChatInput({
       // Verificar se é um comando de voz (navegação)
       if (data.command && data.command.type === "select-patient") {
         // Comando de navegação - não processar como nota clínica
-        // O handler de comando será chamado pelo componente pai
         if (onVoiceResult) {
           onVoiceResult({ text: data.text, command: data.command });
         }
         // Adicionar mensagem no chat informando o comando
         onSend(`Comando de voz: mostrando paciente do leito ${data.command.bed}.`);
-        return;
+      } else if (data.structured) {
+        // Nota clínica normal
+        if (onVoiceResult) {
+          onVoiceResult({ text: data.text, structured: data.structured });
+        }
+        // Também enviar como mensagem de chat
+        if (data.text) {
+          onSend(`Nota de voz: ${data.text}`);
+        }
       }
       
-      // Se não for comando, processar como nota clínica normal
-      // Chamar callback se fornecido
-      if (onVoiceResult && data.structured) {
-        onVoiceResult({ text: data.text, structured: data.structured });
-      }
-      
-      // Também enviar como mensagem de chat
-      if (data.text) {
-        onSend(`Nota de voz: ${data.text}`);
-      }
+      // Limpar e voltar para idle
+      setAudioBlob(null);
+      setVoiceState("idle");
       
       // Limpar preview após 3 segundos
       setTimeout(() => {
@@ -213,15 +235,12 @@ export function ChatInput({
     } catch (error: any) {
       const errorMsg = error.message || "Erro ao processar áudio";
       setErrorMessage(errorMsg);
-    } finally {
-      setIsTranscribing(false);
+      setVoiceState("idle");
     }
   }
 
   function handleVoiceButtonClick() {
-    if (isRecording) {
-      stopRecording();
-    } else {
+    if (voiceState === "idle") {
       startRecording();
     }
   }
@@ -333,6 +352,102 @@ export function ChatInput({
           </div>
         )}
 
+        {/* Barra de estado de voz */}
+        {(voiceState !== "idle") && (
+          <div className="voice-state-bar">
+            <div className="voice-state-content">
+              {voiceState === "recording" && (
+                <>
+                  <div className="voice-state-indicator">
+                    <div className="voice-recording-dot"></div>
+                    <span>Gravando nota de voz…</span>
+                  </div>
+                  <div className="voice-state-actions">
+                    <button
+                      type="button"
+                      className="voice-action-btn voice-stop-btn"
+                      onClick={stopRecording}
+                      aria-label="Parar gravação"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4">
+                        <rect x="6" y="6" width="12" height="12" rx="2" />
+                      </svg>
+                    </button>
+                    <button
+                      type="button"
+                      className="voice-action-btn voice-cancel-btn"
+                      onClick={cancelRecording}
+                      aria-label="Cancelar gravação"
+                    >
+                      Cancelar
+                    </button>
+                  </div>
+                </>
+              )}
+              
+              {voiceState === "preview" && (
+                <>
+                  <span>Áudio pronto para enviar</span>
+                  <div className="voice-state-actions">
+                    <button
+                      type="button"
+                      className="voice-action-btn voice-send-btn"
+                      onClick={sendAudioToAPI}
+                      aria-label="Enviar áudio"
+                    >
+                      Enviar áudio
+                    </button>
+                    <button
+                      type="button"
+                      className="voice-action-btn voice-discard-btn"
+                      onClick={discardAudio}
+                      aria-label="Descartar áudio"
+                    >
+                      Descartar
+                    </button>
+                  </div>
+                </>
+              )}
+              
+              {voiceState === "sending" && (
+                <>
+                  <div className="voice-state-indicator">
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      strokeWidth={2}
+                      stroke="currentColor"
+                      className="w-4 h-4 animate-spin"
+                    >
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                    </svg>
+                    <span>Transcrevendo áudio…</span>
+                  </div>
+                  <div className="voice-state-actions">
+                    <button
+                      type="button"
+                      className="voice-action-btn voice-send-btn"
+                      disabled
+                      aria-label="Enviando..."
+                    >
+                      Enviar áudio
+                    </button>
+                    <button
+                      type="button"
+                      className="voice-action-btn voice-discard-btn"
+                      disabled
+                      aria-label="Descartar"
+                    >
+                      Descartar
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+        )}
+
         <input
           type="text"
           placeholder="Digite sua pergunta..."
@@ -357,65 +472,47 @@ export function ChatInput({
             // Para outras teclas, não fazer nada - apenas permitir digitação normal
             // NÃO chamar onSend para outras teclas
           }}
-          disabled={loading}
+          disabled={loading || voiceState !== "idle"}
         />
 
         <button
           type="button"
-          className={`chat-input-voice-btn ${isRecording ? 'recording' : ''}`}
-          aria-label={isRecording ? "Parar gravação" : "Iniciar gravação"}
-          title={isRecording ? "Parar gravação" : "Gravar nota de voz"}
+          className="chat-input-voice-btn"
+          aria-label="Iniciar gravação"
+          title="Gravar nota de voz"
           onClick={handleVoiceButtonClick}
-          disabled={isTranscribing || loading}
+          disabled={voiceState !== "idle" || loading}
           style={{
-            color: isRecording ? '#ef4444' : undefined,
-            opacity: (isTranscribing || loading) ? 0.5 : 1
+            color: voiceState === "recording" ? '#ef4444' : voiceState === "sending" ? '#3b82f6' : undefined,
+            opacity: (voiceState !== "idle" || loading) ? 0.5 : 1
           }}
         >
-          {isTranscribing ? (
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              fill="none"
-              viewBox="0 0 24 24"
-              strokeWidth={2}
-              stroke="currentColor"
-              className="chat-input-voice-icon"
-              style={{ animation: 'spin 1s linear infinite' }}
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M12 6v6m0 0v6m0-6h6m-6 0H6"
-              />
-            </svg>
-          ) : (
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              fill="none"
-              viewBox="0 0 24 24"
-              strokeWidth={2}
-              stroke="currentColor"
-              className="chat-input-voice-icon"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z"
-              />
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M19 10v2a7 7 0 01-14 0v-2M12 19v4M8 23h8"
-              />
-            </svg>
-          )}
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            fill="none"
+            viewBox="0 0 24 24"
+            strokeWidth={2}
+            stroke="currentColor"
+            className="chat-input-voice-icon"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z"
+            />
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              d="M19 10v2a7 7 0 01-14 0v-2M12 19v4M8 23h8"
+            />
+          </svg>
         </button>
         
         {errorMessage && (
           <p className="text-xs text-rose-600 mt-1 px-2">{errorMessage}</p>
         )}
         
-        {transcriptionPreview && (
+        {transcriptionPreview && voiceState === "idle" && (
           <p className="text-xs text-green-600 mt-1 px-2">{transcriptionPreview}</p>
         )}
 
