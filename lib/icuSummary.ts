@@ -18,7 +18,6 @@ export function getTotalPatients(): number {
  */
 export function getPatientsOnVentilation(): number {
   const onVM = mockPatients.filter(p => p.ventilationParams !== undefined);
-  console.log('[icuSummary] Patients on VM:', onVM.map(p => ({ id: p.id, nome: p.nome })));
   return onVM.length;
 }
 
@@ -29,7 +28,6 @@ export function getPatientsOnVasopressors(): number {
   const onVaso = mockPatients.filter(p => 
     p.medications.some(m => m.tipo === "vasopressor" && m.ativo)
   );
-  console.log('[icuSummary] Patients on Vasopressor:', onVaso.map(p => ({ id: p.id, nome: p.nome })));
   return onVaso.length;
 }
 
@@ -42,24 +40,6 @@ export function getHighRiskPatients(): number {
     const isHighRisk = p.riscoMortality24h >= 0.61 || riskLevelFromScore(p.riscoMortality24h) === "alto";
     return isHighRisk;
   });
-  
-  // Log para debug
-  console.log('[icuSummary] High Risk Patients:', highRiskPatients.map(p => ({
-    id: p.id,
-    nome: p.nome,
-    risco24h: p.riscoMortality24h,
-    riskLevel: riskLevelFromScore(p.riscoMortality24h)
-  })));
-  
-  // Log de todos os pacientes com seus riscos
-  console.log('[icuSummary] All Patients Risk:', mockPatients.map(p => ({
-    id: p.id,
-    nome: p.nome,
-    risco24h: p.riscoMortality24h,
-    riskLevel: riskLevelFromScore(p.riscoMortality24h),
-    hasVM: !!p.ventilationParams,
-    hasVaso: p.medications.some(m => m.tipo === "vasopressor" && m.ativo)
-  })));
   
   return highRiskPatients.length;
 }

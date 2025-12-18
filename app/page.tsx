@@ -540,7 +540,12 @@ export default function HomePage() {
 
   // Configurar handler para enviar mensagens ao chat (para cards no drawer)
   useEffect(() => {
-    const handleSendMessage = (message: string, patientId?: string) => {
+    const handleSendMessage = (message: string | undefined, patientId?: string) => {
+      // Proteção: não enviar se message for undefined ou vazio
+      if (!message || !message.trim()) {
+        console.warn('handleSendMessage called without valid message, ignoring');
+        return;
+      }
       console.log('Enviando mensagem ao chat:', { message, patientId });
       void handleSend(message, undefined, patientId);
     };

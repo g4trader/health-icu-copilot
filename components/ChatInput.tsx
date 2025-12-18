@@ -192,12 +192,14 @@ export function ChatInput({
             if (e.key === "Enter" && !e.shiftKey) {
               e.preventDefault();
               e.stopPropagation();
-              if (value.trim() && !loading) {
-                onSend(value.trim());
+              const trimmedValue = value.trim();
+              if (trimmedValue && !loading && onSend) {
+                onSend(trimmedValue);
               }
               return false; // Não processar mais nada para Enter
             }
             // Para outras teclas, não fazer nada - apenas permitir digitação normal
+            // NÃO chamar onSend para outras teclas
           }}
           disabled={loading}
         />
@@ -233,9 +235,10 @@ export function ChatInput({
           className="chat-input-send-btn"
           type="button"
           onClick={() => {
-            console.log("[ChatInput] Send button clicked, value:", value);
-            if (value.trim()) {
-              onSend(value.trim());
+            const trimmedValue = value.trim();
+            if (trimmedValue && !loading && onSend) {
+              console.log("[ChatInput] Send button clicked, value:", trimmedValue);
+              onSend(trimmedValue);
             }
           }}
           disabled={loading || !value.trim()}
