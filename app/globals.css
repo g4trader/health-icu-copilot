@@ -2039,21 +2039,7 @@ a {
   box-shadow: 0 0 0 2px #3b82f6;
 }
 
-.voice-stop-btn {
-  color: #ef4444;
-  position: relative;
-  z-index: 1; /* Garantir que está acima de outros elementos */
-  pointer-events: auto; /* Garantir que é clicável */
-}
-
-.voice-stop-btn:hover {
-  background: #fef2f2;
-  color: #dc2626;
-}
-
-.voice-stop-btn:active {
-  transform: scale(0.95);
-}
+/* Removido: .voice-stop-btn - botão STOP foi removido */
 
 .chat-input-send-btn {
   display: flex;

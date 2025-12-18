@@ -34,7 +34,7 @@ export function ChatInput({
 }: ChatInputProps) {
   const [showMenu, setShowMenu] = useState(false);
   const [isPatientMenuOpen, setIsPatientMenuOpen] = useState(false);
-  const [voiceState, setVoiceState] = useState<"idle" | "recording">("idle");
+  const [voiceState, setVoiceState] = useState<"idle" | "recording" | "transcribing">("idle");
   const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -112,7 +112,9 @@ export function ChatInput({
         }
         
         const blob = new Blob(audioChunksRef.current, { type: mediaRecorder.mimeType });
-        // Enviar automaticamente após parar a gravação
+        setAudioBlob(blob);
+        // Mudar para estado de transcrição e enviar automaticamente
+        setVoiceState("transcribing");
         await sendAudioToAPI(blob);
       };
       
@@ -133,8 +135,7 @@ export function ChatInput({
   function stopRecording() {
     if (mediaRecorderRef.current && voiceState === "recording") {
       mediaRecorderRef.current.stop();
-      // O áudio será enviado automaticamente quando onstop criar o blob e setVoiceState("ready")
-      // Mas vamos aguardar o blob estar pronto antes de enviar
+      // O áudio será enviado automaticamente quando onstop for chamado
     }
   }
 
@@ -154,10 +155,14 @@ export function ChatInput({
 
   async function sendAudioToAPI(blob?: Blob) {
     const audioToSend = blob || audioBlob;
-    if (!audioToSend) return;
+    if (!audioToSend) {
+      setVoiceState("idle");
+      return;
+    }
     
     try {
       setErrorMessage(null);
+      // Estado já deve estar em "transcribing" quando esta função é chamada
       
       const formData = new FormData();
       formData.append("file", audioToSend, "voice-note.webm");
@@ -257,9 +262,10 @@ export function ChatInput({
     if (voiceState === "idle") {
       startRecording();
     } else if (voiceState === "recording") {
-      // Clicar no microfone durante gravação = cancelar
-      cancelRecording();
+      // Clicar no microfone durante gravação = parar e enviar
+      stopRecording();
     }
+    // Se estiver em "transcribing", não fazer nada (aguardar conclusão)
   }
 
   function handleSendClick() {
@@ -403,56 +409,52 @@ export function ChatInput({
           disabled={loading}
         />
 
-        {/* Botão de microfone / REC / Indicador */}
-        {voiceState === "recording" ? (
-          <>
-            {/* Ícone REC pulsante */}
-            <button
-              type="button"
-              className="chat-input-voice-btn voice-rec-btn"
-              aria-label="Gravando"
-              title="Gravando (clique para cancelar)"
-              onClick={handleVoiceButtonClick}
-              disabled={loading}
-              style={{ position: 'relative', zIndex: 0 }}
+        {/* Botão de microfone */}
+        <button
+          type="button"
+          className={`chat-input-voice-btn ${voiceState === "recording" ? "voice-rec-btn" : ""}`}
+          aria-label={
+            voiceState === "recording" 
+              ? "Parar gravação" 
+              : voiceState === "transcribing"
+              ? "Transcrevendo..."
+              : "Iniciar gravação"
+          }
+          title={
+            voiceState === "recording" 
+              ? "Clique para parar e enviar" 
+              : voiceState === "transcribing"
+              ? "Transcrevendo áudio..."
+              : "Gravar nota de voz"
+          }
+          onClick={handleVoiceButtonClick}
+          disabled={loading || voiceState === "transcribing"}
+        >
+          {voiceState === "transcribing" ? (
+            // Ícone de loading durante transcrição
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+              strokeWidth={2}
+              stroke="currentColor"
+              className="chat-input-voice-icon animate-spin"
+              style={{ color: '#3b82f6' }}
             >
-              <div className="voice-rec-indicator">
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  strokeWidth={2}
-                  stroke="currentColor"
-                  className="chat-input-voice-icon"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z"
-                  />
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M19 10v2a7 7 0 01-14 0v-2M12 19v4M8 23h8"
-                  />
-                </svg>
-              </div>
-            </button>
-            
-            {/* Botão STOP */}
-            <button
-              type="button"
-              className="chat-input-voice-btn voice-stop-btn"
-              aria-label="Parar gravação"
-              title="Parar gravação e enviar"
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                stopRecording();
-              }}
-              disabled={loading}
-              style={{ position: 'relative', zIndex: 10 }}
-            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z"
+              />
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M19 10v2a7 7 0 01-14 0v-2M12 19v4M8 23h8"
+              />
+            </svg>
+          ) : voiceState === "recording" ? (
+            // Ícone REC pulsante durante gravação
+            <div className="voice-rec-indicator">
               <svg
                 xmlns="http://www.w3.org/2000/svg"
                 fill="none"
@@ -461,19 +463,20 @@ export function ChatInput({
                 stroke="currentColor"
                 className="chat-input-voice-icon"
               >
-                <rect x="6" y="6" width="12" height="12" rx="2" />
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z"
+                />
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M19 10v2a7 7 0 01-14 0v-2M12 19v4M8 23h8"
+                />
               </svg>
-            </button>
-          </>
-        ) : (
-          <button
-            type="button"
-            className="chat-input-voice-btn"
-            aria-label="Iniciar gravação"
-            title="Gravar nota de voz"
-            onClick={handleVoiceButtonClick}
-            disabled={loading}
-          >
+            </div>
+          ) : (
+            // Ícone normal de microfone
             <svg
               xmlns="http://www.w3.org/2000/svg"
               fill="none"
@@ -493,8 +496,8 @@ export function ChatInput({
                 d="M19 10v2a7 7 0 01-14 0v-2M12 19v4M8 23h8"
               />
             </svg>
-          </button>
-        )}
+          )}
+        </button>
         
         {errorMessage && (
           <p className="text-xs text-rose-600 mt-1 px-2 absolute -top-6 left-0">{errorMessage}</p>
