@@ -146,12 +146,18 @@ export function PreviewDrawer() {
           {previewType === 'ventilated' && <VentilatedPreview />}
           {previewType === 'vasopressors' && <VasopressorsPreview />}
           {previewType === 'high-risk' && <HighRiskPreview />}
-          {previewType === 'patient' && previewPayload?.patient && (
-            <PatientDetailPanel 
-              key={`patient-detail-${(previewPayload.patient as Patient).id}-${(previewPayload.patient as Patient).voiceNoteSummary?.substring(0, 20) || 'default'}`}
-              patient={previewPayload.patient as Patient} 
-            />
-          )}
+          {previewType === 'patient' && previewPayload?.patient && (() => {
+            const patient = previewPayload.patient as Patient;
+            const summaryKey = patient.voiceNoteSummary 
+              ? patient.voiceNoteSummary.substring(0, 30).replace(/\s/g, '-') 
+              : 'default';
+            return (
+              <PatientDetailPanel 
+                key={`patient-detail-${patient.id}-${summaryKey}-${Date.now()}`}
+                patient={patient} 
+              />
+            );
+          })()}
           {previewType === 'radiology-report' && previewPayload?.report && (
             <div className="px-4 pb-6 pt-4">
               <div className="patient-detail-refined">

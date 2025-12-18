@@ -755,10 +755,20 @@ export default function HomePage() {
           activePatient.voiceNoteSummary = opinion;
         }
         // Se o drawer de preview estiver aberto para este paciente, atualizar o payload também
+        // IMPORTANTE: Criar uma nova referência do objeto para forçar re-render
         if (previewType === 'patient' && previewPayload?.patient && (previewPayload.patient as Patient).id === activePatientId) {
           const updatedPatient = { ...mockPatients[patientIndex] };
+          console.log("[handleVoiceNoteResult] Atualizando previewPayload com novo parecer:", {
+            patientId: updatedPatient.id,
+            voiceNoteSummary: updatedPatient.voiceNoteSummary?.substring(0, 50)
+          });
           setPreview('patient', { patient: updatedPatient });
         }
+        // Forçar re-render do activePatientId para garantir que componentes que dependem dele sejam atualizados
+        // Usar um pequeno delay para garantir que o estado seja atualizado
+        setTimeout(() => {
+          setActivePatientId(activePatientId);
+        }, 0);
       } else {
         console.error("[handleVoiceNoteResult] ❌ Paciente não encontrado no array mockPatients:", activePatientId);
         handleSend("Erro: paciente não encontrado. Por favor, selecione um paciente primeiro.");
@@ -846,7 +856,7 @@ export default function HomePage() {
     
     // Retornar false para permitir envio como mensagem normal (não foi parecer)
     return false;
-  }, [activePatientId, activePatient, handleSend, showPatientOverviewInline]);
+  }, [activePatientId, activePatient, handleSend, showPatientOverviewInline, previewType, previewPayload, clearPreview, setPreview]);
 
   return (
     <div className="app-wrapper">
