@@ -232,12 +232,14 @@ function VentilatedPreview() {
       onSendMessage(message, patientId);
     } else {
       try {
-        await fetch('/api/chat', {
+        const response = await fetch('/api/chat', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ message, focusedPatientId: patientId, patientId })
         });
-        window.location.reload();
+        if (response.ok) {
+          console.log('[VasopressorsPreview] Mensagem enviada diretamente à API');
+        }
       } catch (error) {
         console.error('[VentilatedPreview] Erro ao enviar mensagem:', error);
       }
@@ -275,12 +277,14 @@ function VasopressorsPreview() {
       onSendMessage(message, patientId);
     } else {
       try {
-        await fetch('/api/chat', {
+        const response = await fetch('/api/chat', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ message, focusedPatientId: patientId, patientId })
         });
-        window.location.reload();
+        if (response.ok) {
+          console.log('[VasopressorsPreview] Mensagem enviada diretamente à API');
+        }
       } catch (error) {
         console.error('[VasopressorsPreview] Erro ao enviar mensagem:', error);
       }
@@ -351,10 +355,12 @@ function HighRiskPreview() {
       }
     }
     
-    // Depois selecionar paciente (se disponível)
-    if (onSelectPatient) {
+    // Depois selecionar paciente (se disponível e se patientId válido)
+    if (onSelectPatient && patientId) {
       console.log('[HighRiskPreview] Chamando onSelectPatient', { patientId });
       onSelectPatient(patientId);
+    } else if (!patientId) {
+      console.warn('[HighRiskPreview] patientId não válido, não chamando onSelectPatient');
     } else {
       console.warn('[HighRiskPreview] onSelectPatient não disponível');
     }

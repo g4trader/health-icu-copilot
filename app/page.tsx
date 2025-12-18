@@ -539,8 +539,12 @@ export default function HomePage() {
 
   // Configurar handler de seleção de paciente (para cards/big numbers - abre drawer)
   useEffect(() => {
-    const handleSelectPatient = (patientId: string) => {
-      console.log('Selecionando paciente:', patientId); // Debug
+    const handleSelectPatient = (patientId: string | undefined) => {
+      if (!patientId) {
+        console.warn('[app/page] handleSelectPatient chamado sem patientId, ignorando');
+        return;
+      }
+      console.log('[app/page] Selecionando paciente:', patientId);
       openPatientPreviewDrawer(patientId);
     };
     setOnSelectPatient(handleSelectPatient);
