@@ -360,15 +360,24 @@ export default function HomePage() {
   const handleVoiceNoteResult = useCallback((result: { text: string; structured: any }) => {
     const { structured } = result;
     
-    // Identificar paciente ativo ou usar bed do structured
-    let targetPatientId = activePatientId;
-    let targetPatient = activePatient;
+    if (!structured) {
+      console.warn("handleVoiceNoteResult: structured data não disponível");
+      return;
+    }
     
-    if (!targetPatientId && structured.bed) {
-      // Buscar paciente pelo leito
+    console.log("[handleVoiceNoteResult] Dados recebidos:", { structured, text: result.text });
+    
+    // Priorizar patientId do structured (mais confiável que extrair do texto)
+    let targetPatientId = structured.patientId || activePatientId;
+    let targetPatient = targetPatientId ? mockPatients.find(p => p.id === targetPatientId) : activePatient;
+    
+    // Se não encontrou por ID, tentar por leito
+    if (!targetPatient && structured.bed) {
       const bedStr = String(structured.bed).padStart(2, '0');
       const patientByBed = mockPatients.find(p => 
-        p.leito.includes(bedStr) || p.leito.includes(String(structured.bed))
+        p.leito.includes(bedStr) || 
+        p.leito.includes(String(structured.bed)) ||
+        p.leito.replace(/\D/g, '') === String(structured.bed)
       );
       if (patientByBed) {
         targetPatientId = patientByBed.id;
@@ -376,10 +385,22 @@ export default function HomePage() {
       }
     }
     
+    // Se ainda não encontrou, usar paciente ativo
+    if (!targetPatient && activePatient) {
+      targetPatientId = activePatient.id;
+      targetPatient = activePatient;
+    }
+    
     if (!targetPatientId || !targetPatient) {
-      console.warn("Não foi possível identificar o paciente para atualizar com a nota de voz");
+      console.warn("Não foi possível identificar o paciente para atualizar com a nota de voz", {
+        structuredBed: structured.bed,
+        structuredPatientId: structured.patientId,
+        activePatientId
+      });
       return;
     }
+    
+    console.log("[handleVoiceNoteResult] Paciente identificado:", { targetPatientId, patientName: targetPatient.nome });
     
     // Processar nota de voz (inclui geração do resumo)
     const { event, updates, summary } = processVoiceNote(targetPatientId, structured, result.text, targetPatient);

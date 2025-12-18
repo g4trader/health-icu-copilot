@@ -145,14 +145,18 @@ export function ChatInput({
       const formData = new FormData();
       formData.append("file", audioBlob, "voice-note.webm");
       
-      // Adicionar contexto do paciente se disponível
+      // Adicionar contexto do paciente completo se disponível
       const activePatient = patients.find(p => p.id === activePatientId);
       if (activePatient) {
-        formData.append("patientContext", JSON.stringify({
-          bed: activePatient.leito.replace(/\D/g, '') || null,
+        // Extrair número do leito (ex: "UTI 08" -> "8")
+        const bedNumber = activePatient.leito.replace(/\D/g, '');
+        const patientContext = {
+          bed: bedNumber ? parseInt(bedNumber) : null,
           patientId: activePatient.id,
           unit: "UTI 1"
-        }));
+        };
+        formData.append("patientContext", JSON.stringify(patientContext));
+        console.log("[ChatInput] Enviando patientContext:", patientContext);
       }
       
       // Adicionar query params se necessário
@@ -160,7 +164,7 @@ export function ChatInput({
       if (activePatient) {
         const bed = activePatient.leito.replace(/\D/g, '');
         if (bed) {
-          url += `?bed=${bed}`;
+          url += `?bed=${bed}&patientId=${activePatient.id}`;
         }
       }
       

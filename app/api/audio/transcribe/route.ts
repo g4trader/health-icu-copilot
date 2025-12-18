@@ -71,6 +71,10 @@ export async function POST(request: NextRequest) {
     const whisperData = await whisperResponse.json();
     const transcribedText = whisperData.text;
 
+    // Logar transcrição para debug
+    console.log("[API] Transcrição recebida:", transcribedText);
+    console.log("[API] PatientContext:", patientContext);
+
     if (!transcribedText) {
       return NextResponse.json(
         { error: "Transcrição vazia" },
@@ -98,8 +102,10 @@ export async function POST(request: NextRequest) {
 
       if (llmResponse.ok) {
         structuredData = await llmResponse.json();
+        console.log("[API] Dados estruturados recebidos:", JSON.stringify(structuredData, null, 2));
       } else {
-        console.warn("Erro ao parsear nota com LLM:", await llmResponse.text());
+        const errorText = await llmResponse.text();
+        console.warn("Erro ao parsear nota com LLM:", errorText);
         // Continuar mesmo se o parsing falhar
       }
     } catch (error: any) {

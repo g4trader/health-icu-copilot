@@ -12,7 +12,8 @@ import whisper
 app = FastAPI(title="ICU Whisper API", version="1.0.0")
 
 # Carregar modelo Whisper uma vez na inicialização
-MODEL_NAME = os.getenv("WHISPER_MODEL", "base")
+# Usar modelo medium ou large para melhor precisão em português médico
+MODEL_NAME = os.getenv("WHISPER_MODEL", "medium")
 print(f"Carregando modelo Whisper: {MODEL_NAME}")
 model = whisper.load_model(MODEL_NAME)
 print(f"Modelo {MODEL_NAME} carregado com sucesso")
@@ -60,11 +61,16 @@ async def transcribe_audio(file: UploadFile = File(...)):
         
         try:
             # Transcrever com Whisper
-            # Forçar português e task de transcrição
+            # Forçar português e task de transcrição com parâmetros otimizados
             result = model.transcribe(
                 tmp_path,
                 language="pt",
-                task="transcribe"
+                task="transcribe",
+                beam_size=5,  # Aumentar beam_size para melhor precisão
+                best_of=5,    # Aumentar best_of para reduzir erros
+                temperature=0.0,  # Usar temperatura 0 para resultados mais determinísticos
+                fp16=False,   # Usar fp32 para melhor precisão (mais lento mas mais preciso)
+                verbose=False
             )
             
             # Extrair informações
@@ -72,6 +78,9 @@ async def transcribe_audio(file: UploadFile = File(...)):
             language = result.get("language", "pt")
             duration = result.get("segments", [])
             duration_seconds = duration[-1]["end"] if duration else 0.0
+            
+            # Logar transcrição para debug
+            print(f"[Whisper] Transcrição recebida ({len(text)} chars): {text[:200]}...")
             
             return TranscriptionResponse(
                 text=text,

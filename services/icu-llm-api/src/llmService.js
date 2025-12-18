@@ -280,16 +280,27 @@ export async function parseAudioNote(rawText, patientContext) {
     structuredData = parseStubResponse(rawText);
   }
   
-  // Mesclar com contexto do paciente
-  if (patientContext.bed) {
-    structuredData.bed = patientContext.bed;
+  // Mesclar com contexto do paciente - usar contexto como default quando texto não trouxer claramente
+  // Se o texto não trouxer leito mas o contexto tiver, usar o contexto
+  if (!structuredData.bed && patientContext.bed) {
+    structuredData.bed = typeof patientContext.bed === 'number' ? patientContext.bed : parseInt(patientContext.bed);
   }
+  
+  // Se o texto trouxer leito diferente do contexto, priorizar o do texto (mais confiável)
+  // Mas se não trouxer, usar o contexto
+  if (patientContext.bed && !structuredData.bed) {
+    structuredData.bed = typeof patientContext.bed === 'number' ? patientContext.bed : parseInt(patientContext.bed);
+  }
+  
+  // Sempre usar patientId do contexto se disponível (mais confiável que extrair do texto)
   if (patientContext.patientId) {
     structuredData.patientId = patientContext.patientId;
   }
   
   // Garantir que rawText está presente
   structuredData.rawText = rawText;
+  
+  console.log("[LLM API] Dados estruturados finais:", JSON.stringify(structuredData, null, 2));
   
   return structuredData;
 }

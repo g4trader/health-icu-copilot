@@ -232,8 +232,16 @@ export function processVoiceNote(
   let summary: string | null = null;
   if (patient) {
     summary = buildVoiceNoteSummary(patient, structuredData);
-    if (updates) {
-      updates.voiceNoteSummary = summary;
+    // Garantir que summary é uma string válida
+    if (summary && typeof summary === 'string') {
+      if (updates) {
+        updates.voiceNoteSummary = summary;
+      } else {
+        // Se não houver updates, criar objeto com apenas o summary
+        updates = { voiceNoteSummary: summary };
+      }
+    } else {
+      console.warn("Resumo gerado não é uma string válida:", summary);
     }
   }
   
