@@ -278,16 +278,31 @@ function HighRiskPreview() {
   const { onSelectPatient, onSendMessage } = usePreview();
 
   const handleCardClick = (patientId: string) => {
-    console.log('[HighRiskPreview] handleCardClick chamado', { patientId });
+    console.log('[HighRiskPreview] handleCardClick chamado', { patientId, hasOnSendMessage: !!onSendMessage, hasOnSelectPatient: !!onSelectPatient });
     const patient = highRisk.find(p => p.id === patientId);
-    if (patient) {
-      // Enviar mensagem no chat: "Me dê um overview clínico completo do paciente da UTI [número do leito]"
-      const message = `Me dê um overview clínico completo do paciente da UTI ${patient.leito} (${patient.nome}).`;
-      console.log('[HighRiskPreview] Enviando mensagem', { message, patientId, hasOnSendMessage: !!onSendMessage });
-      onSendMessage?.(message, patientId);
-      onSelectPatient?.(patientId);
-    } else {
+    if (!patient) {
       console.error('[HighRiskPreview] Paciente não encontrado', { patientId });
+      return;
+    }
+    
+    // Enviar mensagem no chat: "Me dê um overview clínico completo do paciente da UTI [número do leito]"
+    const message = `Me dê um overview clínico completo do paciente da UTI ${patient.leito} (${patient.nome}).`;
+    console.log('[HighRiskPreview] Tentando enviar mensagem', { message, patientId, hasOnSendMessage: !!onSendMessage });
+    
+    // Tentar enviar mensagem primeiro
+    if (onSendMessage) {
+      console.log('[HighRiskPreview] Chamando onSendMessage', { message, patientId });
+      onSendMessage(message, patientId);
+    } else {
+      console.error('[HighRiskPreview] onSendMessage não disponível - mensagem não será enviada!');
+    }
+    
+    // Depois selecionar paciente
+    if (onSelectPatient) {
+      console.log('[HighRiskPreview] Chamando onSelectPatient', { patientId });
+      onSelectPatient(patientId);
+    } else {
+      console.warn('[HighRiskPreview] onSelectPatient não disponível');
     }
   };
 

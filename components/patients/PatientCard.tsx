@@ -63,23 +63,23 @@ export function PatientCard({
         return;
       }
       
-      // Prioridade 2: usar onSelect customizado se fornecido (ex: HighRiskPreview)
-      if (onSelect) {
-        console.log('[PatientCard] Usando onSelect', { patientId: patient.id });
-        onSelect(patient.id);
-        // Mas ainda tentar enviar mensagem se possível
-        if (onSendMessage) {
-          console.log('[PatientCard] Também enviando mensagem via onSendMessage', { patientId: patient.id, message });
-          onSendMessage(message, patient.id);
-        }
-        return;
-      }
-      
-      // Prioridade 3: usar onSendMessage do contexto Preview
+      // Prioridade 2: se onSendMessage do contexto estiver disponível, usar ele (melhor que onSelect)
       if (onSendMessage) {
         console.log('[PatientCard] Usando onSendMessage do contexto', { patientId: patient.id, message });
         onSendMessage(message, patient.id);
         onSelectPatient?.(patient.id);
+        // Ainda chamar onSelect para outras ações se necessário
+        if (onSelect) {
+          onSelect(patient.id);
+        }
+        return;
+      }
+      
+      // Prioridade 3: usar onSelect customizado se fornecido (ex: HighRiskPreview)
+      // Isso é usado quando o componente pai já tem a lógica de enviar mensagem
+      if (onSelect) {
+        console.log('[PatientCard] Usando onSelect (fallback)', { patientId: patient.id, hasOnSendMessage: false });
+        onSelect(patient.id);
         return;
       }
       
