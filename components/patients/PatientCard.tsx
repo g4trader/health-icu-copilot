@@ -10,6 +10,7 @@ interface PatientCardProps {
   isPinned?: boolean;
   onTogglePin?: (patientId: string) => void;
   onSelect?: (patientId: string) => void;
+  onSendPatientMessage?: (patientId: string, message: string) => void; // Nova prop para enviar mensagem
   variant?: 'default';
   selected?: boolean;
   className?: string;
@@ -24,6 +25,7 @@ export function PatientCard({
   patient,
   showPin = true,
   onSelect,
+  onSendPatientMessage,
   selected = false,
   variant = 'default',
   className = "",
@@ -36,19 +38,38 @@ export function PatientCard({
     (m) => m.tipo === "vasopressor" && m.ativo
   );
 
-  const handleCardClick = () => {
-    // Se houver onSelect customizado, usar ele (ex: HighRiskPreview)
-    if (onSelect) {
-      onSelect(patient.id);
+  const handleVerPacienteClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    // Mensagem que garante detecção de intent PACIENTE_ESPECIFICO e mostra overview completo
+    const message = `Me dê um overview clínico completo do paciente da UTI ${patient.leito} (${patient.nome}).`;
+    
+    // Prioridade 1: usar onSendPatientMessage se fornecido (mais direto)
+    if (onSendPatientMessage) {
+      onSendPatientMessage(patient.id, message);
       return;
     }
     
-    // Caso contrário, usar comportamento padrão: enviar mensagem no chat
-    // Mensagem que garante detecção de intent PACIENTE_ESPECIFICO e mostra overview completo
-    // Usar formato similar ao showPatientOverviewInline para garantir consistência
-    const message = `Me dê um overview clínico completo do paciente da UTI ${patient.leito} (${patient.nome}).`;
-    onSendMessage?.(message, patient.id);
-    onSelectPatient?.(patient.id);
+    // Prioridade 2: usar onSelect customizado se fornecido (ex: HighRiskPreview)
+    if (onSelect) {
+      onSelect(patient.id);
+      // Mas ainda tentar enviar mensagem se possível
+      if (onSendMessage) {
+        onSendMessage(message, patient.id);
+      }
+      return;
+    }
+    
+    // Prioridade 3: usar onSendMessage do contexto Preview
+    if (onSendMessage) {
+      onSendMessage(message, patient.id);
+      onSelectPatient?.(patient.id);
+      return;
+    }
+    
+    // Fallback: log de erro se nenhuma opção disponível
+    console.error('PatientCard: Nenhum handler disponível para enviar mensagem do paciente', patient.id);
   };
 
   return (
@@ -95,7 +116,8 @@ export function PatientCard({
       {/* Botão Ver paciente */}
       <div className="mt-3 pt-3 border-t border-slate-200">
         <button
-          onClick={handleCardClick}
+          type="button"
+          onClick={handleVerPacienteClick}
           className="w-full px-4 py-2 bg-blue-50 hover:bg-blue-100 text-blue-700 font-medium rounded-lg transition-colors text-sm"
         >
           Ver paciente

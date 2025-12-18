@@ -109,11 +109,13 @@ function LoadingSkeleton() {
 function PrioritizationPanel({ 
   patients, 
   onSelectPatient,
-  onExpandPatient
+  onExpandPatient,
+  onSendPatientMessage
 }: { 
   patients: Patient[]; 
   onSelectPatient?: (patientId: string) => void;
   onExpandPatient?: (patientId: string) => void;
+  onSendPatientMessage?: (patientId: string, message: string) => void;
 }) {
   return (
     <div className="bg-white border border-slate-200 rounded-2xl shadow-sm p-5">
@@ -129,6 +131,7 @@ function PrioritizationPanel({
             <PatientCard
               patient={p}
               onSelect={(patientId) => onSelectPatient?.(patientId)}
+              onSendPatientMessage={onSendPatientMessage}
               showPin={true}
               className="ml-6"
             />
@@ -513,7 +516,12 @@ export default function HomePage() {
       return;
     }
     // Usar handleSend para garantir que tudo passe pelo fluxo unificado
-    void handleSend(`Me dê um overview clínico completo do paciente da ${patient.leito} (${patient.nome}).`, undefined, patientId);
+    void handleSend(`Me dê um overview clínico completo do paciente da UTI ${patient.leito} (${patient.nome}).`, undefined, patientId);
+  }, [handleSend]);
+  
+  // Função para enviar mensagem de paciente (usada pelo PatientCard)
+  const handleSendPatientMessage = useCallback((patientId: string, message: string) => {
+    void handleSend(message, undefined, patientId);
   }, [handleSend]);
 
   // Função para abrir drawer com paciente - agora usa handleSend e depois abre drawer
