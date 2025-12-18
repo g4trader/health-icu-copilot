@@ -195,7 +195,14 @@ function IcuOverviewPreview() {
 
 function AllPatientsPreview({ payload }: { payload: PreviewPayload | null }) {
   const patients = (payload?.patients || mockPatients) as Patient[];
-  const { onSelectPatient } = usePreview();
+  const { onSelectPatient, onSendMessage } = usePreview();
+
+  const handleCardClick = (patientId: string) => {
+    // Enviar mensagem ao chat perguntando sobre o paciente
+    onSendMessage?.(`Como está o paciente ${patientId}?`, patientId);
+    // Também chamar onSelectPatient para manter compatibilidade
+    onSelectPatient?.(patientId);
+  };
 
   return (
     <div className="patient-detail-refined">
@@ -204,7 +211,7 @@ function AllPatientsPreview({ payload }: { payload: PreviewPayload | null }) {
           key={p.id}
           patient={p}
           showPin={true}
-          onSelect={(patientId) => onSelectPatient?.(patientId)}
+          onSelect={handleCardClick}
         />
       ))}
     </div>
@@ -213,7 +220,14 @@ function AllPatientsPreview({ payload }: { payload: PreviewPayload | null }) {
 
 function VentilatedPreview() {
   const ventilated = mockPatients.filter(p => p.ventilationParams !== undefined);
-  const { onSelectPatient } = usePreview();
+  const { onSelectPatient, onSendMessage } = usePreview();
+
+  const handleCardClick = (patientId: string) => {
+    const patient = ventilated.find(p => p.id === patientId);
+    const patientName = patient ? `${patient.leito} (${patient.nome})` : patientId;
+    onSendMessage?.(`Como está o paciente da ${patientName}?`, patientId);
+    onSelectPatient?.(patientId);
+  };
 
   return (
     <div className="patient-detail-refined">
@@ -222,7 +236,7 @@ function VentilatedPreview() {
           key={p.id}
           patient={p}
           showPin={true}
-          onSelect={(patientId) => onSelectPatient?.(patientId)}
+          onSelect={handleCardClick}
         />
       ))}
     </div>
@@ -233,7 +247,14 @@ function VasopressorsPreview() {
   const onVaso = mockPatients.filter(p => 
     p.medications.some(m => m.tipo === "vasopressor" && m.ativo)
   );
-  const { onSelectPatient } = usePreview();
+  const { onSelectPatient, onSendMessage } = usePreview();
+
+  const handleCardClick = (patientId: string) => {
+    const patient = onVaso.find(p => p.id === patientId);
+    const patientName = patient ? `${patient.leito} (${patient.nome})` : patientId;
+    onSendMessage?.(`Como está o paciente da ${patientName}?`, patientId);
+    onSelectPatient?.(patientId);
+  };
 
   return (
     <div className="patient-detail-refined">
@@ -242,7 +263,7 @@ function VasopressorsPreview() {
           key={p.id}
           patient={p}
           showPin={true}
-          onSelect={(patientId) => onSelectPatient?.(patientId)}
+          onSelect={handleCardClick}
         />
       ))}
     </div>
@@ -254,7 +275,14 @@ function HighRiskPreview() {
     const riskScore = calculateRiskScore(p);
     return riskLevelFromScore(riskScore) === "alto" || p.riscoMortality24h >= 0.7;
   });
-  const { onSelectPatient } = usePreview();
+  const { onSelectPatient, onSendMessage } = usePreview();
+
+  const handleCardClick = (patientId: string) => {
+    const patient = highRisk.find(p => p.id === patientId);
+    const patientName = patient ? `${patient.leito} (${patient.nome})` : patientId;
+    onSendMessage?.(`Como está o paciente da ${patientName}?`, patientId);
+    onSelectPatient?.(patientId);
+  };
 
   return (
     <div className="patient-detail-refined">
@@ -263,7 +291,7 @@ function HighRiskPreview() {
           key={p.id}
           patient={p}
           showPin={true}
-          onSelect={(patientId) => onSelectPatient?.(patientId)}
+          onSelect={handleCardClick}
         />
       ))}
     </div>

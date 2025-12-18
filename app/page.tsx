@@ -350,7 +350,7 @@ export default function HomePage() {
   const [expandedPatientId, setExpandedPatientId] = useState<string | null>(null);
   const activePatient = mockPatients.find(p => p.id === activePatientId) || null;
   const expandedPatient = mockPatients.find(p => p.id === expandedPatientId) || null;
-  const { setPreview, setOnSelectPatient } = usePreview();
+  const { setPreview, setOnSelectPatient, setOnSendMessage } = usePreview();
   const { setActivePatient: setActivePatientFromContext, addOpinion, setLastAnswerForPatient } = useClinicalSession();
 
   // Sincronizar activePatientId com o contexto
@@ -537,6 +537,16 @@ export default function HomePage() {
     setOnSelectPatient(handleSelectPatient);
     return () => setOnSelectPatient(undefined);
   }, [setOnSelectPatient, openPatientPreviewDrawer]);
+
+  // Configurar handler para enviar mensagens ao chat (para cards no drawer)
+  useEffect(() => {
+    const handleSendMessage = (message: string, patientId?: string) => {
+      console.log('Enviando mensagem ao chat:', { message, patientId });
+      void handleSend(message, undefined, patientId);
+    };
+    setOnSendMessage(handleSendMessage);
+    return () => setOnSendMessage(undefined);
+  }, [setOnSendMessage, handleSend]);
 
   const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter" && !e.shiftKey) {

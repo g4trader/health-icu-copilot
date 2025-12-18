@@ -25,6 +25,8 @@ interface PreviewContextType {
   clearPreview: () => void;
   onSelectPatient?: (patientId: string) => void;
   setOnSelectPatient: (handler: ((patientId: string) => void) | undefined) => void;
+  onSendMessage?: (message: string, patientId?: string) => void;
+  setOnSendMessage: (handler: ((message: string, patientId?: string) => void) | undefined) => void;
 }
 
 const PreviewContext = createContext<PreviewContextType | undefined>(undefined);
@@ -33,6 +35,7 @@ export function PreviewProvider({ children }: { children: ReactNode }) {
   const [previewType, setPreviewType] = useState<PreviewType>(null);
   const [previewPayload, setPreviewPayload] = useState<PreviewPayload | null>(null);
   const [onSelectPatient, setOnSelectPatient] = useState<((patientId: string) => void) | undefined>(undefined);
+  const [onSendMessage, setOnSendMessage] = useState<((message: string, patientId?: string) => void) | undefined>(undefined);
 
   const setPreview = (type: PreviewType, payload?: PreviewPayload) => {
     setPreviewType(type);
@@ -45,7 +48,7 @@ export function PreviewProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <PreviewContext.Provider value={{ previewType, previewPayload, setPreview, clearPreview, onSelectPatient, setOnSelectPatient }}>
+    <PreviewContext.Provider value={{ previewType, previewPayload, setPreview, clearPreview, onSelectPatient, setOnSelectPatient, onSendMessage, setOnSendMessage }}>
       {children}
     </PreviewContext.Provider>
   );
