@@ -17,16 +17,20 @@ export function getTotalPatients(): number {
  * Retorna número de pacientes em ventilação mecânica
  */
 export function getPatientsOnVentilation(): number {
-  return mockPatients.filter(p => p.ventilationParams !== undefined).length;
+  const onVM = mockPatients.filter(p => p.ventilationParams !== undefined);
+  console.log('[icuSummary] Patients on VM:', onVM.map(p => ({ id: p.id, nome: p.nome })));
+  return onVM.length;
 }
 
 /**
  * Retorna número de pacientes em droga vasoativa
  */
 export function getPatientsOnVasopressors(): number {
-  return mockPatients.filter(p => 
+  const onVaso = mockPatients.filter(p => 
     p.medications.some(m => m.tipo === "vasopressor" && m.ativo)
-  ).length;
+  );
+  console.log('[icuSummary] Patients on Vasopressor:', onVaso.map(p => ({ id: p.id, nome: p.nome })));
+  return onVaso.length;
 }
 
 /**
@@ -34,9 +38,30 @@ export function getPatientsOnVasopressors(): number {
  */
 export function getHighRiskPatients(): number {
   // Alto risco: riscoMortality24h >= 0.61 (range padronizado: 0.61-1.00)
-  return mockPatients.filter(p => {
-    return p.riscoMortality24h >= 0.61 || riskLevelFromScore(p.riscoMortality24h) === "alto";
-  }).length;
+  const highRiskPatients = mockPatients.filter(p => {
+    const isHighRisk = p.riscoMortality24h >= 0.61 || riskLevelFromScore(p.riscoMortality24h) === "alto";
+    return isHighRisk;
+  });
+  
+  // Log para debug
+  console.log('[icuSummary] High Risk Patients:', highRiskPatients.map(p => ({
+    id: p.id,
+    nome: p.nome,
+    risco24h: p.riscoMortality24h,
+    riskLevel: riskLevelFromScore(p.riscoMortality24h)
+  })));
+  
+  // Log de todos os pacientes com seus riscos
+  console.log('[icuSummary] All Patients Risk:', mockPatients.map(p => ({
+    id: p.id,
+    nome: p.nome,
+    risco24h: p.riscoMortality24h,
+    riskLevel: riskLevelFromScore(p.riscoMortality24h),
+    hasVM: !!p.ventilationParams,
+    hasVaso: p.medications.some(m => m.tipo === "vasopressor" && m.ativo)
+  })));
+  
+  return highRiskPatients.length;
 }
 
 /**

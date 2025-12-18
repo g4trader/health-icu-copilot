@@ -1745,8 +1745,35 @@ export function toPatientCompat(patient: Patient): PatientCompat {
  * Exporta pacientes em formato compatível
  * Por enquanto, exportamos ambos para manter compatibilidade
  */
-// Alinhar snapshots com timeline antes de converter para compat
-const alignedPatientsRaw = mockPatientsRaw.map(alignSnapshotWithLatestStatus);
+// Mapeamento de categoria de risco alvo por paciente
+// Distribuição: 2 baixos, 5 médios, 3 altos
+const targetRiskMap: Record<string, TargetRiskCategory> = {
+  p1: "moderate", // Sophia - Bronquiolite grave
+  p2: "low",      // Gabriel - Pneumonia (rápida melhora)
+  p3: "low",      // Isabella - Sepse (já melhorou)
+  p4: "moderate", // Lucas - TCE grave
+  p5: "high",     // Maria Eduarda - Cardiopatia descompensada
+  p6: "moderate", // João Pedro - Bronquiolite moderada
+  p7: "moderate", // Ana Clara - Sepse pulmonar
+  p8: "moderate", // Rafael - Pneumonia grave
+  p9: "high",     // Laura - Bronquiolite grave em lactente
+  p10: "high",    // Enzo - Cardiopatia pós-cirúrgica
+};
+
+// Aplicar categoria de risco alvo primeiro, depois alinhar com timeline
+const riskAdjustedPatients = mockPatientsRaw.map((patient) => {
+  const targetCategory = targetRiskMap[patient.id] || "moderate";
+  return applyTargetRisk(patient, targetCategory);
+});
+
+// Só alinhar com timeline se não forçar baixo risco para pacientes de alto/moderado risco
+const alignedPatientsRaw = riskAdjustedPatients.map((patient) => {
+  const targetCategory = targetRiskMap[patient.id] || "moderate";
+  if (targetCategory === "low") {
+    return alignSnapshotWithLatestStatus(patient);
+  }
+  return patient;
+});
 
 export const mockPatientsCompat: PatientCompat[] = alignedPatientsRaw.map(toPatientCompat);
 
