@@ -294,6 +294,32 @@ export function PatientDetailPanel({ patient, microDashboards: propsMicroDashboa
           </div>
         </div>
       </div>
+
+      {/* Parecer do Plantonista */}
+      <div className="detail-card" key={`parecer-${patient.id}-${patient.voiceNoteSummary?.substring(0, 20) || 'default'}`}>
+        <h4 className="detail-card-title">Parecer do Plantonista</h4>
+        <div className="mt-3 p-4 bg-white border border-slate-200 rounded-2xl shadow-sm">
+          {patient.voiceNoteSummary ? (
+            <p className="text-sm text-slate-700 leading-relaxed">
+              {patient.voiceNoteSummary}
+            </p>
+          ) : plantonistaAnswer?.focusPayload?.narrativaAgente ? (
+            <p className="text-sm text-slate-700 leading-relaxed">
+              {plantonistaAnswer.focusPayload.narrativaAgente}
+            </p>
+          ) : (
+            <p className="text-sm text-slate-700 leading-relaxed">
+              Paciente {patient.nome} ({patient.idade} anos, {patient.peso.toFixed(1)} kg), leito {patient.leito}, 
+              com diagnóstico principal de {patient.diagnosticoPrincipal}. 
+              {riskLevel24h === "alto" && ` Apresenta risco de mortalidade em 24h elevado (${risk24h}%).`}
+              {lactato && typeof lactato.valor === "number" && lactato.valor >= 3 && ` Lactato elevado (${lactato.valor.toFixed(1)} mmol/L), sugerindo comprometimento da perfusão tecidual.`}
+              {hasVM && " Em ventilação mecânica com parâmetros ajustados."}
+              {hasVaso && " Em uso de drogas vasoativas para suporte hemodinâmico."}
+              Recomenda-se monitorização próxima e reavaliação periódica do quadro clínico.
+            </p>
+          )}
+        </div>
+      </div>
     </div>
   );
 }
