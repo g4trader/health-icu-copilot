@@ -6,7 +6,7 @@ import { PatientCard } from "../patients/PatientCard";
 import type { Patient } from "@/types/Patient";
 import { OpinionBullets } from "./OpinionBullets";
 import { PatientBigTimeline } from "./PatientBigTimeline";
-import { getDailyStatus } from "@/lib/patientTimeline";
+import { getRecentDailyStatus } from "@/lib/patientTimeline";
 import { mockPatients } from "@/lib/mockData";
 
 interface PlantonistaAnswerPanelProps {
@@ -61,7 +61,7 @@ export function PlantonistaAnswerPanel({
   const patient = content.focusPayload?.patientId 
     ? mockPatients.find(p => p.id === content.focusPayload!.patientId)
     : null;
-  const dailyStatus = patient ? getDailyStatus(patient.id) : [];
+  const dailyStatus = patient ? getRecentDailyStatus(patient.id, 14) : [];
 
   // Ordenar dashboards
   const orderedDashboards = orderDashboards(content.microDashboards);

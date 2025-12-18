@@ -191,11 +191,21 @@ function generate30DayEvolution(patient: Patient): DailyPatientStatus[] {
     // Eventos principais do dia
     const principaisEventos: string[] = [];
     
+    // Determinar se paciente está em alto risco (para não gerar eventos de alta antigos)
+    const isHighRisk = currentRisk > 0.6;
+    const isRecentDay = day >= currentDiaUti - 13; // Últimos 14 dias
+    
     // Usar eventos do perfil se disponível
     if (profile) {
       const keyEvent = profile.keyEvents.find(e => e.day === day);
       if (keyEvent) {
-        principaisEventos.push(keyEvent.description);
+        // Para pacientes de alto risco, não incluir eventos de "Alta" nos últimos dias
+        if (isHighRisk && isRecentDay && keyEvent.description.toLowerCase().includes("alta")) {
+          // Substituir por evento de piora/ajuste
+          principaisEventos.push(`Ajuste de suporte ventilatório/hemodinâmico`);
+        } else {
+          principaisEventos.push(keyEvent.description);
+        }
       }
     } else {
       // Fallback: eventos genéricos
@@ -209,11 +219,27 @@ function generate30DayEvolution(patient: Patient): DailyPatientStatus[] {
       if (day === 3 && vasopressor) {
         principaisEventos.push(`Início de ${vasopressor.nome}`);
       }
-      if (day === altaDay - 1) {
-        principaisEventos.push("Preparação para alta da UTI");
-      }
-      if (day === altaDay) {
-        principaisEventos.push("Alta da UTI");
+      
+      // Para pacientes de alto risco, não gerar eventos de alta nos últimos dias
+      if (isHighRisk && isRecentDay) {
+        // Em vez de alta, gerar eventos de ajuste/piora
+        if (day === currentDiaUti - 2) {
+          principaisEventos.push("Piora de função respiratória");
+        }
+        if (day === currentDiaUti - 1) {
+          principaisEventos.push("Ajuste de vasopressor");
+        }
+        if (day === currentDiaUti) {
+          principaisEventos.push("Estado crítico - monitorização intensiva");
+        }
+      } else {
+        // Para pacientes de baixo/moderado risco, manter eventos de alta
+        if (day === altaDay - 1) {
+          principaisEventos.push("Preparação para alta da UTI");
+        }
+        if (day === altaDay) {
+          principaisEventos.push("Alta da UTI");
+        }
       }
     }
     
@@ -275,6 +301,45 @@ export function getDailyStatus(patientId: string): DailyPatientStatus[] {
 }
 
 /**
+ * Obtém apenas os últimos N dias da evolução (últimos 14 dias por padrão)
+ * Garante que o último dia seja "hoje" (D30) e remove "alta_uti" antiga para pacientes de alto risco
+ */
+export function getRecentDailyStatus(patientId: string, days: number = 14): DailyPatientStatus[] {
+  const all = getDailyStatus(patientId);
+  if (all.length === 0) return [];
+  
+  const patient = mockPatientsRaw.find(p => p.id === patientId);
+  if (!patient) return [];
+  
+  // Pegar os últimos N dias
+  const recent = all.slice(-days);
+  
+  // Se o paciente está em alto risco (riscoMortality24h > 0.6), 
+  // remover qualquer "alta_uti" dos últimos 14 dias e substituir por status apropriado
+  const isHighRisk = patient.riscoMortality24h > 0.6;
+  const currentDiaUti = patient.diasDeUTI;
+  
+  if (isHighRisk) {
+    // Para pacientes de alto risco, garantir que não há "alta_uti" nos últimos dias
+    return recent.map((day, idx) => {
+      // Se é um dos últimos 14 dias e está marcado como "alta_uti", substituir
+      if (day.statusGlobal === "alta_uti" && day.diaUti >= currentDiaUti - 13) {
+        // Substituir por "critico" ou "grave" baseado no risco
+        return {
+          ...day,
+          statusGlobal: patient.riscoMortality24h >= 0.75 ? "critico" : "grave",
+          riskScore: Math.max(0.6, patient.riscoMortality24h),
+          resumoDiario: day.resumoDiario.replace(/alta da UTI/i, "estado crítico/grave")
+        };
+      }
+      return day;
+    });
+  }
+  
+  return recent;
+}
+
+/**
  * Obtém o status mais recente do paciente
  */
 export function getLatestDailyStatus(patientId: string): DailyPatientStatus | undefined {
@@ -296,24 +361,45 @@ export function getPatientTimeline(patientId: string): TimelineEvent[] {
   const evolution = getDailyStatus(patientId);
   const events: TimelineEvent[] = [];
   
+  const patient = mockPatientsRaw.find(p => p.id === patientId);
+  const isHighRisk = patient ? patient.riscoMortality24h > 0.6 : false;
+  const currentDiaUti = patient ? patient.diasDeUTI : 30;
+  
   evolution.forEach((day, idx) => {
+    // Para pacientes de alto risco, não incluir eventos de "Alta" nos últimos 14 dias
+    const isRecentDay = day.diaUti >= currentDiaUti - 13;
+    const isAltaEvent = day.principaisEventos.some(e => e.toLowerCase().includes('alta'));
+    
+    if (isHighRisk && isRecentDay && isAltaEvent) {
+      // Pular eventos de alta para pacientes de alto risco nos últimos dias
+      return;
+    }
+    
     if (day.principaisEventos.length > 0) {
       day.principaisEventos.forEach((evento, eventIdx) => {
+        // Filtrar eventos de "Alta" antigos para pacientes de alto risco
+        if (isHighRisk && isRecentDay && evento.toLowerCase().includes('alta')) {
+          return; // Pular este evento
+        }
+        
         let type: TimelineEventType = 'note';
         let severity: TimelineEventSeverity = 'normal';
         
         if (evento.includes('Admissão')) {
           type = 'admission';
           severity = 'normal';
-        } else if (evento.includes('ventilação') || evento.includes('VM')) {
+        } else if (evento.includes('ventilação') || evento.includes('VM') || evento.includes('respiratória') || evento.includes('respiratorio')) {
           type = 'therapy';
           severity = day.statusGlobal === 'critico' ? 'critical' : 'warning';
-        } else if (evento.includes('Noradrenalina') || evento.includes('vasopressor')) {
+        } else if (evento.includes('Noradrenalina') || evento.includes('vasopressor') || evento.includes('Ajuste de vasopressor')) {
           type = 'therapy';
           severity = 'critical';
         } else if (evento.includes('Alta')) {
           type = 'note';
           severity = 'normal';
+        } else if (evento.includes('Piora') || evento.includes('crítico') || evento.includes('critico')) {
+          type = 'note';
+          severity = 'critical';
         }
         
         // Verificar se é evento de imagem
@@ -345,20 +431,46 @@ export function getPatientTimeline(patientId: string): TimelineEvent[] {
 }
 
 /**
- * Obtém resumo da timeline (últimas 24h ou mais recentes)
+ * Obtém resumo da timeline focando nas últimas 24-72h (máximo 5 dias)
+ * Nunca mostra eventos de "Alta UTI" antigos para pacientes de alto risco
  */
 export function getPatientTimelineSummary(patientId: string): { events: TimelineEvent[]; isFallback: boolean } {
   const allEvents = getPatientTimeline(patientId);
-  const now = new Date();
-  const twentyFourHoursAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+  const patient = mockPatientsRaw.find(p => p.id === patientId);
   
-  // Filtrar eventos das últimas 24h
+  if (!patient) {
+    return { events: [], isFallback: false };
+  }
+  
+  const currentDiaUti = patient.diasDeUTI;
+  const isHighRisk = patient.riscoMortality24h > 0.6;
+  const MAX_DAYS_BACK = 5; // Máximo de 5 dias para eventos recentes
+  
+  // Filtrar eventos dos últimos MAX_DAYS_BACK dias baseado em diaUti
+  // Assumindo que os eventos têm um campo diaUti ou podemos calcular a partir do timestamp
   const recentEvents = allEvents.filter(event => {
+    // Tentar extrair diaUti do evento ou calcular a partir do timestamp
+    // Se o evento tem um campo relacionado ao dia, usar isso
+    // Caso contrário, calcular diferença em dias a partir do timestamp
     const eventDate = new Date(event.timestamp);
-    return eventDate >= twentyFourHoursAgo;
+    const now = new Date();
+    const diffMs = now.getTime() - eventDate.getTime();
+    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+    
+    // Filtrar eventos dos últimos MAX_DAYS_BACK dias
+    if (diffDays > MAX_DAYS_BACK) {
+      return false;
+    }
+    
+    // Para pacientes de alto risco, remover eventos de "Alta UTI" antigos
+    if (isHighRisk && event.title.toLowerCase().includes("alta") && diffDays > 1) {
+      return false;
+    }
+    
+    return true;
   });
   
-  // Ordenar por relevância (severity) e depois por timestamp
+  // Ordenar por relevância (severity) e depois por timestamp (mais recente primeiro)
   const sortedRecent = recentEvents.sort((a, b) => {
     const severityOrder = { critical: 3, warning: 2, normal: 1 };
     const aSeverity = severityOrder[a.severity || 'normal'];
@@ -371,18 +483,12 @@ export function getPatientTimelineSummary(patientId: string): { events: Timeline
     return bTime - aTime;
   });
   
-  if (sortedRecent.length >= 3) {
-    return { events: sortedRecent.slice(0, 3), isFallback: false };
+  if (sortedRecent.length > 0) {
+    return { events: sortedRecent.slice(0, 5), isFallback: false };
   }
   
-  // Fallback: pegar os 3 mais recentes de todos os eventos
-  const sortedAll = allEvents.sort((a, b) => {
-    const aTime = new Date(a.timestamp).getTime();
-    const bTime = new Date(b.timestamp).getTime();
-    return bTime - aTime;
-  });
-  
-  return { events: sortedAll.slice(0, 3), isFallback: true };
+  // Se não há eventos recentes, retornar vazio (não mostrar eventos antigos)
+  return { events: [], isFallback: true };
 }
 
 /**

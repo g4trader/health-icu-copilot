@@ -5,7 +5,7 @@ import type { MicroDashboard } from "@/types/MicroDashboardV2";
 import { PatientPinButton } from "./PatientPinButton";
 import { riskLevelFromScore } from "@/lib/mockData";
 import { MicroDashboardV2Renderer } from "./ui/MicroDashboardV2Renderer";
-import { getDailyStatus } from "@/lib/patientTimeline";
+import { getRecentDailyStatus } from "@/lib/patientTimeline";
 import { PatientBigTimeline } from "./ui/PatientBigTimeline";
 import { PatientTimelineSummary } from "./PatientTimelineSummary";
 import type { TimelineHighlight } from "@/types/LlmPatientAnswer";
@@ -21,7 +21,7 @@ interface PatientDetailPanelProps {
 
 export function PatientDetailPanel({ patient, microDashboards: propsMicroDashboards, timelineHighlights: propsTimelineHighlights }: PatientDetailPanelProps) {
   const { lastAnswerByPatientId } = useClinicalSession();
-  const dailyStatus = getDailyStatus(patient.id);
+  const dailyStatus = getRecentDailyStatus(patient.id, 14);
   
   // Buscar resposta do Plantonista para este paciente, se disponível
   const plantonistaAnswer = lastAnswerByPatientId[patient.id];
@@ -249,8 +249,8 @@ export function PatientDetailPanel({ patient, microDashboards: propsMicroDashboa
         </>
       )}
 
-      {/* 3. Evolução na UTI (30 dias) */}
-      <h3 className="patient-detail-section-title">Evolução na UTI (30 dias)</h3>
+      {/* 3. Evolução na UTI (últimos 14 dias) */}
+      <h3 className="patient-detail-section-title">Evolução na UTI (últimos 14 dias)</h3>
       <div className="mb-6">
         <PatientBigTimeline
           dailyStatus={dailyStatus}

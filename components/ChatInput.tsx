@@ -174,8 +174,23 @@ export function ChatInput({
           placeholder="Digite sua pergunta..."
           className="chat-input-field"
           value={value}
-          onChange={(e) => onChange(e.target.value)}
-          onKeyDown={onKeyDown}
+          onChange={(e) => {
+            // Apenas atualizar o estado, sem fazer submit
+            onChange(e.target.value);
+          }}
+          onKeyDown={(e) => {
+            // Só fazer submit com Enter, não com outras teclas
+            if (e.key === "Enter" && !e.shiftKey) {
+              e.preventDefault();
+              e.stopPropagation();
+              if (value.trim() && !loading) {
+                onSend(value.trim());
+              }
+            } else {
+              // Passar outros eventos de teclado para o handler pai se necessário
+              onKeyDown(e);
+            }
+          }}
           disabled={loading}
         />
 

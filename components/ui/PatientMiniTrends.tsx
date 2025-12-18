@@ -1,7 +1,7 @@
 "use client";
 
 import type { DailyPatientStatus } from "@/types/DailyPatientStatus";
-import { getDailyStatus } from "@/lib/patientTimeline";
+import { getRecentDailyStatus } from "@/lib/patientTimeline";
 
 interface PatientMiniTrendsProps {
   patientId: string;
@@ -87,7 +87,7 @@ function getTrendColor(value: number, type: 'map' | 'spo2' | 'lactate'): string 
 }
 
 export function PatientMiniTrends({ patientId, dailyStatus: providedDailyStatus }: PatientMiniTrendsProps) {
-  const dailyStatus = providedDailyStatus || getDailyStatus(patientId);
+  const dailyStatus = providedDailyStatus || getRecentDailyStatus(patientId, 14);
   
   // Pegar últimos 7 dias
   const last7Days = dailyStatus.slice(-7);

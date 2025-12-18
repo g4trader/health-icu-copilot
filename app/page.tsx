@@ -549,14 +549,17 @@ export default function HomePage() {
   }, [setOnSendMessage, handleSend]);
 
   const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLInputElement>) => {
+    // Só fazer submit com Enter, não com outras teclas
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
+      e.stopPropagation();
       console.log("[ChatInput] Enter pressed, input:", input);
-      if (input.trim()) {
+      if (input.trim() && !loading) {
         void handleSend(input.trim());
       }
     }
-  }, [handleSend, input]);
+    // Para outras teclas, não fazer nada (não fazer submit)
+  }, [handleSend, input, loading]);
 
   const handlePromptClick = useCallback((prompt: string) => {
     // Enviar a pergunta automaticamente

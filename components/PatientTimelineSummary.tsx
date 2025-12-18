@@ -113,7 +113,7 @@ export function PatientTimelineSummary({ patientId, timelineHighlights }: Patien
       <h4 className="plantonista-timeline-summary-title">Eventos marcantes</h4>
       {isFallback && (
         <p className="plantonista-timeline-summary-fallback">
-          Sem eventos relevantes nas últimas 24h; exibindo os mais recentes.
+          Sem eventos relevantes nos últimos 3-5 dias.
         </p>
       )}
       <div className="plantonista-timeline-events-list">
