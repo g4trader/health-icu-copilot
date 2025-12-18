@@ -8,6 +8,21 @@ import { getPatientHistoryById } from "./mockPatients/history";
 import { patientsSnapshots } from "./mockPatients/snapshots";
 
 /**
+ * Constrói um parecer do plantonista a partir dos dados estruturados
+ * Formato específico para o card "Parecer do Plantonista"
+ */
+export function buildPlantonistaOpinion(patient: Patient, structured: any): string {
+  const status = structured.statusClinico ?? "estável";
+  const plano = structured.plano ?? "Plano não especificado.";
+  
+  return [
+    `Paciente ${patient.nome} (${patient.idade} anos), leito ${patient.leito}.`,
+    `Encontra-se ${status}.`,
+    `Plano: ${plano}`
+  ].join(" ");
+}
+
+/**
  * Constrói um resumo em português a partir dos dados estruturados da nota de voz
  */
 export function buildVoiceNoteSummary(patient: Patient, structured: any): string {

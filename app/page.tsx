@@ -28,7 +28,8 @@ import { PatientOpinionBadges } from "@/components/PatientOpinionBadges";
 import { PatientCard } from "@/components/patients/PatientCard";
 import { useClinicalSession } from "@/lib/ClinicalSessionContext";
 import type { MicroDashboardPayload } from "@/types/MicroDashboard";
-import { processVoiceNote } from "@/lib/voiceNoteUpdater";
+import { processVoiceNote, buildPlantonistaOpinion } from "@/lib/voiceNoteUpdater";
+import { isUpdateOpinionIntent } from "@/lib/voiceIntents";
 
 type Message = {
   id: string;
@@ -681,35 +682,63 @@ export default function HomePage() {
       }
     }
 
-    // Verificar se é comando de atualização de parecer
-    const isUpdateOpinionCommand = result.command && result.command.type === "update-opinion";
-    
-    // Se não for comando de parecer E não houver paciente ativo, não processar
-    if (!isUpdateOpinionCommand && !activePatientId && !result.structured?.patientId && !result.structured?.bed) {
-      console.warn("[handleVoiceNoteResult] Nota de voz recebida sem paciente ativo e sem comando de parecer");
-      handleSend("Por favor, selecione um paciente primeiro ou use um comando de voz (ex: 'parecer do paciente...').");
-      return;
-    }
-    
-    // Se não for comando de seleção, processar como nota clínica ou parecer
-    const { structured } = result;
+    // Se não for comando de seleção, verificar se é intenção de atualizar parecer
+    const { structured, text } = result;
     
     if (!structured) {
       console.warn("handleVoiceNoteResult: structured data não disponível");
       return;
     }
     
-    console.log("[handleVoiceNoteResult] Dados recebidos:", { structured, text: result.text, isUpdateOpinionCommand });
+    // Verificar se é comando explícito de atualização de parecer OU intenção detectada no texto
+    const isUpdateOpinionCommand = result.command && result.command.type === "update-opinion";
+    const hasUpdateOpinionIntent = activePatientId && isUpdateOpinionIntent(text);
+    
+    // Se houver paciente ativo e intenção de parecer, tratar como atualização de parecer
+    if (activePatientId && (isUpdateOpinionCommand || hasUpdateOpinionIntent)) {
+      console.log("[handleVoiceNoteResult] Intenção de atualizar parecer detectada");
+      
+      const targetPatient = activePatient;
+      if (!targetPatient) {
+        console.warn("[handleVoiceNoteResult] Paciente ativo não encontrado");
+        handleSend("Por favor, selecione um paciente primeiro antes de atualizar o parecer.");
+        return;
+      }
+      
+      // Gerar parecer do plantonista a partir do JSON estruturado
+      const opinion = buildPlantonistaOpinion(targetPatient, structured);
+      
+      // Atualizar apenas o voiceNoteSummary, sem alterar outros dados clínicos
+      const patientIndex = mockPatients.findIndex(p => p.id === activePatientId);
+      if (patientIndex >= 0) {
+        mockPatients[patientIndex].voiceNoteSummary = opinion;
+        // Forçar re-render
+        setActivePatientId(activePatientId);
+      }
+      
+      // Adicionar mensagem no chat
+      handleSend("Parecer do plantonista atualizado a partir de nota de voz.");
+      
+      // Finalizar - não processar outros dados clínicos
+      return;
+    }
+    
+    // Se não houver paciente ativo e não for comando, não processar
+    if (!activePatientId && !structured.patientId && !structured.bed) {
+      console.warn("[handleVoiceNoteResult] Nota de voz recebida sem paciente ativo");
+      handleSend("Por favor, selecione um paciente primeiro ou use um comando de voz (ex: 'parecer do paciente...').");
+      return;
+    }
+    
+    // Caso contrário, processar como nota clínica normal (atualização completa)
+    console.log("[handleVoiceNoteResult] Processando como nota clínica completa:", { structured, text });
     
     // Priorizar patientId do structured (mais confiável que extrair do texto)
-    // Para comandos de parecer, usar SEMPRE o paciente ativo
-    let targetPatientId = isUpdateOpinionCommand 
-      ? activePatientId 
-      : (structured.patientId || activePatientId);
+    let targetPatientId = structured.patientId || activePatientId;
     let targetPatient = targetPatientId ? mockPatients.find(p => p.id === targetPatientId) : activePatient;
     
-    // Se não encontrou por ID, tentar por leito (mas não para comandos de parecer)
-    if (!targetPatient && !isUpdateOpinionCommand && structured.bed) {
+    // Se não encontrou por ID, tentar por leito
+    if (!targetPatient && structured.bed) {
       const bedStr = String(structured.bed).padStart(2, '0');
       const patientByBed = mockPatients.find(p => 
         p.leito.includes(bedStr) || 
@@ -732,36 +761,29 @@ export default function HomePage() {
       console.warn("Não foi possível identificar o paciente para atualizar com a nota de voz", {
         structuredBed: structured.bed,
         structuredPatientId: structured.patientId,
-        activePatientId,
-        isUpdateOpinionCommand
+        activePatientId
       });
-      handleSend("Por favor, selecione um paciente primeiro antes de atualizar o parecer.");
+      handleSend("Por favor, selecione um paciente primeiro.");
       return;
     }
     
-    console.log("[handleVoiceNoteResult] Paciente identificado:", { targetPatientId, patientName: targetPatient.nome, isUpdateOpinionCommand });
+    console.log("[handleVoiceNoteResult] Paciente identificado para atualização completa:", { targetPatientId, patientName: targetPatient.nome });
     
-    // Processar nota de voz (inclui geração do resumo)
-    // Para comandos de parecer, só atualizar o voiceNoteSummary, não outros dados
-    const { event, updates, summary } = processVoiceNote(targetPatientId, structured, result.text, targetPatient);
+    // Processar nota de voz completa (inclui timeline, dados clínicos, etc.)
+    const { event, updates } = processVoiceNote(targetPatientId, structured, text, targetPatient);
     
-    if (event && !isUpdateOpinionCommand) {
+    if (event) {
       console.log("Evento de nota de voz adicionado:", event);
     }
     
     if (updates) {
       console.log("Paciente atualizado com:", updates);
-      // Atualizar o paciente no array mockPatients para que o componente re-renderize
+      // Atualizar o paciente no array mockPatients
       const patientIndex = mockPatients.findIndex(p => p.id === targetPatientId);
       if (patientIndex >= 0) {
-        // Se for comando de parecer, só atualizar o voiceNoteSummary
-        if (isUpdateOpinionCommand) {
-          mockPatients[patientIndex].voiceNoteSummary = updates.voiceNoteSummary || summary || undefined;
-        } else {
-          Object.assign(mockPatients[patientIndex], updates);
-        }
-        // Forçar re-render atualizando o estado do paciente ativo
-        setActivePatientId(targetPatientId); // Isso força re-render
+        Object.assign(mockPatients[patientIndex], updates);
+        // Forçar re-render
+        setActivePatientId(targetPatientId);
       }
     }
     
