@@ -34,9 +34,8 @@ export function ChatInput({
 }: ChatInputProps) {
   const [showMenu, setShowMenu] = useState(false);
   const [isPatientMenuOpen, setIsPatientMenuOpen] = useState(false);
-  const [voiceState, setVoiceState] = useState<"idle" | "recording" | "preview" | "sending">("idle");
+  const [voiceState, setVoiceState] = useState<"idle" | "recording" | "ready">("idle");
   const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
-  const [transcriptionPreview, setTranscriptionPreview] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const menuRef = useRef<HTMLDivElement>(null);
   const patientMenuRef = useRef<HTMLDivElement>(null);
@@ -84,7 +83,6 @@ export function ChatInput({
   async function startRecording() {
     try {
       setErrorMessage(null);
-      setTranscriptionPreview(null);
       setAudioBlob(null);
       
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -115,7 +113,7 @@ export function ChatInput({
         
         const blob = new Blob(audioChunksRef.current, { type: mediaRecorder.mimeType });
         setAudioBlob(blob);
-        setVoiceState("preview");
+        setVoiceState("ready");
       };
       
       mediaRecorder.start();
@@ -146,14 +144,13 @@ export function ChatInput({
       streamRef.current.getTracks().forEach(track => track.stop());
       streamRef.current = null;
     }
+    audioChunksRef.current = [];
     setAudioBlob(null);
-    setTranscriptionPreview(null);
     setVoiceState("idle");
   }
 
   function discardAudio() {
     setAudioBlob(null);
-    setTranscriptionPreview(null);
     setVoiceState("idle");
   }
 
@@ -161,7 +158,6 @@ export function ChatInput({
     if (!audioBlob) return;
     
     try {
-      setVoiceState("sending");
       setErrorMessage(null);
       
       const formData = new FormData();
@@ -202,12 +198,9 @@ export function ChatInput({
       
       const data = await response.json();
       
-      setTranscriptionPreview(data.text);
-      
       // Verificar se é um comando de voz (navegação)
       if (data.command && data.command.type === "select-patient") {
         // Comando de navegação - apenas mudar foco, não processar como nota clínica
-        // IMPORTANTE: Não chamar LLM, não atualizar dados clínicos
         console.log("[ChatInput] Comando de voz detectado, apenas mudando foco do paciente");
         
         // Adicionar mensagem no chat informando o comando
@@ -217,15 +210,7 @@ export function ChatInput({
         if (onVoiceResult) {
           onVoiceResult({ text: data.text, command: data.command });
         }
-        
-        // Limpar e voltar para idle
-        setAudioBlob(null);
-        setVoiceState("idle");
-        return; // Encerrar fluxo - não processar como nota clínica
-      }
-      
-      // Se não for comando, processar como nota clínica normal
-      if (data.structured) {
+      } else if (data.structured) {
         // Nota clínica normal
         if (onVoiceResult) {
           onVoiceResult({ text: data.text, structured: data.structured });
@@ -240,14 +225,10 @@ export function ChatInput({
       setAudioBlob(null);
       setVoiceState("idle");
       
-      // Limpar preview após 3 segundos
-      setTimeout(() => {
-        setTranscriptionPreview(null);
-      }, 3000);
-      
     } catch (error: any) {
       const errorMsg = error.message || "Erro ao processar áudio";
       setErrorMessage(errorMsg);
+      setAudioBlob(null);
       setVoiceState("idle");
     }
   }
@@ -255,6 +236,23 @@ export function ChatInput({
   function handleVoiceButtonClick() {
     if (voiceState === "idle") {
       startRecording();
+    } else if (voiceState === "recording") {
+      // Clicar no microfone durante gravação = cancelar
+      cancelRecording();
+    }
+  }
+
+  function handleSendClick() {
+    // Se houver áudio pronto, enviar áudio em vez de texto
+    if (audioBlob && voiceState === "ready") {
+      sendAudioToAPI();
+      return;
+    }
+    
+    // Caso contrário, enviar texto normalmente
+    const trimmedValue = value.trim();
+    if (trimmedValue && !loading && onSend) {
+      onSend(trimmedValue);
     }
   }
 
@@ -365,102 +363,6 @@ export function ChatInput({
           </div>
         )}
 
-        {/* Barra de estado de voz */}
-        {(voiceState !== "idle") && (
-          <div className="voice-state-bar">
-            <div className="voice-state-content">
-              {voiceState === "recording" && (
-                <>
-                  <div className="voice-state-indicator">
-                    <div className="voice-recording-dot"></div>
-                    <span>Gravando nota de voz…</span>
-                  </div>
-                  <div className="voice-state-actions">
-                    <button
-                      type="button"
-                      className="voice-action-btn voice-stop-btn"
-                      onClick={stopRecording}
-                      aria-label="Parar gravação"
-                    >
-                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4">
-                        <rect x="6" y="6" width="12" height="12" rx="2" />
-                      </svg>
-                    </button>
-                    <button
-                      type="button"
-                      className="voice-action-btn voice-cancel-btn"
-                      onClick={cancelRecording}
-                      aria-label="Cancelar gravação"
-                    >
-                      Cancelar
-                    </button>
-                  </div>
-                </>
-              )}
-              
-              {voiceState === "preview" && (
-                <>
-                  <span>Áudio pronto para enviar</span>
-                  <div className="voice-state-actions">
-                    <button
-                      type="button"
-                      className="voice-action-btn voice-send-btn"
-                      onClick={sendAudioToAPI}
-                      aria-label="Enviar áudio"
-                    >
-                      Enviar áudio
-                    </button>
-                    <button
-                      type="button"
-                      className="voice-action-btn voice-discard-btn"
-                      onClick={discardAudio}
-                      aria-label="Descartar áudio"
-                    >
-                      Descartar
-                    </button>
-                  </div>
-                </>
-              )}
-              
-              {voiceState === "sending" && (
-                <>
-                  <div className="voice-state-indicator">
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      strokeWidth={2}
-                      stroke="currentColor"
-                      className="w-4 h-4 animate-spin"
-                    >
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                    </svg>
-                    <span>Transcrevendo áudio…</span>
-                  </div>
-                  <div className="voice-state-actions">
-                    <button
-                      type="button"
-                      className="voice-action-btn voice-send-btn"
-                      disabled
-                      aria-label="Enviando..."
-                    >
-                      Enviar áudio
-                    </button>
-                    <button
-                      type="button"
-                      className="voice-action-btn voice-discard-btn"
-                      disabled
-                      aria-label="Descartar"
-                    >
-                      Descartar
-                    </button>
-                  </div>
-                </>
-              )}
-            </div>
-          </div>
-        )}
-
         <input
           type="text"
           placeholder="Digite sua pergunta..."
@@ -476,70 +378,121 @@ export function ChatInput({
             if (e.key === "Enter" && !e.shiftKey) {
               e.preventDefault();
               e.stopPropagation();
-              const trimmedValue = value.trim();
-              if (trimmedValue && !loading && onSend) {
-                onSend(trimmedValue);
+              // Se houver áudio pronto, enviar áudio
+              if (audioBlob && voiceState === "ready") {
+                sendAudioToAPI();
+              } else {
+                const trimmedValue = value.trim();
+                if (trimmedValue && !loading && onSend) {
+                  onSend(trimmedValue);
+                }
               }
               return false; // Não processar mais nada para Enter
             }
             // Para outras teclas, não fazer nada - apenas permitir digitação normal
-            // NÃO chamar onSend para outras teclas
           }}
-          disabled={loading || voiceState !== "idle"}
+          disabled={loading}
         />
 
-        <button
-          type="button"
-          className="chat-input-voice-btn"
-          aria-label="Iniciar gravação"
-          title="Gravar nota de voz"
-          onClick={handleVoiceButtonClick}
-          disabled={voiceState !== "idle" || loading}
-          style={{
-            color: voiceState === "recording" ? '#ef4444' : voiceState === "sending" ? '#3b82f6' : undefined,
-            opacity: (voiceState !== "idle" || loading) ? 0.5 : 1
-          }}
-        >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            fill="none"
-            viewBox="0 0 24 24"
-            strokeWidth={2}
-            stroke="currentColor"
-            className="chat-input-voice-icon"
+        {/* Botão de microfone / REC / Indicador */}
+        {voiceState === "recording" ? (
+          <>
+            {/* Ícone REC pulsante */}
+            <button
+              type="button"
+              className="chat-input-voice-btn voice-rec-btn"
+              aria-label="Gravando"
+              title="Gravando"
+              onClick={handleVoiceButtonClick}
+              disabled={loading}
+            >
+              <div className="voice-rec-indicator">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  strokeWidth={2}
+                  stroke="currentColor"
+                  className="chat-input-voice-icon"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z"
+                  />
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M19 10v2a7 7 0 01-14 0v-2M12 19v4M8 23h8"
+                  />
+                </svg>
+              </div>
+            </button>
+            
+            {/* Botão STOP */}
+            <button
+              type="button"
+              className="chat-input-voice-btn voice-stop-btn"
+              aria-label="Parar gravação"
+              title="Parar gravação"
+              onClick={stopRecording}
+              disabled={loading}
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+                strokeWidth={2}
+                stroke="currentColor"
+                className="chat-input-voice-icon"
+              >
+                <rect x="6" y="6" width="12" height="12" rx="2" />
+              </svg>
+            </button>
+          </>
+        ) : (
+          <button
+            type="button"
+            className={`chat-input-voice-btn ${voiceState === "ready" ? "voice-ready" : ""}`}
+            aria-label={voiceState === "ready" ? "Áudio pronto" : "Iniciar gravação"}
+            title={voiceState === "ready" ? "Áudio pronto para enviar" : "Gravar nota de voz"}
+            onClick={handleVoiceButtonClick}
+            disabled={loading}
           >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z"
-            />
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              d="M19 10v2a7 7 0 01-14 0v-2M12 19v4M8 23h8"
-            />
-          </svg>
-        </button>
-        
-        {errorMessage && (
-          <p className="text-xs text-rose-600 mt-1 px-2">{errorMessage}</p>
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+              strokeWidth={2}
+              stroke="currentColor"
+              className="chat-input-voice-icon"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z"
+              />
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M19 10v2a7 7 0 01-14 0v-2M12 19v4M8 23h8"
+              />
+            </svg>
+            {voiceState === "ready" && (
+              <span className="voice-ready-dot"></span>
+            )}
+          </button>
         )}
         
-        {transcriptionPreview && voiceState === "idle" && (
-          <p className="text-xs text-green-600 mt-1 px-2">{transcriptionPreview}</p>
+        {errorMessage && (
+          <p className="text-xs text-rose-600 mt-1 px-2 absolute -top-6 left-0">{errorMessage}</p>
         )}
 
         <button
           className="chat-input-send-btn"
           type="button"
-          onClick={() => {
-            const trimmedValue = value.trim();
-            if (trimmedValue && !loading && onSend) {
-              console.log("[ChatInput] Send button clicked, value:", trimmedValue);
-              onSend(trimmedValue);
-            }
-          }}
-          disabled={loading || !value.trim()}
+          onClick={handleSendClick}
+          disabled={loading || (!value.trim() && voiceState !== "ready")}
           aria-label="Enviar mensagem"
         >
           <svg
