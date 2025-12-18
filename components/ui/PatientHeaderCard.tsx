@@ -19,6 +19,7 @@ export function PatientHeaderCard({
       onExpand,
       className = "",
     }: PatientHeaderCardProps) {
+  // Usar riscoMortality24h diretamente (já é o valor oficial do paciente)
   const riskLevel = riskLevelFromScore(patient.riscoMortality24h);
   const riskPercent = Math.round(patient.riscoMortality24h * 100);
 

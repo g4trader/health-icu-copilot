@@ -38,6 +38,7 @@ function generate30DayEvolution(patient: Patient): DailyPatientStatus[] {
   const currentRisk = patient.riscoMortality24h;
   
   // Determinar estado ATUAL baseado no risco (fim da trajetória)
+  // Usar thresholds padronizados: alto >= 0.61, moderado >= 0.21, baixo < 0.21
   const riskLevel = currentRisk >= 0.61 ? "alto" : currentRisk >= 0.21 ? "moderado" : "baixo";
   
   let currentStatus: PatientStatusGlobal;
@@ -560,9 +561,9 @@ export function getRecentDailyStatus(patientId: string, days: number = 14): Dail
     recent = all.slice(-days);
   }
   
-  // Se o paciente está em alto risco (riscoMortality24h > 0.6), 
+  // Se o paciente está em alto risco (riscoMortality24h >= 0.61), 
   // remover qualquer "alta_uti" dos últimos 14 dias e substituir por status apropriado
-  const isHighRisk = patient.riscoMortality24h > 0.6;
+  const isHighRisk = patient.riscoMortality24h >= 0.61;
   
   if (isHighRisk) {
     // Para pacientes de alto risco, garantir coerência: nunca mostrar "alta_uti", "melhora" ou "estavel" nos últimos dias
@@ -613,7 +614,7 @@ export function getPatientTimeline(patientId: string): TimelineEvent[] {
   
   // Usar paciente processado do cache
   const patient = getProcessedPatient(patientId);
-  const isHighRisk = patient ? patient.riscoMortality24h > 0.6 : false;
+    const isHighRisk = patient ? patient.riscoMortality24h >= 0.61 : false;
   const currentDiaUti = patient ? patient.diasDeUTI : 30;
   
   evolution.forEach((day, idx) => {
@@ -696,7 +697,7 @@ export function getPatientTimelineSummary(patientId: string): { events: Timeline
   }
   
   const currentDiaUti = patient.diasDeUTI;
-  const isHighRisk = patient.riscoMortality24h > 0.6;
+  const isHighRisk = patient.riscoMortality24h >= 0.61;
   const MAX_DAYS_BACK = 5; // Máximo de 5 dias para eventos recentes
   
   // Obter evolução para calcular timestamps

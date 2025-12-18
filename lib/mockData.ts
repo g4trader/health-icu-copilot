@@ -72,9 +72,16 @@ export function getSortedByMortalityRisk24h(): PatientCompat[] {
   );
 }
 
+/**
+ * Converte score de risco em nível de risco
+ * IMPORTANTE: Usa thresholds padronizados consistentes em todo o sistema
+ * - Alto: >= 0.61 (61-100%)
+ * - Moderado: >= 0.21 && < 0.61 (21-60%)
+ * - Baixo: < 0.21 (0-20%)
+ */
 export function riskLevelFromScore(score: number): RiskLevel {
-  if (score >= 0.7) return "alto";
-  if (score >= 0.4) return "moderado";
+  if (score >= 0.61) return "alto";
+  if (score >= 0.21) return "moderado";
   return "baixo";
 }
 

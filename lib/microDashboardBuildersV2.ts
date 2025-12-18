@@ -7,8 +7,9 @@ import { calculateRiskScore, riskLevelFromScore, type RiskLevel } from "@/lib/mo
  * Constrói dashboard de status global
  */
 export function buildStatusGlobalDashboard(patient: Patient): MicroDashboard {
-  const riskScore = calculateRiskScore(patient);
-  const riskLevel = riskLevelFromScore(riskScore);
+  // IMPORTANTE: Usar riscoMortality24h para determinar riskLevel, não calculateRiskScore
+  // O riscoMortality24h é o valor "oficial" do paciente, já ajustado por applyTargetRisk
+  const riskLevel = riskLevelFromScore(patient.riscoMortality24h);
   const riskPercent24h = Math.round(patient.riscoMortality24h * 100);
   
   const hasVM = !!patient.ventilationParams;
@@ -58,8 +59,8 @@ export function buildStatusGlobalDashboard(patient: Patient): MicroDashboard {
  * Constrói dashboard respiratório
  */
 export function buildRespiratorioDashboard(patient: Patient): MicroDashboard {
-  const riskScore = calculateRiskScore(patient);
-  const riskLevel = riskLevelFromScore(riskScore);
+  // IMPORTANTE: Usar riscoMortality24h para determinar riskLevel
+  const riskLevel = riskLevelFromScore(patient.riscoMortality24h);
   const riskPercent24h = Math.round(patient.riscoMortality24h * 100);
   
   const hasVM = !!patient.ventilationParams;
