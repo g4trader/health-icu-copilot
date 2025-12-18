@@ -2198,8 +2198,10 @@ a {
 .drawer-body {
   flex: 1;
   overflow-y: auto;
-  padding: var(--padding-card-md);
+  padding: 0; /* Padding será controlado pelo conteúdo interno */
   background: var(--color-slate-50);
+  display: flex;
+  flex-direction: column;
 }
 
 .preview-content {

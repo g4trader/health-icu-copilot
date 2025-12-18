@@ -170,7 +170,7 @@ function IcuOverviewPreview() {
   const highRisk = getHighRiskPatients();
 
   return (
-    <div className="px-4 pb-6 pt-4">
+    <div className="patient-detail-refined">
       <div className="preview-stats">
         <div className="preview-stat">
           <div className="preview-stat-label">Total de Pacientes</div>
@@ -198,7 +198,7 @@ function AllPatientsPreview({ payload }: { payload: PreviewPayload | null }) {
   const { onSelectPatient } = usePreview();
 
   return (
-    <div className="flex flex-col gap-3 md:gap-4 px-4 pb-6 pt-4">
+    <div className="patient-detail-refined">
       {patients.map((p) => (
         <PatientCard
           key={p.id}
