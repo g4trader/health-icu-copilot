@@ -104,7 +104,17 @@ export function PatientCard({
         throw new Error('Falha ao enviar mensagem');
       }
       
+      const data = await response.json();
       console.log('[PatientCard] Mensagem enviada diretamente à API com sucesso');
+      
+      // Disparar evento customizado para atualizar o chat
+      window.dispatchEvent(new CustomEvent('chatMessageSent', {
+        detail: {
+          message,
+          response: data,
+          patientId: patient.id
+        }
+      }));
     } catch (error) {
       console.error('[PatientCard] Erro ao enviar mensagem:', error);
     }

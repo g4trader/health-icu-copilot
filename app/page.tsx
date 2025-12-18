@@ -570,6 +570,60 @@ export default function HomePage() {
     };
   }, [setOnSendMessage, handleSend]);
 
+  // Listener para eventos de mensagens enviadas diretamente à API (fallback do drawer)
+  useEffect(() => {
+    const handleChatMessageSent = (event: Event) => {
+      const customEvent = event as CustomEvent<{ message: string; response: AgentReply; patientId: string }>;
+      const { message, response: apiResponse, patientId } = customEvent.detail;
+      console.log('[app/page] Evento chatMessageSent recebido, processando resposta:', { message, patientId });
+      
+      // Adicionar mensagem do usuário ao histórico
+      const userMessage: Message = {
+        id: crypto.randomUUID(),
+        role: "user",
+        text: message
+      };
+      setConversation((prev) => [...prev, userMessage]);
+      
+      // Processar resposta da API e adicionar mensagem do agente
+      const plantonistaContent = normalizeAgentAnswer(apiResponse);
+      
+      const agentMessage: Message = {
+        id: crypto.randomUUID(),
+        role: "agent",
+        text: apiResponse.reply || plantonistaContent.plainTextAnswer || "Resposta processada.",
+        intent: apiResponse.intent as Message["intent"],
+        topPatients: apiResponse.topPatients,
+        focusedPatient: apiResponse.focusedPatient,
+        showIcuPanel: apiResponse.showIcuPanel,
+        radiologyReport: apiResponse.radiologyReport,
+        microDashboardsV2: apiResponse.microDashboardsV2,
+        llmAnswer: apiResponse.llmAnswer,
+        focusPayload: apiResponse.focusPayload,
+        timelineHighlights: apiResponse.timelineHighlights,
+        plantonistaContent: plantonistaContent
+      };
+      setConversation((prev) => [...prev, agentMessage]);
+      
+      // Se houver um paciente focado, atualizar estado
+      if (apiResponse.focusedPatient) {
+        setActivePatientId(apiResponse.focusedPatient.id);
+      } else if (patientId) {
+        setActivePatientId(patientId);
+      }
+      
+      // Armazenar resposta no contexto se houver focusPayload
+      if (plantonistaContent.focusPayload?.patientId) {
+        setLastAnswerForPatient(plantonistaContent.focusPayload.patientId, plantonistaContent);
+      }
+    };
+
+    window.addEventListener('chatMessageSent', handleChatMessageSent);
+    return () => {
+      window.removeEventListener('chatMessageSent', handleChatMessageSent);
+    };
+  }, [setLastAnswerForPatient]);
+
   // Removido handleKeyDown - agora o ChatInput gerencia isso internamente
   // Não precisamos mais deste handler aqui
 

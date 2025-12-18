@@ -197,10 +197,32 @@ function AllPatientsPreview({ payload }: { payload: PreviewPayload | null }) {
   const patients = (payload?.patients || mockPatients) as Patient[];
   const { onSelectPatient, onSendMessage } = usePreview();
 
-  const handleCardClick = (patientId: string) => {
-    // Enviar mensagem ao chat perguntando sobre o paciente
-    onSendMessage?.(`Como está o paciente ${patientId}?`, patientId);
-    // Também chamar onSelectPatient para manter compatibilidade
+  const handleCardClick = async (patientId: string) => {
+    const patient = patients.find(p => p.id === patientId);
+    const message = patient 
+      ? `Me dê um overview clínico completo do paciente da UTI ${patient.leito} (${patient.nome}).`
+      : `Me dê um overview clínico completo do paciente ${patientId}.`;
+    
+    if (onSendMessage) {
+      onSendMessage(message, patientId);
+    } else {
+      try {
+        const response = await fetch('/api/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ message, focusedPatientId: patientId, patientId })
+        });
+        if (response.ok) {
+          const data = await response.json();
+          console.log('[AllPatientsPreview] Mensagem enviada diretamente à API');
+          window.dispatchEvent(new CustomEvent('chatMessageSent', {
+            detail: { message, response: data, patientId }
+          }));
+        }
+      } catch (error) {
+        console.error('[AllPatientsPreview] Erro ao enviar mensagem:', error);
+      }
+    }
     onSelectPatient?.(patientId);
   };
 
@@ -238,7 +260,11 @@ function VentilatedPreview() {
           body: JSON.stringify({ message, focusedPatientId: patientId, patientId })
         });
         if (response.ok) {
-          console.log('[VasopressorsPreview] Mensagem enviada diretamente à API');
+          const data = await response.json();
+          console.log('[VentilatedPreview] Mensagem enviada diretamente à API');
+          window.dispatchEvent(new CustomEvent('chatMessageSent', {
+            detail: { message, response: data, patientId }
+          }));
         }
       } catch (error) {
         console.error('[VentilatedPreview] Erro ao enviar mensagem:', error);
@@ -283,7 +309,11 @@ function VasopressorsPreview() {
           body: JSON.stringify({ message, focusedPatientId: patientId, patientId })
         });
         if (response.ok) {
+          const data = await response.json();
           console.log('[VasopressorsPreview] Mensagem enviada diretamente à API');
+          window.dispatchEvent(new CustomEvent('chatMessageSent', {
+            detail: { message, response: data, patientId }
+          }));
         }
       } catch (error) {
         console.error('[VasopressorsPreview] Erro ao enviar mensagem:', error);
@@ -347,9 +377,17 @@ function HighRiskPreview() {
           throw new Error('Falha ao enviar mensagem');
         }
         
+        const data = await response.json();
         console.log('[HighRiskPreview] Mensagem enviada diretamente à API com sucesso');
-        // Nota: A resposta da API não é processada aqui, mas o servidor já processou a mensagem
-        // O usuário precisará recarregar a página manualmente ou usar o chat normalmente
+        
+        // Disparar evento customizado para atualizar o chat
+        window.dispatchEvent(new CustomEvent('chatMessageSent', {
+          detail: {
+            message,
+            response: data,
+            patientId
+          }
+        }));
       } catch (error) {
         console.error('[HighRiskPreview] Erro ao enviar mensagem diretamente:', error);
       }
