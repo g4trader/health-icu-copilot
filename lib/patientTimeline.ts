@@ -66,8 +66,13 @@ function generate30DayEvolution(patient: Patient): DailyPatientStatus[] {
   const admissionDate = new Date(baseDate);
   admissionDate.setDate(admissionDate.getDate() - currentDiaUti + 1);
   
-  // Gerar status para cada dia (30 dias totais)
-  const maxDays = 30;
+  // Gerar status para cada dia
+  // IMPORTANTE: Gerar pelo menos 14 dias para a timeline, mas sempre incluir todos os dias até currentDiaUti
+  // Se currentDiaUti < 14, gerar 14 dias (com dias futuros usando estado atual)
+  // Se currentDiaUti >= 14, gerar até currentDiaUti
+  const minDaysForTimeline = 14;
+  const maxDays = Math.max(minDaysForTimeline, currentDiaUti);
+  
   for (let day = 1; day <= maxDays; day++) {
     const date = new Date(admissionDate);
     date.setDate(date.getDate() + (day - 1));
@@ -86,13 +91,18 @@ function generate30DayEvolution(patient: Patient): DailyPatientStatus[] {
         riskScore = maxRisk - (phaseProgress * (maxRisk - minRisk));
       } else {
         // Fora das fases: interpolar da admissão até o estado atual
-        if (day >= currentDiaUti) {
-          // Dia atual ou futuro: usar estado atual
+        if (day > currentDiaUti) {
+          // Dia futuro: usar estado atual
+          statusGlobal = currentStatus;
+          riskScore = currentRisk;
+        } else if (day === currentDiaUti) {
+          // Dia atual: usar estado atual exato
           statusGlobal = currentStatus;
           riskScore = currentRisk;
         } else {
           // Dias anteriores: interpolar da ADMISSÃO (crítico) até o estado ATUAL
-          const progress = day / currentDiaUti;
+          // Progress: 0 = admissão (dia 1), 1 = hoje (currentDiaUti)
+          const progress = (day - 1) / (currentDiaUti - 1);
           riskScore = admissionRisk - (progress * (admissionRisk - currentRisk));
           
           // Determinar status baseado no risco interpolado
@@ -111,13 +121,18 @@ function generate30DayEvolution(patient: Patient): DailyPatientStatus[] {
       }
     } else {
       // Sem perfil: gerar trajetória da ADMISSÃO até o estado ATUAL
-      if (day >= currentDiaUti) {
-        // Dia atual ou futuro: usar estado atual
+      if (day > currentDiaUti) {
+        // Dia futuro: usar estado atual (para preencher timeline de 14 dias)
+        statusGlobal = currentStatus;
+        riskScore = currentRisk;
+      } else if (day === currentDiaUti) {
+        // Dia atual: usar estado atual exato
         statusGlobal = currentStatus;
         riskScore = currentRisk;
       } else {
         // Dias anteriores: interpolar da ADMISSÃO até o estado ATUAL
-        const progress = day / currentDiaUti;
+        // Progress: 0 = admissão, 1 = hoje
+        const progress = (day - 1) / (currentDiaUti - 1);
         
         // Interpolar risco: da admissão (alto) até o atual
         riskScore = admissionRisk - (progress * (admissionRisk - currentRisk));
@@ -126,15 +141,15 @@ function generate30DayEvolution(patient: Patient): DailyPatientStatus[] {
         if (riskLevel === "baixo") {
           // Trajetória de melhora completa: crítico → grave → estável → melhora → alta
           if (progress < 0.1) {
-            statusGlobal = "critico"; // Primeiros dias: crítico
+            statusGlobal = "critico"; // Primeiros 10%: crítico
           } else if (progress < 0.3) {
-            statusGlobal = "grave"; // Semana 1: grave
+            statusGlobal = "grave"; // 10-30%: grave
           } else if (progress < 0.6) {
-            statusGlobal = "estavel"; // Semana 2: estável
+            statusGlobal = "estavel"; // 30-60%: estável
           } else if (progress < 0.85) {
-            statusGlobal = "melhora"; // Semana 3: melhora
+            statusGlobal = "melhora"; // 60-85%: melhora
           } else {
-            statusGlobal = currentStatus; // Últimos dias: melhora ou alta
+            statusGlobal = currentStatus; // 85-100%: melhora ou alta
           }
         } else if (riskLevel === "moderado") {
           // Trajetória moderada: crítico → grave → estável
@@ -162,7 +177,8 @@ function generate30DayEvolution(patient: Patient): DailyPatientStatus[] {
     // Suporte ventilatório - coerente com a EVOLUÇÃO desde a admissão
     let suporteVentilatorio: DailyPatientStatus["suporteVentilatorio"] = {};
     const hasVMNow = !!patient.ventilationParams;
-    const progress = day / currentDiaUti;
+    // Progress: 0 = admissão (dia 1), 1 = hoje (currentDiaUti)
+    const progress = day <= currentDiaUti ? (day - 1) / Math.max(1, currentDiaUti - 1) : 1;
     
     if (phase) {
       if (phase.hasVM) {
@@ -257,7 +273,7 @@ function generate30DayEvolution(patient: Patient): DailyPatientStatus[] {
         if (hasVasoNow) {
           // Se tem vaso agora, teve desde a admissão (pode ter sido maior no início)
           const baseDose = vasopressor?.dose || 0.5;
-          // Na admissão (dia 1), dose mais alta; depois reduz progressivamente
+          // Na admissão (progress = 0), dose mais alta; depois reduz progressivamente
           const doseAtAdmission = baseDose * (1 + (1 - progress) * 0.5);
           
           suporteHemodinamico = {
@@ -413,7 +429,8 @@ export function getDailyStatus(patientId: string): DailyPatientStatus[] {
 
 /**
  * Obtém apenas os últimos N dias da evolução (últimos 14 dias por padrão)
- * Garante que o último dia seja "hoje" (D30) e remove "alta_uti" antiga para pacientes de alto risco
+ * IMPORTANTE: Sempre mostra a evolução desde a admissão até hoje
+ * Se o paciente tem menos de N dias, mostra todos os dias + dias futuros (com estado atual)
  */
 export function getRecentDailyStatus(patientId: string, days: number = 14): DailyPatientStatus[] {
   const all = getDailyStatus(patientId);
@@ -423,18 +440,27 @@ export function getRecentDailyStatus(patientId: string, days: number = 14): Dail
   const patient = getProcessedPatient(patientId);
   if (!patient) return [];
   
-  // Pegar os últimos N dias
-  const recent = all.slice(-days);
+  const currentDiaUti = patient.diasDeUTI;
+  
+  // Se o paciente tem menos dias que o solicitado, pegar todos os dias disponíveis
+  // Caso contrário, pegar os últimos N dias
+  let recent: DailyPatientStatus[];
+  if (all.length < days) {
+    // Paciente com poucos dias: mostrar todos os dias (incluindo futuros se necessário)
+    recent = all;
+  } else {
+    // Paciente com muitos dias: pegar os últimos N dias
+    recent = all.slice(-days);
+  }
   
   // Se o paciente está em alto risco (riscoMortality24h > 0.6), 
   // remover qualquer "alta_uti" dos últimos 14 dias e substituir por status apropriado
   const isHighRisk = patient.riscoMortality24h > 0.6;
-  const currentDiaUti = patient.diasDeUTI;
   
   if (isHighRisk) {
     // Para pacientes de alto risco, garantir que não há "alta_uti" nos últimos dias
-    return recent.map((day, idx) => {
-      // Se é um dos últimos 14 dias e está marcado como "alta_uti", substituir
+    return recent.map((day) => {
+      // Se está marcado como "alta_uti" e é um dia recente, substituir
       if (day.statusGlobal === "alta_uti" && day.diaUti >= currentDiaUti - 13) {
         // Substituir por "critico" ou "grave" baseado no risco
         return {
