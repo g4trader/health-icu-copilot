@@ -40,12 +40,10 @@ export function PatientCard({
 
   return (
     <div
-      onClick={handleCardClick}
       className={`
         detail-card
         w-full
         text-left
-        cursor-pointer
         relative
         ${selected ? "border-emerald-500 shadow-md ring-2 ring-emerald-100" : ""}
         ${className}
