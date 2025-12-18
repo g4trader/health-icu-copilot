@@ -556,7 +556,7 @@ export default function HomePage() {
     const handleSendMessage = (message: string | undefined, patientId?: string) => {
       // Proteção: não enviar se message for undefined ou vazio
       if (!message || !message.trim()) {
-        console.warn('[app/page] handleSendMessage called without valid message, ignoring', { message, patientId });
+        // Silenciosamente ignorar chamadas sem mensagem válida (comum durante inicialização)
         return;
       }
       console.log('[app/page] handleSendMessage chamado - Enviando mensagem ao chat:', { message, patientId });
