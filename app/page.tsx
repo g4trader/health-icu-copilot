@@ -356,8 +356,35 @@ export default function HomePage() {
   const activePatient = mockPatients.find(p => p.id === activePatientId) || null;
   const expandedPatient = mockPatients.find(p => p.id === expandedPatientId) || null;
   
-  // Handler para resultado de nota de voz
-  const handleVoiceNoteResult = useCallback((result: { text: string; structured: any }) => {
+  // Handler para resultado de nota de voz (pode ser comando ou nota clínica)
+  const handleVoiceNoteResult = useCallback((result: { text: string; structured?: any; command?: any }) => {
+    // Verificar se é um comando de navegação
+    if (result.command && result.command.type === "select-patient") {
+      const bedNumber = result.command.bed;
+      console.log("[handleVoiceNoteResult] Comando de seleção detectado:", { bed: bedNumber });
+      
+      // Buscar paciente pelo leito
+      const bedStr = String(bedNumber).padStart(2, '0');
+      const patientByBed = mockPatients.find(p => 
+        p.leito.includes(bedStr) || 
+        p.leito.includes(String(bedNumber)) ||
+        p.leito.replace(/\D/g, '') === String(bedNumber)
+      );
+      
+      if (patientByBed) {
+        console.log("[handleVoiceNoteResult] Paciente encontrado:", { id: patientByBed.id, nome: patientByBed.nome, leito: patientByBed.leito });
+        // Abrir o paciente usando a mesma função que o clique no card usa
+        showPatientOverviewInline(patientByBed.id);
+        setActivePatientId(patientByBed.id);
+      } else {
+        console.warn("[handleVoiceNoteResult] Paciente não encontrado para leito:", bedNumber);
+        // Adicionar mensagem de erro no chat
+        handleSend(`Paciente do leito ${bedNumber} não encontrado.`);
+      }
+      return; // Não processar como nota clínica
+    }
+    
+    // Se não for comando, processar como nota clínica normal
     const { structured } = result;
     
     if (!structured) {
@@ -424,7 +451,7 @@ export default function HomePage() {
     if (!activePatientId && targetPatientId) {
       setActivePatientId(targetPatientId);
     }
-  }, [activePatientId, activePatient]);
+  }, [activePatientId, activePatient, mockPatients, showPatientOverviewInline, handleSend]);
   const { setPreview, clearPreview, setOnSelectPatient, setOnSendMessage } = usePreview();
   const { setActivePatient: setActivePatientFromContext, addOpinion, setLastAnswerForPatient } = useClinicalSession();
 

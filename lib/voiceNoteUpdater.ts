@@ -226,7 +226,7 @@ export function processVoiceNote(
   patient?: Patient
 ): { event: TimelineEvent | null; updates: Partial<Patient> | null; summary: string | null } {
   const event = addVoiceNoteToTimeline(patientId, structuredData, rawText);
-  const updates = updatePatientFromVoiceNote(patientId, structuredData);
+  let updates = updatePatientFromVoiceNote(patientId, structuredData);
   
   // Gerar resumo se o paciente estiver disponível
   let summary: string | null = null;
@@ -234,11 +234,11 @@ export function processVoiceNote(
     summary = buildVoiceNoteSummary(patient, structuredData);
     // Garantir que summary é uma string válida
     if (summary && typeof summary === 'string') {
-      if (updates) {
-        updates.voiceNoteSummary = summary;
-      } else {
+      if (!updates) {
         // Se não houver updates, criar objeto com apenas o summary
         updates = { voiceNoteSummary: summary };
+      } else {
+        updates.voiceNoteSummary = summary;
       }
     } else {
       console.warn("Resumo gerado não é uma string válida:", summary);

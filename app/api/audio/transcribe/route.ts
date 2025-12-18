@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { detectVoiceCommand } from "@/lib/voiceCommands";
 
 const WHISPER_API_URL = process.env.WHISPER_API_URL || "http://localhost:8080";
 const LLM_API_URL = process.env.LLM_API_URL || "http://localhost:8080";
@@ -82,7 +83,22 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 2. Enviar texto para LLM API para parsing
+    // 2. Verificar se é um comando de voz (navegação de paciente)
+    const voiceCommand = detectVoiceCommand(transcribedText);
+    console.log("[API] Comando detectado:", voiceCommand);
+
+    // Se for comando de seleção de paciente, retornar sem chamar LLM
+    if (voiceCommand.type === "select-patient") {
+      return NextResponse.json({
+        text: transcribedText,
+        command: {
+          type: "select-patient",
+          bed: voiceCommand.bed,
+        },
+      });
+    }
+
+    // 3. Se não for comando, seguir fluxo normal: enviar texto para LLM API para parsing
     let structuredData = null;
     try {
       const llmResponse = await fetch(`${LLM_API_URL}/parse-audio-note`, {

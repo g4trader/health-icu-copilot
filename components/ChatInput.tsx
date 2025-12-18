@@ -15,7 +15,7 @@ interface ChatInputProps {
   onAgentChange: (agent: ClinicalAgentType) => void;
   patients?: Patient[];
   onSelectPatientFromUI?: (patientId: string) => void;
-  onVoiceResult?: (result: { text: string; structured: any }) => void;
+  onVoiceResult?: (result: { text: string; structured?: any; command?: any }) => void;
   activePatientId?: string | null;
 }
 
@@ -182,6 +182,19 @@ export function ChatInput({
       
       setTranscriptionPreview(data.text);
       
+      // Verificar se é um comando de voz (navegação)
+      if (data.command && data.command.type === "select-patient") {
+        // Comando de navegação - não processar como nota clínica
+        // O handler de comando será chamado pelo componente pai
+        if (onVoiceResult) {
+          onVoiceResult({ text: data.text, command: data.command });
+        }
+        // Adicionar mensagem no chat informando o comando
+        onSend(`Comando de voz: mostrando paciente do leito ${data.command.bed}.`);
+        return;
+      }
+      
+      // Se não for comando, processar como nota clínica normal
       // Chamar callback se fornecido
       if (onVoiceResult && data.structured) {
         onVoiceResult({ text: data.text, structured: data.structured });
