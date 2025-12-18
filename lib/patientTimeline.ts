@@ -106,18 +106,45 @@ function generate30DayEvolution(patient: Patient): DailyPatientStatus[] {
           const progress = currentDiaUti > 1 ? (day - 1) / (currentDiaUti - 1) : 0;
           riskScore = admissionRisk - (progress * (admissionRisk - currentRisk));
           
-          // Determinar status baseado no risco interpolado
-          // Usar thresholds para garantir evolução visível
-          if (riskScore >= 0.75) {
-            statusGlobal = "critico";
-          } else if (riskScore >= 0.5) {
-            statusGlobal = "grave";
-          } else if (riskScore >= 0.3) {
-            statusGlobal = "estavel";
-          } else if (riskScore >= 0.15) {
-            statusGlobal = "melhora";
+          // IMPORTANTE: Garantir coerência - se o paciente está em alto risco hoje,
+          // os últimos dias também devem refletir alto risco (não melhorar)
+          // Ajustar riskScore para nunca ser menor que o risco atual nos últimos dias
+          const daysFromCurrent = currentDiaUti - day;
+          if (riskLevel === "alto" && daysFromCurrent <= 3) {
+            // Nos últimos 3 dias antes de hoje, garantir que riskScore >= currentRisk * 0.9
+            riskScore = Math.max(riskScore, currentRisk * 0.9);
+          }
+          
+          // Determinar status baseado no risco interpolado, mas respeitando o riskLevel atual
+          if (riskLevel === "alto") {
+            // Alto risco: nunca deve mostrar "melhora" ou "alta_uti" na timeline recente
+            if (riskScore >= 0.75) {
+              statusGlobal = "critico";
+            } else {
+              statusGlobal = "grave"; // Sempre grave ou crítico para alto risco
+            }
+          } else if (riskLevel === "moderado") {
+            // Moderado: pode ter estável, mas não melhora/alta
+            if (riskScore >= 0.6) {
+              statusGlobal = "grave";
+            } else if (riskScore >= 0.35) {
+              statusGlobal = "estavel";
+            } else {
+              statusGlobal = "grave"; // Nunca melhora/alta para moderado
+            }
           } else {
-            statusGlobal = "alta_uti";
+            // Baixo risco: pode ter trajetória completa
+            if (riskScore >= 0.75) {
+              statusGlobal = "critico";
+            } else if (riskScore >= 0.5) {
+              statusGlobal = "grave";
+            } else if (riskScore >= 0.3) {
+              statusGlobal = "estavel";
+            } else if (riskScore >= 0.15) {
+              statusGlobal = "melhora";
+            } else {
+              statusGlobal = "alta_uti";
+            }
           }
         }
       }
@@ -140,8 +167,20 @@ function generate30DayEvolution(patient: Patient): DailyPatientStatus[] {
         // Interpolar risco: da admissão (alto) até o atual
         riskScore = admissionRisk - (progress * (admissionRisk - currentRisk));
         
+        // IMPORTANTE: Garantir coerência - se o paciente está em alto risco hoje,
+        // os últimos dias também devem refletir alto risco (não melhorar)
+        // Ajustar riskScore para nunca ser menor que o risco atual nos últimos dias
+        const daysFromCurrent = currentDiaUti - day;
+        if (riskLevel === "alto" && daysFromCurrent <= 3) {
+          // Nos últimos 3 dias antes de hoje, garantir que riskScore >= currentRisk * 0.9
+          riskScore = Math.max(riskScore, currentRisk * 0.9);
+        } else if (riskLevel === "moderado" && daysFromCurrent <= 2) {
+          // Para moderado, garantir que os últimos 2 dias não mostrem melhora
+          riskScore = Math.max(riskScore, currentRisk * 0.85);
+        }
+        
         // Determinar status baseado no risco interpolado e na trajetória esperada
-        // Para garantir evolução visível mesmo com poucos dias, usar thresholds baseados em progress
+        // IMPORTANTE: Respeitar o riskLevel atual - nunca mostrar melhora se está em alto risco
         if (riskLevel === "baixo") {
           // Trajetória de melhora completa: crítico → grave → estável → melhora → alta
           // Distribuir fases ao longo da progressão
@@ -158,19 +197,22 @@ function generate30DayEvolution(patient: Patient): DailyPatientStatus[] {
           }
         } else if (riskLevel === "moderado") {
           // Trajetória moderada: crítico → grave → estável
+          // NUNCA mostrar melhora ou alta
           if (progress < 0.25) {
             statusGlobal = "critico"; // Primeiros 25%: crítico
           } else if (progress < 0.65) {
             statusGlobal = "grave"; // 25-65%: grave
           } else {
-            statusGlobal = "estavel"; // 65-100%: estável
+            statusGlobal = "estavel"; // 65-100%: estável (nunca melhora)
           }
         } else {
           // Trajetória de alto risco: crítico → grave (ou crítico contínuo)
-          if (progress < 0.4) {
-            statusGlobal = "critico"; // Primeiros 40%: crítico
+          // NUNCA mostrar estável, melhora ou alta - sempre crítico ou grave
+          // Se está em alto risco hoje, os últimos dias também devem ser graves/críticos
+          if (riskScore >= 0.75 || progress < 0.3) {
+            statusGlobal = "critico"; // Primeiros 30% ou risco muito alto: crítico
           } else {
-            statusGlobal = "grave"; // 40-100%: grave
+            statusGlobal = "grave"; // Resto: grave (nunca estável/melhora/alta)
           }
         }
       }
