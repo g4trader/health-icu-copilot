@@ -31,6 +31,7 @@ import { PatientTimelineSummary } from "./PatientTimelineSummary";
 import { getPatientTimeline } from "@/lib/patientTimeline";
 import { VitalSignsChart } from "./ui/VitalSignsChart";
 import { LabSparkline } from "./ui/LabSparkline";
+import { VoiceNoteRecorder } from "./VoiceNoteRecorder";
 
 interface PatientFocusModeProps {
   patient: Patient;
@@ -389,10 +390,36 @@ export function PatientFocusMode({
           </div>
         </section>
 
-        {/* 7. Linha do Tempo Clínica */}
+        {/* 7. Nota de Voz */}
+        <section>
+          <SectionHeader title="Evolução clínica" />
+          <div className="mt-3">
+            <VoiceNoteRecorder
+              patientContext={{
+                bed: patient.leito,
+                patientId: patient.id,
+                unit: "UTI 1"
+              }}
+              onTranscription={(text) => {
+                console.log("Transcrição:", text);
+              }}
+              onStructuredData={(data) => {
+                console.log("Dados estruturados:", data);
+                // TODO: Aplicar atualizações ao paciente
+                // Por enquanto, apenas logamos os dados
+                // Em produção, isso atualizaria o snapshot do paciente e adicionaria evento na timeline
+              }}
+              onError={(error) => {
+                console.error("Erro na nota de voz:", error);
+              }}
+            />
+          </div>
+        </section>
+
+        {/* 8. Linha do Tempo Clínica */}
         <PatientTimeline patient={patient} />
 
-        {/* 8. Parecer do Plantonista */}
+        {/* 9. Parecer do Plantonista */}
         <section>
           <SectionHeader title="Parecer do Plantonista" />
           <div className="mt-3 p-4 bg-white border border-slate-200 rounded-2xl shadow-sm">

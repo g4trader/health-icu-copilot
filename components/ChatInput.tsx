@@ -15,6 +15,8 @@ interface ChatInputProps {
   onAgentChange: (agent: ClinicalAgentType) => void;
   patients?: Patient[];
   onSelectPatientFromUI?: (patientId: string) => void;
+  onVoiceResult?: (result: { text: string; structured: any }) => void;
+  activePatientId?: string | null;
 }
 
 export function ChatInput({
@@ -26,12 +28,21 @@ export function ChatInput({
   currentAgent,
   onAgentChange,
   patients = [],
-  onSelectPatientFromUI
+  onSelectPatientFromUI,
+  onVoiceResult,
+  activePatientId
 }: ChatInputProps) {
   const [showMenu, setShowMenu] = useState(false);
   const [isPatientMenuOpen, setIsPatientMenuOpen] = useState(false);
+  const [isRecording, setIsRecording] = useState(false);
+  const [isTranscribing, setIsTranscribing] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [transcriptionPreview, setTranscriptionPreview] = useState<string | null>(null);
   const menuRef = useRef<HTMLDivElement>(null);
   const patientMenuRef = useRef<HTMLDivElement>(null);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
+  const streamRef = useRef<MediaStream | null>(null);
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -68,6 +79,134 @@ export function ChatInput({
   function handleSelectPatientFromMenu(patientId: string) {
     setIsPatientMenuOpen(false);
     onSelectPatientFromUI?.(patientId);
+  }
+
+  async function startRecording() {
+    try {
+      setErrorMessage(null);
+      setTranscriptionPreview(null);
+      
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      streamRef.current = stream;
+      
+      const mediaRecorder = new MediaRecorder(stream, {
+        mimeType: MediaRecorder.isTypeSupported("audio/webm") 
+          ? "audio/webm" 
+          : MediaRecorder.isTypeSupported("audio/mp4")
+          ? "audio/mp4"
+          : "audio/webm"
+      });
+      
+      mediaRecorderRef.current = mediaRecorder;
+      audioChunksRef.current = [];
+      
+      mediaRecorder.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          audioChunksRef.current.push(event.data);
+        }
+      };
+      
+      mediaRecorder.onstop = async () => {
+        if (streamRef.current) {
+          streamRef.current.getTracks().forEach(track => track.stop());
+          streamRef.current = null;
+        }
+        
+        const audioBlob = new Blob(audioChunksRef.current, { type: mediaRecorder.mimeType });
+        await sendAudioToAPI(audioBlob);
+      };
+      
+      mediaRecorder.start();
+      setIsRecording(true);
+    } catch (error: any) {
+      const errorMsg = error.name === "NotAllowedError" || error.name === "PermissionDeniedError"
+        ? "Permissão de microfone negada. Por favor, permita o acesso ao microfone."
+        : error.name === "NotFoundError" || error.name === "DevicesNotFoundError"
+        ? "Nenhum microfone encontrado."
+        : `Erro ao iniciar gravação: ${error.message}`;
+      
+      setErrorMessage(errorMsg);
+      setIsRecording(false);
+    }
+  }
+
+  function stopRecording() {
+    if (mediaRecorderRef.current && isRecording) {
+      mediaRecorderRef.current.stop();
+      setIsRecording(false);
+    }
+  }
+
+  async function sendAudioToAPI(audioBlob: Blob) {
+    try {
+      setIsTranscribing(true);
+      setErrorMessage(null);
+      
+      const formData = new FormData();
+      formData.append("file", audioBlob, "voice-note.webm");
+      
+      // Adicionar contexto do paciente se disponível
+      const activePatient = patients.find(p => p.id === activePatientId);
+      if (activePatient) {
+        formData.append("patientContext", JSON.stringify({
+          bed: activePatient.leito.replace(/\D/g, '') || null,
+          patientId: activePatient.id,
+          unit: "UTI 1"
+        }));
+      }
+      
+      // Adicionar query params se necessário
+      let url = "/api/audio/transcribe";
+      if (activePatient) {
+        const bed = activePatient.leito.replace(/\D/g, '');
+        if (bed) {
+          url += `?bed=${bed}`;
+        }
+      }
+      
+      const response = await fetch(url, {
+        method: "POST",
+        body: formData,
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: "Erro desconhecido" }));
+        throw new Error(errorData.error || `Erro HTTP: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      
+      setTranscriptionPreview(data.text);
+      
+      // Chamar callback se fornecido
+      if (onVoiceResult && data.structured) {
+        onVoiceResult({ text: data.text, structured: data.structured });
+      }
+      
+      // Também enviar como mensagem de chat
+      if (data.text) {
+        onSend(`Nota de voz: ${data.text}`);
+      }
+      
+      // Limpar preview após 3 segundos
+      setTimeout(() => {
+        setTranscriptionPreview(null);
+      }, 3000);
+      
+    } catch (error: any) {
+      const errorMsg = error.message || "Erro ao processar áudio";
+      setErrorMessage(errorMsg);
+    } finally {
+      setIsTranscribing(false);
+    }
+  }
+
+  function handleVoiceButtonClick() {
+    if (isRecording) {
+      stopRecording();
+    } else {
+      startRecording();
+    }
   }
 
   return (
@@ -206,30 +345,62 @@ export function ChatInput({
 
         <button
           type="button"
-          className="chat-input-voice-btn"
-          aria-label="Entrada por voz"
-          title="Entrada por voz (em breve)"
+          className={`chat-input-voice-btn ${isRecording ? 'recording' : ''}`}
+          aria-label={isRecording ? "Parar gravação" : "Iniciar gravação"}
+          title={isRecording ? "Parar gravação" : "Gravar nota de voz"}
+          onClick={handleVoiceButtonClick}
+          disabled={isTranscribing || loading}
+          style={{
+            color: isRecording ? '#ef4444' : undefined,
+            opacity: (isTranscribing || loading) ? 0.5 : 1
+          }}
         >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            fill="none"
-            viewBox="0 0 24 24"
-            strokeWidth={2}
-            stroke="currentColor"
-            className="chat-input-voice-icon"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z"
-            />
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              d="M19 10v2a7 7 0 01-14 0v-2M12 19v4M8 23h8"
-            />
-          </svg>
+          {isTranscribing ? (
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+              strokeWidth={2}
+              stroke="currentColor"
+              className="chat-input-voice-icon"
+              style={{ animation: 'spin 1s linear infinite' }}
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M12 6v6m0 0v6m0-6h6m-6 0H6"
+              />
+            </svg>
+          ) : (
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+              strokeWidth={2}
+              stroke="currentColor"
+              className="chat-input-voice-icon"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z"
+              />
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M19 10v2a7 7 0 01-14 0v-2M12 19v4M8 23h8"
+              />
+            </svg>
+          )}
         </button>
+        
+        {errorMessage && (
+          <p className="text-xs text-rose-600 mt-1 px-2">{errorMessage}</p>
+        )}
+        
+        {transcriptionPreview && (
+          <p className="text-xs text-green-600 mt-1 px-2">{transcriptionPreview}</p>
+        )}
 
         <button
           className="chat-input-send-btn"

@@ -1,0 +1,24 @@
+{
+  "name": "icu-llm-api",
+  "version": "1.0.0",
+  "description": "Microserviço para parsear notas de voz clínicas em JSON estruturado",
+  "main": "src/index.js",
+  "type": "module",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "node --watch src/index.js",
+    "test": "node src/llmService.test.js"
+  },
+  "keywords": ["icu", "llm", "medical", "voice-notes"],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "express": "^4.18.2",
+    "cors": "^2.8.5",
+    "dotenv": "^16.3.1"
+  },
+  "devDependencies": {
+    "@types/node": "^20.10.0"
+  }
+}
+

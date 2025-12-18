@@ -27,6 +27,7 @@ import { PatientOpinionBadges } from "@/components/PatientOpinionBadges";
 import { PatientCard } from "@/components/patients/PatientCard";
 import { useClinicalSession } from "@/lib/ClinicalSessionContext";
 import type { MicroDashboardPayload } from "@/types/MicroDashboard";
+import { processVoiceNote } from "@/lib/voiceNoteUpdater";
 
 type Message = {
   id: string;
@@ -353,6 +354,48 @@ export default function HomePage() {
   const [expandedPatientId, setExpandedPatientId] = useState<string | null>(null);
   const activePatient = mockPatients.find(p => p.id === activePatientId) || null;
   const expandedPatient = mockPatients.find(p => p.id === expandedPatientId) || null;
+  
+  // Handler para resultado de nota de voz
+  const handleVoiceNoteResult = useCallback((result: { text: string; structured: any }) => {
+    const { structured } = result;
+    
+    // Identificar paciente ativo ou usar bed do structured
+    let targetPatientId = activePatientId;
+    
+    if (!targetPatientId && structured.bed) {
+      // Buscar paciente pelo leito
+      const bedStr = String(structured.bed).padStart(2, '0');
+      const patientByBed = mockPatients.find(p => 
+        p.leito.includes(bedStr) || p.leito.includes(String(structured.bed))
+      );
+      if (patientByBed) {
+        targetPatientId = patientByBed.id;
+      }
+    }
+    
+    if (!targetPatientId) {
+      console.warn("Não foi possível identificar o paciente para atualizar com a nota de voz");
+      return;
+    }
+    
+    // Processar nota de voz
+    const { event, updates } = processVoiceNote(targetPatientId, structured, result.text);
+    
+    if (event) {
+      console.log("Evento de nota de voz adicionado:", event);
+    }
+    
+    if (updates) {
+      console.log("Paciente atualizado com:", updates);
+      // Forçar re-render atualizando o estado (em produção, isso seria uma atualização de estado global)
+      // Por enquanto, apenas logamos
+    }
+    
+    // Se não havia paciente ativo, definir agora
+    if (!activePatientId && targetPatientId) {
+      setActivePatientId(targetPatientId);
+    }
+  }, [activePatientId, mockPatients]);
   const { setPreview, clearPreview, setOnSelectPatient, setOnSendMessage } = usePreview();
   const { setActivePatient: setActivePatientFromContext, addOpinion, setLastAnswerForPatient } = useClinicalSession();
 
@@ -772,6 +815,8 @@ export default function HomePage() {
                 onSelectPatientFromUI={(patientId) => {
                   showPatientOverviewInline(patientId);
                 }}
+                onVoiceResult={handleVoiceNoteResult}
+                activePatientId={activePatientId}
               />
             </div>
           </footer>
