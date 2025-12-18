@@ -1,7 +1,7 @@
 "use client";
 
 import { usePreview, type PreviewPayload } from "./PreviewProvider";
-import { mockPatients, getTopPatients, riskLevelFromScore, calculateRiskScore } from "@/lib/mockData";
+import { mockPatients, getTopPatients, riskLevelFromScore } from "@/lib/mockData";
 import { getPatientsOnVentilation, getPatientsOnVasopressors, getHighRiskPatients } from "@/lib/icuSummary";
 import type { Patient } from "@/lib/mockData";
 import { PatientDetailPanel } from "./PatientDetailPanel";
