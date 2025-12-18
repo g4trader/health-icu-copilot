@@ -1,5 +1,7 @@
 import type { Patient, VitalSigns, FluidBalance, Medication, VentilationParams, LabResult, UnitProfile } from "@/types";
 
+import { alignSnapshotWithLatestStatus } from "./alignSnapshotWithTimeline";
+
 export type RiskLevel = "alto" | "moderado" | "baixo";
 
 /**
@@ -8,6 +10,22 @@ export type RiskLevel = "alto" | "moderado" | "baixo";
 export function calculateRiskScore(patient: Patient): number {
   let score = 0;
 
+  // Guarda: Se paciente claramente em alta (sem VM, sem vaso, vitais normais), forçar baixo risco
+  const hasVM = !!patient.ventilationParams;
+  const hasVaso = patient.medications.some(m => m.tipo === "vasopressor" && m.ativo);
+  const vitalsNormal = 
+    patient.vitalSigns.pressaoArterialMedia >= 65 &&
+    patient.vitalSigns.saturacaoO2 >= 94 &&
+    patient.vitalSigns.frequenciaCardiaca >= 60 &&
+    patient.vitalSigns.frequenciaCardiaca <= 150 &&
+    patient.vitalSigns.temperatura >= 36.0 &&
+    patient.vitalSigns.temperatura <= 38.5;
+  
+  if (!hasVM && !hasVaso && vitalsNormal) {
+    // Paciente em condições de alta - forçar risco baixo
+    return Math.min(0.2, patient.riscoMortality24h || 0.1);
+  }
+
   // Instabilidade de sinais vitais
   if (patient.vitalSigns.pressaoArterialMedia < 65) score += 0.25;
   if (patient.vitalSigns.frequenciaCardiaca > 150 || patient.vitalSigns.frequenciaCardiaca < 60) score += 0.15;
@@ -15,11 +33,10 @@ export function calculateRiskScore(patient: Patient): number {
   if (patient.vitalSigns.saturacaoO2 < 92) score += 0.2;
 
   // Uso de droga vasoativa
-  const temVasopressor = patient.medications.some(m => m.tipo === "vasopressor" && m.ativo);
-  if (temVasopressor) score += 0.25;
+  if (hasVaso) score += 0.25;
 
   // Ventilação mecânica
-  if (patient.ventilationParams) score += 0.15;
+  if (hasVM) score += 0.15;
 
   // Lactato elevado
   const lactato = patient.labResults.find(l => l.tipo === "lactato");
@@ -1718,7 +1735,10 @@ export function toPatientCompat(patient: Patient): PatientCompat {
  * Exporta pacientes em formato compatível
  * Por enquanto, exportamos ambos para manter compatibilidade
  */
-export const mockPatientsCompat: PatientCompat[] = mockPatientsRaw.map(toPatientCompat);
+// Alinhar snapshots com timeline antes de converter para compat
+const alignedPatientsRaw = mockPatientsRaw.map(alignSnapshotWithLatestStatus);
+
+export const mockPatientsCompat: PatientCompat[] = alignedPatientsRaw.map(toPatientCompat);
 
 // Para compatibilidade com componentes existentes
 // Os componentes antigos esperam campos como sofa, lactato, etc.
