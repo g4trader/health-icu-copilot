@@ -3866,11 +3866,7 @@ a {
   }
 }
 
-@media (min-width: 1024px) {
-  .plantonista-dashboards-grid {
-    grid-template-columns: repeat(3, 1fr);
-  }
-}
+/* Remover media query de 3 colunas - manter apenas 2 colunas para dividir o espaço disponível */
 
 /* Andar 3: Evolução - Card */
 .plantonista-evolution-card {
