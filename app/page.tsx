@@ -641,11 +641,12 @@ export default function HomePage() {
   }, [handleSend]);
 
   // Handler para resultado de nota de voz (pode ser comando ou nota clínica)
-  const handleVoiceNoteResult = useCallback((result: { text: string; structured?: any; command?: any; error?: string }) => {
+  // Retorna true se foi processado como parecer (para evitar envio como mensagem normal)
+  const handleVoiceNoteResult = useCallback((result: { text: string; structured?: any; command?: any; error?: string }): boolean => {
     // Verificar se há erro na resposta
     if (result.error) {
       handleSend(result.error);
-      return;
+      return false;
     }
 
     // Verificar se é um comando de navegação de paciente
@@ -673,12 +674,12 @@ export default function HomePage() {
         showPatientOverviewInline(patientByBed.id);
         // Mensagem já foi adicionada no ChatInput: "Comando de voz: mostrando paciente do leito X"
         // Não fazer mais nada - encerrar o fluxo aqui
-        return;
+        return false;
       } else {
         console.warn("[handleVoiceNoteResult] Paciente não encontrado para leito:", bedNumber);
         // Adicionar mensagem de erro no chat
         handleSend(`Paciente do leito ${bedNumber} não encontrado.`);
-        return; // Encerrar fluxo mesmo se não encontrou
+        return false; // Encerrar fluxo mesmo se não encontrou
       }
     }
 
@@ -687,7 +688,7 @@ export default function HomePage() {
     
     if (!structured) {
       console.warn("handleVoiceNoteResult: structured data não disponível");
-      return;
+      return false;
     }
     
     // Verificar se é comando explícito de atualização de parecer OU intenção detectada no texto
@@ -715,7 +716,7 @@ export default function HomePage() {
       if (!targetPatient) {
         console.warn("[handleVoiceNoteResult] Paciente ativo não encontrado");
         handleSend("Por favor, selecione um paciente primeiro antes de atualizar o parecer.");
-        return;
+        return false;
       }
       
       console.log("[handleVoiceNoteResult] Paciente encontrado:", { id: targetPatient.id, nome: targetPatient.nome });
@@ -725,7 +726,7 @@ export default function HomePage() {
       if (!structured) {
         console.warn("[handleVoiceNoteResult] Structured data não disponível para gerar parecer");
         handleSend("Erro: não foi possível processar os dados da nota de voz. Tente novamente.");
-        return;
+        return false;
       }
       
       // Gerar parecer do plantonista a partir do JSON estruturado
@@ -751,14 +752,15 @@ export default function HomePage() {
       } else {
         console.error("[handleVoiceNoteResult] ❌ Paciente não encontrado no array mockPatients:", activePatientId);
         handleSend("Erro: paciente não encontrado. Por favor, selecione um paciente primeiro.");
-        return;
+        return false;
       }
       
       // Adicionar mensagem no chat
       handleSend("Parecer do plantonista atualizado a partir de nota de voz.");
       
       // Finalizar - não processar outros dados clínicos
-      return;
+      // Retornar true para indicar que foi processado como parecer (não enviar como mensagem normal)
+      return true;
     }
     
     console.log("[handleVoiceNoteResult] Não é intenção de parecer, processando como nota clínica completa");
@@ -767,7 +769,7 @@ export default function HomePage() {
     if (!activePatientId && !structured.patientId && !structured.bed) {
       console.warn("[handleVoiceNoteResult] Nota de voz recebida sem paciente ativo");
       handleSend("Por favor, selecione um paciente primeiro ou use um comando de voz (ex: 'parecer do paciente...').");
-      return;
+      return false;
     }
     
     // Caso contrário, processar como nota clínica normal (atualização completa)
@@ -804,7 +806,7 @@ export default function HomePage() {
         activePatientId
       });
       handleSend("Por favor, selecione um paciente primeiro.");
-      return;
+      return false;
     }
     
     console.log("[handleVoiceNoteResult] Paciente identificado para atualização completa:", { targetPatientId, patientName: targetPatient.nome });
@@ -831,6 +833,9 @@ export default function HomePage() {
     if (!activePatientId && targetPatientId) {
       setActivePatientId(targetPatientId);
     }
+    
+    // Retornar false para permitir envio como mensagem normal (não foi parecer)
+    return false;
   }, [activePatientId, activePatient, handleSend, showPatientOverviewInline]);
 
   return (

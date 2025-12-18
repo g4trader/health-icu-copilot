@@ -15,7 +15,7 @@ interface ChatInputProps {
   onAgentChange: (agent: ClinicalAgentType) => void;
   patients?: Patient[];
   onSelectPatientFromUI?: (patientId: string) => void;
-  onVoiceResult?: (result: { text: string; structured?: any; command?: any; error?: string }) => void;
+  onVoiceResult?: (result: { text: string; structured?: any; command?: any; error?: string }) => boolean | void;
   activePatientId?: string | null;
 }
 
@@ -218,9 +218,7 @@ export function ChatInput({
             if (onVoiceResult) {
               onVoiceResult({ text: data.text, structured: data.structured, command: data.command });
             }
-            if (data.text) {
-              onSend(`Parecer atualizado: ${data.text}`);
-            }
+            // Não enviar a nota como mensagem - o parecer já foi atualizado
           }
         }
       } else if (data.error) {
@@ -230,12 +228,15 @@ export function ChatInput({
           onVoiceResult({ text: data.text, error: data.error });
         }
       } else if (data.structured) {
-        // Nota clínica normal
+        // Nota clínica normal - verificar se foi processada como parecer
+        let wasProcessedAsOpinion = false;
         if (onVoiceResult) {
-          onVoiceResult({ text: data.text, structured: data.structured });
+          const result = onVoiceResult({ text: data.text, structured: data.structured });
+          // Se o handler retornou true, significa que foi processado como parecer
+          wasProcessedAsOpinion = result === true;
         }
-        // Também enviar como mensagem de chat
-        if (data.text) {
+        // Só enviar como mensagem normal se NÃO foi processado como parecer
+        if (!wasProcessedAsOpinion && data.text) {
           onSend(`Nota de voz: ${data.text}`);
         }
       }
