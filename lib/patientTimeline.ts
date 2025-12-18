@@ -221,23 +221,27 @@ function generate30DayEvolution(patient: Patient): DailyPatientStatus[] {
       }
       
       // Para pacientes de alto risco, não gerar eventos de alta nos últimos dias
+      // Em vez disso, gerar eventos de ajuste/piora relevantes
       if (isHighRisk && isRecentDay) {
-        // Em vez de alta, gerar eventos de ajuste/piora
-        if (day === currentDiaUti - 2) {
+        // Gerar eventos recentes relevantes para pacientes de alto risco
+        if (day === currentDiaUti - 3) {
           principaisEventos.push("Piora de função respiratória");
         }
-        if (day === currentDiaUti - 1) {
+        if (day === currentDiaUti - 2 && vasopressor) {
           principaisEventos.push("Ajuste de vasopressor");
+        }
+        if (day === currentDiaUti - 1) {
+          principaisEventos.push("Ajuste de parâmetros ventilatórios");
         }
         if (day === currentDiaUti) {
           principaisEventos.push("Estado crítico - monitorização intensiva");
         }
-      } else {
-        // Para pacientes de baixo/moderado risco, manter eventos de alta
-        if (day === altaDay - 1) {
+      } else if (!isHighRisk) {
+        // Para pacientes de baixo/moderado risco, manter eventos de alta apenas se for o dia de alta
+        if (day === altaDay - 1 && day >= currentDiaUti - 1) {
           principaisEventos.push("Preparação para alta da UTI");
         }
-        if (day === altaDay) {
+        if (day === altaDay && day >= currentDiaUti - 1) {
           principaisEventos.push("Alta da UTI");
         }
       }
@@ -446,24 +450,32 @@ export function getPatientTimelineSummary(patientId: string): { events: Timeline
   const isHighRisk = patient.riscoMortality24h > 0.6;
   const MAX_DAYS_BACK = 5; // Máximo de 5 dias para eventos recentes
   
-  // Filtrar eventos dos últimos MAX_DAYS_BACK dias baseado em diaUti
-  // Assumindo que os eventos têm um campo diaUti ou podemos calcular a partir do timestamp
+  // Calcular diaUti de cada evento baseado no timestamp e currentDiaUti
+  // Assumindo que o último dia (D30) corresponde ao timestamp mais recente
+  const evolution = getDailyStatus(patientId);
+  const latestDay = evolution.length > 0 ? evolution[evolution.length - 1] : null;
+  const latestTimestamp = latestDay ? new Date(latestDay.data).getTime() : Date.now();
+  
+  // Filtrar eventos dos últimos MAX_DAYS_BACK dias baseado em diaUti calculado
   const recentEvents = allEvents.filter(event => {
-    // Tentar extrair diaUti do evento ou calcular a partir do timestamp
-    // Se o evento tem um campo relacionado ao dia, usar isso
-    // Caso contrário, calcular diferença em dias a partir do timestamp
     const eventDate = new Date(event.timestamp);
-    const now = new Date();
-    const diffMs = now.getTime() - eventDate.getTime();
+    const eventTime = eventDate.getTime();
+    
+    // Calcular quantos dias atrás o evento ocorreu (relativo ao último dia)
+    const diffMs = latestTimestamp - eventTime;
     const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
     
+    // Calcular diaUti aproximado do evento
+    // Se o evento é mais recente que o último dia conhecido, assumir que é do último dia
+    const eventDiaUti = diffDays <= 0 ? currentDiaUti : Math.max(1, currentDiaUti - diffDays);
+    
     // Filtrar eventos dos últimos MAX_DAYS_BACK dias
-    if (diffDays > MAX_DAYS_BACK) {
+    if (diffDays > MAX_DAYS_BACK || eventDiaUti < currentDiaUti - MAX_DAYS_BACK) {
       return false;
     }
     
-    // Para pacientes de alto risco, remover eventos de "Alta UTI" antigos
-    if (isHighRisk && event.title.toLowerCase().includes("alta") && diffDays > 1) {
+    // Para pacientes de alto risco, remover eventos de "Alta UTI" dos últimos dias
+    if (isHighRisk && event.title.toLowerCase().includes("alta") && eventDiaUti >= currentDiaUti - 13) {
       return false;
     }
     
