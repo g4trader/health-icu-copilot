@@ -30,6 +30,9 @@ export interface TimelineEvent {
   timestamp: string; // ISO string (relativo mock)
   severity: TimelineEventSeverity;
   
+  // Dia UTI do evento (para facilitar filtro e coerência com evolução diária)
+  diaUti?: number;
+  
   // Para imaging events
   examId?: string;
   examType?: 'chest-xray' | 'head-ct' | 'chest-ct' | 'abdominal-ct' | 'echo';

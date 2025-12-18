@@ -316,61 +316,106 @@ function generate30DayEvolution(patient: Patient): DailyPatientStatus[] {
       }
     }
     
-    // Eventos principais do dia
+    // Eventos principais do dia - COERENTES com a evolução diária
     const principaisEventos: string[] = [];
-    
-    // Determinar se paciente está em alto risco (para não gerar eventos de alta antigos)
-    const isHighRisk = currentRisk > 0.6;
-    const isRecentDay = day >= currentDiaUti - 13; // Últimos 14 dias
     
     // Usar eventos do perfil se disponível
     if (profile) {
       const keyEvent = profile.keyEvents.find(e => e.day === day);
       if (keyEvent) {
-        // Para pacientes de alto risco, não incluir eventos de "Alta" nos últimos dias
-        if (isHighRisk && isRecentDay && keyEvent.description.toLowerCase().includes("alta")) {
-          // Substituir por evento de piora/ajuste
-          principaisEventos.push(`Ajuste de suporte ventilatório/hemodinâmico`);
-        } else {
-          principaisEventos.push(keyEvent.description);
-        }
+        principaisEventos.push(keyEvent.description);
       }
     } else {
-      // Fallback: eventos genéricos
+      // Gerar eventos baseados no statusGlobal e na fase da evolução
+      // Progress: 0 = admissão, 1 = hoje
+      const progress = currentDiaUti > 1 ? (day - 1) / (currentDiaUti - 1) : 0;
+      
+      // Eventos baseados no status do dia
       if (day === 1) {
+        // Admissão: sempre crítico
         principaisEventos.push("Admissão na UTI");
         principaisEventos.push(`Diagnóstico: ${patient.diagnosticoPrincipal.substring(0, 50)}`);
-      }
-      if (day === 2 && patient.ventilationParams) {
-        principaisEventos.push("Início de ventilação mecânica");
-      }
-      if (day === 3 && vasopressor) {
-        principaisEventos.push(`Início de ${vasopressor.nome}`);
+        if (statusGlobal === "critico") {
+          principaisEventos.push("Estado crítico - choque séptico/insuficiência respiratória");
+        }
       }
       
-      // Para pacientes de alto risco, não gerar eventos de alta nos últimos dias
-      // Em vez disso, gerar eventos de ajuste/piora relevantes
-      if (isHighRisk && isRecentDay) {
-        // Gerar eventos recentes relevantes para pacientes de alto risco
-        if (day === currentDiaUti - 3) {
-          principaisEventos.push("Piora de função respiratória");
+      // Eventos baseados na fase da evolução
+      if (statusGlobal === "critico") {
+        // Fase crítica: eventos de instabilidade
+        if (day === 1 || day === 2) {
+          if (suporteVentilatorio.mode) {
+            principaisEventos.push("Início de ventilação mecânica invasiva");
+          }
+          if (suporteHemodinamico.hasVasopressor) {
+            principaisEventos.push(`Início de ${suporteHemodinamico.mainDrug || "Noradrenalina"}`);
+          }
+        } else if (day <= 3) {
+          principaisEventos.push("Estado crítico - ajuste de suportes");
         }
-        if (day === currentDiaUti - 2 && vasopressor) {
-          principaisEventos.push("Ajuste de vasopressor");
-        }
-        if (day === currentDiaUti - 1) {
+      } else if (statusGlobal === "grave") {
+        // Fase grave: eventos de estabilização parcial
+        if (progress >= 0.15 && progress < 0.25) {
+          // Transição crítico → grave
+          principaisEventos.push("Resposta parcial ao tratamento");
+        } else if (progress >= 0.25 && progress < 0.35) {
+          principaisEventos.push("Estabilização hemodinâmica parcial");
+        } else if (suporteVentilatorio.mode && progress >= 0.3) {
           principaisEventos.push("Ajuste de parâmetros ventilatórios");
         }
-        if (day === currentDiaUti) {
-          principaisEventos.push("Estado crítico - monitorização intensiva");
+      } else if (statusGlobal === "estavel") {
+        // Fase estável: eventos de melhora gradual
+        if (progress >= 0.35 && progress < 0.45) {
+          // Transição grave → estável
+          principaisEventos.push("Melhora da função respiratória");
+        } else if (progress >= 0.45 && progress < 0.55) {
+          principaisEventos.push("Redução progressiva de suportes");
+        } else if (progress >= 0.55 && progress < 0.65) {
+          if (suporteHemodinamico.hasVasopressor) {
+            principaisEventos.push("Redução significativa de vasopressor");
+          } else if (suporteVentilatorio.mode === "PSV") {
+            principaisEventos.push("Desmame ventilatório em andamento");
+          }
         }
-      } else if (!isHighRisk) {
-        // Para pacientes de baixo/moderado risco, eventos de alta apenas se status for alta_uti ou melhora
-        if (statusGlobal === "melhora" && day >= currentDiaUti - 1) {
+      } else if (statusGlobal === "melhora") {
+        // Fase de melhora: eventos de preparação para alta
+        if (progress >= 0.65 && progress < 0.75) {
+          // Transição estável → melhora
+          principaisEventos.push("Franca melhora clínica");
+        } else if (progress >= 0.75 && progress < 0.85) {
+          if (!suporteVentilatorio.mode && !suporteHemodinamico.hasVasopressor) {
+            principaisEventos.push("Retirada completa de suportes");
+          } else if (suporteVentilatorio.mode === "PSV") {
+            principaisEventos.push("Desmame ventilatório avançado");
+          }
+        } else if (progress >= 0.85) {
           principaisEventos.push("Preparação para alta da UTI");
         }
-        if (statusGlobal === "alta_uti" && day >= currentDiaUti - 1) {
+      } else if (statusGlobal === "alta_uti") {
+        // Alta: evento final
+        if (day === currentDiaUti || day === currentDiaUti - 1) {
           principaisEventos.push("Alta da UTI");
+        }
+      }
+      
+      // Eventos específicos baseados em mudanças de suporte
+      if (day > 1) {
+        const prevDay = evolution[evolution.length - 1];
+        if (prevDay) {
+          // Detectar mudanças significativas
+          const hadVM = !!prevDay.suporteVentilatorio?.mode;
+          const hasVM = !!suporteVentilatorio.mode;
+          const hadVaso = prevDay.suporteHemodinamico?.hasVasopressor;
+          const hasVaso = suporteHemodinamico.hasVasopressor;
+          
+          // Retirada de VM
+          if (hadVM && !hasVM && statusGlobal !== "critico") {
+            principaisEventos.push("Extubação - retirada de ventilação mecânica");
+          }
+          // Retirada de vasopressor
+          if (hadVaso && !hasVaso && statusGlobal !== "critico") {
+            principaisEventos.push("Retirada de vasopressor");
+          }
         }
       }
     }
@@ -411,8 +456,16 @@ function generate30DayEvolution(patient: Patient): DailyPatientStatus[] {
 
 /**
  * Cache de evoluções geradas
+ * IMPORTANTE: Limpar cache quando pacientes são reprocessados
  */
 const evolutionCache: Record<string, DailyPatientStatus[]> = {};
+
+/**
+ * Limpa o cache de evoluções (chamado quando pacientes são reprocessados)
+ */
+export function clearEvolutionCache(): void {
+  Object.keys(evolutionCache).forEach(key => delete evolutionCache[key]);
+}
 
 /**
  * Obtém evolução de 30 dias para um paciente
@@ -420,18 +473,22 @@ const evolutionCache: Record<string, DailyPatientStatus[]> = {};
  * Isso garante que a timeline seja gerada com os dados já ajustados (risco, VM, vaso, etc.)
  */
 export function getDailyStatus(patientId: string): DailyPatientStatus[] {
-  if (evolutionCache[patientId]) {
-    return evolutionCache[patientId];
-  }
-  
   // Tentar obter paciente processado do cache primeiro
   const patient = getProcessedPatient(patientId);
   if (!patient) {
     return [];
   }
   
+  // Gerar chave de cache baseada no paciente processado (risco atual)
+  // Isso garante que se o risco mudar, a timeline seja regenerada
+  const cacheKey = `${patientId}-${patient.riscoMortality24h.toFixed(3)}-${patient.diasDeUTI}`;
+  
+  if (evolutionCache[cacheKey]) {
+    return evolutionCache[cacheKey];
+  }
+  
   const evolution = generate30DayEvolution(patient);
-  evolutionCache[patientId] = evolution;
+  evolutionCache[cacheKey] = evolution;
   return evolution;
 }
 
@@ -562,6 +619,7 @@ export function getPatientTimeline(patientId: string): TimelineEvent[] {
           description: day.resumoDiario.substring(0, 90),
           timestamp: day.data,
           severity,
+          diaUti: day.diaUti, // Adicionar diaUti para facilitar filtro
           examId: isImaging ? `${patientId}-exam-${day.diaUti}` : undefined,
           examType: isImaging ? (evento.toLowerCase().includes('tórax') || evento.toLowerCase().includes('pulmão') ? 'chest-xray' : 'head-ct') : undefined,
           relatedExamId: isImaging ? `${patientId}-exam-${day.diaUti}` : undefined
@@ -594,27 +652,43 @@ export function getPatientTimelineSummary(patientId: string): { events: Timeline
   const isHighRisk = patient.riscoMortality24h > 0.6;
   const MAX_DAYS_BACK = 5; // Máximo de 5 dias para eventos recentes
   
-  // Calcular diaUti de cada evento baseado no timestamp e currentDiaUti
-  // Assumindo que o último dia (D30) corresponde ao timestamp mais recente
+  // Obter evolução para calcular timestamps
   const evolution = getDailyStatus(patientId);
   const latestDay = evolution.length > 0 ? evolution[evolution.length - 1] : null;
   const latestTimestamp = latestDay ? new Date(latestDay.data).getTime() : Date.now();
   
-  // Filtrar eventos dos últimos MAX_DAYS_BACK dias baseado em diaUti calculado
+  // Filtrar eventos dos últimos MAX_DAYS_BACK dias baseado no diaUti do evento
   const recentEvents = allEvents.filter(event => {
-    const eventDate = new Date(event.timestamp);
-    const eventTime = eventDate.getTime();
+    // Usar diaUti do evento (se disponível) ou extrair do ID
+    const eventDiaUti = event.diaUti ?? (() => {
+      const dayMatch = event.id.match(/day(\d+)/);
+      return dayMatch ? parseInt(dayMatch[1]) : null;
+    })();
     
-    // Calcular quantos dias atrás o evento ocorreu (relativo ao último dia)
-    const diffMs = latestTimestamp - eventTime;
-    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+    if (eventDiaUti === null || eventDiaUti === undefined) {
+      // Se não conseguir extrair, calcular a partir do timestamp
+      const eventDate = new Date(event.timestamp);
+      const eventTime = eventDate.getTime();
+      const diffMs = latestTimestamp - eventTime;
+      const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+      const calculatedDiaUti = diffDays <= 0 ? currentDiaUti : Math.max(1, currentDiaUti - diffDays);
+      
+      // Filtrar eventos dos últimos MAX_DAYS_BACK dias
+      if (calculatedDiaUti < currentDiaUti - MAX_DAYS_BACK || calculatedDiaUti > currentDiaUti) {
+        return false;
+      }
+      
+      // Para pacientes de alto risco, remover eventos de "Alta UTI"
+      if (isHighRisk && event.title.toLowerCase().includes("alta") && calculatedDiaUti >= currentDiaUti - 13) {
+        return false;
+      }
+      
+      return true;
+    }
     
-    // Calcular diaUti aproximado do evento
-    // Se o evento é mais recente que o último dia conhecido, assumir que é do último dia
-    const eventDiaUti = diffDays <= 0 ? currentDiaUti : Math.max(1, currentDiaUti - diffDays);
-    
-    // Filtrar eventos dos últimos MAX_DAYS_BACK dias
-    if (diffDays > MAX_DAYS_BACK || eventDiaUti < currentDiaUti - MAX_DAYS_BACK) {
+    // Filtrar eventos dos últimos MAX_DAYS_BACK dias usando diaUti
+    const diffDays = currentDiaUti - eventDiaUti;
+    if (diffDays < 0 || diffDays > MAX_DAYS_BACK) {
       return false;
     }
     
