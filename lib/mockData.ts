@@ -2,6 +2,7 @@ import type { Patient, VitalSigns, FluidBalance, Medication, VentilationParams, 
 
 import { alignSnapshotWithLatestStatus } from "./alignSnapshotWithTimeline";
 import { applyTargetRisk, type TargetRiskCategory } from "./applyTargetRisk";
+import { setProcessedPatients } from "./patientTimeline";
 
 export type RiskLevel = "alto" | "moderado" | "baixo";
 
@@ -1766,6 +1767,10 @@ const riskAdjustedPatients = mockPatientsRaw.map((patient) => {
   return applyTargetRisk(patient, targetCategory);
 });
 
+// IMPORTANTE: Primeiro definir pacientes processados no cache de patientTimeline
+// Isso quebra a dependência circular (timeline precisa dos dados processados)
+setProcessedPatients(riskAdjustedPatients);
+
 // Só alinhar com timeline se não forçar baixo risco para pacientes de alto/moderado risco
 const alignedPatientsRaw = riskAdjustedPatients.map((patient) => {
   const targetCategory = targetRiskMap[patient.id] || "moderate";
@@ -1774,6 +1779,9 @@ const alignedPatientsRaw = riskAdjustedPatients.map((patient) => {
   }
   return patient;
 });
+
+// Atualizar cache com pacientes alinhados
+setProcessedPatients(alignedPatientsRaw);
 
 export const mockPatientsCompat: PatientCompat[] = alignedPatientsRaw.map(toPatientCompat);
 

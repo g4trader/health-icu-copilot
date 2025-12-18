@@ -1,10 +1,30 @@
 import type { Patient } from "@/types/Patient";
 import type { DailyPatientStatus, PatientStatusGlobal } from "@/types/DailyPatientStatus";
 import type { TimelineEvent, TimelineEventType, TimelineEventSeverity } from "@/types/MockPatientHistory";
-import { mockPatientsRaw } from "./mockData";
 import { calculateRiskScore } from "./mockData";
 import { getPatientHistoryById } from "./mockPatients/history";
 import { getClinicalProfile } from "./patientClinicalProfiles";
+
+// Cache de pacientes processados para evitar dependência circular
+let processedPatientsCache: Patient[] | null = null;
+
+/**
+ * Define os pacientes processados (chamado de mockData.ts após processamento)
+ * Isso quebra a dependência circular
+ */
+export function setProcessedPatients(patients: Patient[]): void {
+  processedPatientsCache = patients;
+}
+
+/**
+ * Obtém paciente processado do cache ou retorna null
+ */
+function getProcessedPatient(patientId: string): Patient | null {
+  if (!processedPatientsCache) {
+    return null;
+  }
+  return processedPatientsCache.find(p => p.id === patientId) || null;
+}
 
 /**
  * Gera evolução de 30 dias para um paciente
@@ -404,13 +424,16 @@ const evolutionCache: Record<string, DailyPatientStatus[]> = {};
 
 /**
  * Obtém evolução de 30 dias para um paciente
+ * IMPORTANTE: Usa pacientes processados do cache (se disponível)
+ * Isso garante que a timeline seja gerada com os dados já ajustados (risco, VM, vaso, etc.)
  */
 export function getDailyStatus(patientId: string): DailyPatientStatus[] {
   if (evolutionCache[patientId]) {
     return evolutionCache[patientId];
   }
   
-  const patient = mockPatientsRaw.find(p => p.id === patientId);
+  // Tentar obter paciente processado do cache primeiro
+  const patient = getProcessedPatient(patientId);
   if (!patient) {
     return [];
   }
@@ -428,7 +451,8 @@ export function getRecentDailyStatus(patientId: string, days: number = 14): Dail
   const all = getDailyStatus(patientId);
   if (all.length === 0) return [];
   
-  const patient = mockPatientsRaw.find(p => p.id === patientId);
+  // Usar paciente processado do cache
+  const patient = getProcessedPatient(patientId);
   if (!patient) return [];
   
   // Pegar os últimos N dias
@@ -481,7 +505,8 @@ export function getPatientTimeline(patientId: string): TimelineEvent[] {
   const evolution = getDailyStatus(patientId);
   const events: TimelineEvent[] = [];
   
-  const patient = mockPatientsRaw.find(p => p.id === patientId);
+  // Usar paciente processado do cache
+  const patient = getProcessedPatient(patientId);
   const isHighRisk = patient ? patient.riscoMortality24h > 0.6 : false;
   const currentDiaUti = patient ? patient.diasDeUTI : 30;
   
@@ -556,7 +581,8 @@ export function getPatientTimeline(patientId: string): TimelineEvent[] {
  */
 export function getPatientTimelineSummary(patientId: string): { events: TimelineEvent[]; isFallback: boolean } {
   const allEvents = getPatientTimeline(patientId);
-  const patient = mockPatientsRaw.find(p => p.id === patientId);
+  // Usar paciente processado do cache
+  const patient = getProcessedPatient(patientId);
   
   if (!patient) {
     return { events: [], isFallback: false };
