@@ -565,16 +565,21 @@ export function getRecentDailyStatus(patientId: string, days: number = 14): Dail
   const isHighRisk = patient.riscoMortality24h > 0.6;
   
   if (isHighRisk) {
-    // Para pacientes de alto risco, garantir que não há "alta_uti" nos últimos dias
+    // Para pacientes de alto risco, garantir coerência: nunca mostrar "alta_uti", "melhora" ou "estavel" nos últimos dias
     return recent.map((day) => {
-      // Se está marcado como "alta_uti" e é um dia recente, substituir
-      if (day.statusGlobal === "alta_uti" && day.diaUti >= currentDiaUti - 13) {
-        // Substituir por "critico" ou "grave" baseado no risco
+      const daysFromCurrent = currentDiaUti - day.diaUti;
+      // Se está marcado como "alta_uti", "melhora" ou "estavel" e é um dia recente (últimos 5 dias), substituir
+      if (daysFromCurrent >= 0 && daysFromCurrent <= 5 && 
+          (day.statusGlobal === "alta_uti" || day.statusGlobal === "melhora" || day.statusGlobal === "estavel")) {
+        // Substituir por "critico" ou "grave" baseado no risco atual
+        const shouldBeCritico = patient.riscoMortality24h >= 0.75;
         return {
           ...day,
-          statusGlobal: patient.riscoMortality24h >= 0.75 ? "critico" : "grave",
-          riskScore: Math.max(0.6, patient.riscoMortality24h),
-          resumoDiario: day.resumoDiario.replace(/alta da UTI/i, "estado crítico/grave")
+          statusGlobal: shouldBeCritico ? "critico" : "grave",
+          riskScore: Math.max(day.riskScore, patient.riscoMortality24h * 0.9),
+          resumoDiario: shouldBeCritico 
+            ? "Estado crítico - monitorização intensiva"
+            : "Estado grave - atenção contínua"
         };
       }
       return day;
