@@ -63,6 +63,16 @@ export function PlantonistaAnswerPanel({
     ? mockPatients.find(p => p.id === content.focusPayload!.patientId) || null
     : null;
   const dailyStatus = patient ? getRecentDailyStatus(patient.id, 14) : [];
+  
+  // Log para debug
+  if (patient && patient.voiceNoteSummary) {
+    console.log("[PlantonistaAnswerPanel] Paciente encontrado com voiceNoteSummary:", {
+      patientId: patient.id,
+      patientName: patient.nome,
+      voiceNoteSummary: patient.voiceNoteSummary.substring(0, 50),
+      hasPlainTextAnswer: !!content.plainTextAnswer
+    });
+  }
 
   // Ordenar dashboards
   const orderedDashboards = orderDashboards(content.microDashboards);
@@ -147,7 +157,7 @@ export function PlantonistaAnswerPanel({
       {(patient?.voiceNoteSummary || content.plainTextAnswer) && (
         <section 
           className="plantonista-section plantonista-section-opinion"
-          key={`parecer-${patient?.id || 'default'}-${patient?.voiceNoteSummary?.substring(0, 20) || 'default'}`}
+          key={`parecer-${patient?.id || 'default'}-${patient?.voiceNoteSummary ? patient.voiceNoteSummary.substring(0, 30).replace(/\s/g, '-') : 'default'}-${Date.now()}`}
         >
           <div className="plantonista-opinion-card">
             <h3 className="plantonista-section-title">Parecer do Plantonista</h3>

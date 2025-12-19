@@ -736,16 +736,25 @@ export default function HomePage() {
       // Gerar parecer do plantonista a partir do JSON estruturado
       const opinion = buildPlantonistaOpinion(targetPatient, structured);
       console.log("[handleVoiceNoteResult] Parecer gerado:", opinion);
+      console.log("[handleVoiceNoteResult] Paciente alvo:", {
+        id: targetPatient.id,
+        nome: targetPatient.nome,
+        leito: targetPatient.leito,
+        currentVoiceNoteSummary: targetPatient.voiceNoteSummary?.substring(0, 50)
+      });
       
       // Atualizar apenas o voiceNoteSummary, sem alterar outros dados clínicos
       const patientIndex = mockPatients.findIndex(p => p.id === activePatientId);
       if (patientIndex >= 0) {
         const oldSummary = mockPatients[patientIndex].voiceNoteSummary;
         mockPatients[patientIndex].voiceNoteSummary = opinion;
-        console.log("[handleVoiceNoteResult] ✅ voiceNoteSummary atualizado:", {
+        console.log("[handleVoiceNoteResult] ✅ voiceNoteSummary atualizado no array:", {
           index: patientIndex,
+          patientId: mockPatients[patientIndex].id,
+          patientName: mockPatients[patientIndex].nome,
           oldSummary: oldSummary?.substring(0, 50),
-          newSummary: opinion.substring(0, 50)
+          newSummary: opinion.substring(0, 50),
+          fullNewSummary: opinion
         });
         // Forçar re-render incrementando a chave de atualização
         // Isso força o React a re-renderizar componentes que dependem do paciente
@@ -961,8 +970,17 @@ export default function HomePage() {
                         // Caso padrão: usar PlantonistaAnswerPanel
                         const content = msg.plantonistaContent ?? normalizeAgentAnswerFromLegacy(msg);
                         
+                        // Buscar paciente para incluir voiceNoteSummary na key e forçar re-render
+                        const panelPatient = content.focusPayload?.patientId 
+                          ? mockPatients.find(p => p.id === content.focusPayload!.patientId)
+                          : null;
+                        const voiceNoteKey = panelPatient?.voiceNoteSummary 
+                          ? panelPatient.voiceNoteSummary.substring(0, 30).replace(/\s/g, '-')
+                          : 'default';
+                        
                         return (
                           <PlantonistaAnswerPanel
+                            key={`plantonista-${msg.id}-${content.focusPayload?.patientId || 'no-patient'}-${voiceNoteKey}-${patientUpdateKey}`}
                             content={content}
                             onSelectPatient={(patientId) => {
                               openPatientPreviewDrawer(patientId);
