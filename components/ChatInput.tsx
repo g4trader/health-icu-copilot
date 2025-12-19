@@ -107,18 +107,48 @@ export function ChatInput({
       console.log("[ChatInput] Solicitando permissão de microfone...");
       console.log("[ChatInput] Contexto seguro (HTTPS):", window.location.protocol === "https:" || window.location.hostname === "localhost");
       
+      // Verificar estado atual da permissão (se disponível)
+      try {
+        if (navigator.permissions && navigator.permissions.query) {
+          const permissionStatus = await navigator.permissions.query({ name: 'microphone' as PermissionName });
+          console.log("[ChatInput] Estado da permissão:", permissionStatus?.state);
+        }
+      } catch (permError) {
+        console.log("[ChatInput] Não foi possível verificar estado da permissão (normal em alguns navegadores)");
+      }
+      
       // Tentar obter acesso ao microfone
       // Primeiro tentar com configuração simples para garantir que a solicitação seja feita
       let stream: MediaStream;
       try {
         // Tentar primeiro com configuração simples
         console.log("[ChatInput] Tentando getUserMedia com configuração simples...");
-        stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        console.log("[ChatInput] Aguardando resposta do navegador...");
+        
+        // Adicionar timeout para detectar se a promise está travada
+        const getUserMediaPromise = navigator.mediaDevices.getUserMedia({ audio: true });
+        const timeoutPromise = new Promise<never>((_, reject) => {
+          setTimeout(() => reject(new Error("Timeout: getUserMedia não respondeu em 10 segundos")), 10000);
+        });
+        
+        stream = await Promise.race([getUserMediaPromise, timeoutPromise]);
         console.log("[ChatInput] ✅ Permissão de microfone concedida, stream obtido");
       } catch (mediaError: any) {
+        console.error("[ChatInput] Erro ao obter acesso ao microfone:", mediaError);
+        console.error("[ChatInput] Nome do erro:", mediaError.name);
+        console.error("[ChatInput] Mensagem do erro:", mediaError.message);
+        
         // Tratar erros específicos de permissão/dispositivo
         if (mediaError.name === "NotAllowedError" || mediaError.name === "PermissionDeniedError") {
+          console.warn("[ChatInput] Permissão negada pelo usuário");
           setErrorMessage("Permissão de microfone negada. Por favor, permita o acesso ao microfone nas configurações do navegador.");
+          setVoiceState("idle");
+          return;
+        }
+        
+        if (mediaError.message?.includes("Timeout")) {
+          console.error("[ChatInput] Timeout ao solicitar permissão - o navegador pode não estar respondendo");
+          setErrorMessage("O navegador não respondeu à solicitação de permissão. Tente recarregar a página.");
           setVoiceState("idle");
           return;
         }
