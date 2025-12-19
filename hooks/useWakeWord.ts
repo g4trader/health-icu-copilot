@@ -62,6 +62,18 @@ export function useWakeWord({
     setState("idle");
   }, []);
 
+  // Função para verificar se há dispositivos de áudio disponíveis
+  const checkAudioDevices = useCallback(async (): Promise<boolean> => {
+    try {
+      const devices = await navigator.mediaDevices.enumerateDevices();
+      const audioInputs = devices.filter(device => device.kind === "audioinput");
+      return audioInputs.length > 0;
+    } catch (error) {
+      console.warn("[useWakeWord] Erro ao enumerar dispositivos:", error);
+      return false;
+    }
+  }, []);
+
   // Função para iniciar detecção
   const start = useCallback(async () => {
     // Só funciona no client
@@ -74,11 +86,36 @@ export function useWakeWord({
       return;
     }
 
+    // Verificar se há dispositivos de áudio disponíveis
+    const hasAudioDevices = await checkAudioDevices();
+    if (!hasAudioDevices) {
+      console.warn("[useWakeWord] Nenhum dispositivo de áudio encontrado. Wake word desabilitado.");
+      setState("error");
+      return;
+    }
+
     try {
       setState("listening");
 
-      // Solicitar permissão de microfone
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      // Solicitar permissão de microfone com tratamento de erro específico
+      let stream: MediaStream;
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({ 
+          audio: {
+            echoCancellation: true,
+            noiseSuppression: true,
+            autoGainControl: true,
+          }
+        });
+      } catch (mediaError: any) {
+        if (mediaError.name === "NotFoundError" || mediaError.name === "DevicesNotFoundError") {
+          console.warn("[useWakeWord] Dispositivo de áudio não encontrado. Wake word desabilitado.");
+          setState("error");
+          return;
+        }
+        throw mediaError; // Re-lançar outros erros
+      }
+      
       audioStreamRef.current = stream;
 
       // Inicializar Porcupine
@@ -198,15 +235,28 @@ export function useWakeWord({
       isListeningRef.current = true;
     } catch (error: any) {
       console.error("[useWakeWord] Erro ao iniciar wake word:", error);
-      setState("error");
-      cleanup();
+      
+      // Tratamento específico para diferentes tipos de erro
+      if (error.name === "NotFoundError" || error.name === "DevicesNotFoundError") {
+        console.warn("[useWakeWord] Dispositivo de áudio não encontrado. Wake word desabilitado.");
+        setState("error");
+        cleanup();
+        return; // Não tentar novamente automaticamente
+      }
       
       if (error.name === "NotAllowedError" || error.name === "PermissionDeniedError") {
-        // Usuário negou permissão
+        console.warn("[useWakeWord] Permissão de microfone negada. Wake word desabilitado.");
         setState("error");
+        cleanup();
+        return; // Não tentar novamente automaticamente
       }
+      
+      // Para outros erros, apenas marcar como erro mas não limpar completamente
+      // para permitir retry manual
+      setState("error");
+      cleanup();
     }
-  }, [onWake, keywords, cleanup]);
+  }, [onWake, keywords, cleanup, checkAudioDevices]);
 
   // Função para parar detecção
   const stop = useCallback(() => {
@@ -215,13 +265,31 @@ export function useWakeWord({
   }, [cleanup]);
 
   // Iniciar automaticamente ao montar (apenas no client)
+  // Mas apenas se a API de mídia estiver disponível
   useEffect(() => {
     if (typeof window === "undefined") {
       return;
     }
 
-    // Iniciar automaticamente
-    start();
+    // Verificar se a API está disponível
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      console.warn("[useWakeWord] MediaDevices API não disponível neste navegador.");
+      setState("error");
+      return;
+    }
+
+    // Verificar se Web Speech API está disponível
+    if (!("webkitSpeechRecognition" in window) && !("SpeechRecognition" in window)) {
+      console.warn("[useWakeWord] Speech Recognition API não disponível neste navegador.");
+      setState("error");
+      return;
+    }
+
+    // Tentar iniciar (pode falhar se não houver dispositivo, mas isso é tratado)
+    start().catch((error) => {
+      console.warn("[useWakeWord] Erro ao iniciar wake word automaticamente:", error);
+      // O estado já foi atualizado no catch do start()
+    });
 
     // Cleanup ao desmontar
     return () => {
