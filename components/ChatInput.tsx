@@ -157,41 +157,40 @@ export function ChatInput({
           console.log("[ChatInput] NotFoundError detectado, verificando dispositivos disponíveis...");
           // Verificar se realmente não há dispositivos disponíveis
           try {
-            // Primeiro, tentar obter permissão para enumerar dispositivos com nomes reais
-            // (sem permissão, os nomes aparecem como strings vazias)
-            try {
-              await navigator.mediaDevices.getUserMedia({ audio: true });
-            } catch (e) {
-              // Ignorar erro, apenas queremos "ativar" a enumeração
-            }
-            
+            // Enumerar dispositivos (já temos permissão, então os nomes devem aparecer)
             const devices = await navigator.mediaDevices.enumerateDevices();
             const audioInputs = devices.filter(device => device.kind === "audioinput");
             console.log("[ChatInput] Dispositivos de áudio encontrados:", audioInputs.length);
-            console.log("[ChatInput] Dispositivos:", audioInputs.map(d => ({ 
+            console.log("[ChatInput] Todos os dispositivos:", devices.map(d => ({ 
               deviceId: d.deviceId, 
-              label: d.label || "(sem nome - precisa de permissão)",
+              label: d.label || "(sem nome)",
+              kind: d.kind 
+            })));
+            console.log("[ChatInput] Dispositivos de áudio:", audioInputs.map(d => ({ 
+              deviceId: d.deviceId, 
+              label: d.label || "(sem nome)",
               kind: d.kind 
             })));
             
             if (audioInputs.length === 0) {
               console.error("[ChatInput] Nenhum dispositivo de áudio encontrado no sistema");
-              setErrorMessage("Nenhum microfone encontrado. Verifique se há um microfone conectado e habilitado nas configurações do sistema.");
+              setErrorMessage("Nenhum microfone encontrado no sistema. Verifique se há um microfone conectado e habilitado nas configurações do sistema operacional.");
             } else {
-              // Há dispositivos, mas pode ser problema de permissão ou acesso
+              // Há dispositivos listados, mas getUserMedia não conseguiu acessá-los
               const hasNamedDevices = audioInputs.some(d => d.label && d.label.length > 0);
               if (!hasNamedDevices) {
-                console.warn("[ChatInput] Dispositivos encontrados mas sem nomes - pode ser problema de permissão");
-                setErrorMessage("Microfone encontrado, mas não foi possível acessá-lo. Verifique as permissões do navegador e tente novamente.");
+                console.warn("[ChatInput] Dispositivos encontrados mas sem nomes - pode ser problema de permissão ou dispositivo não disponível");
+                setErrorMessage("Microfone detectado, mas não está disponível. Verifique se o microfone está conectado e habilitado nas configurações do sistema.");
               } else {
-                console.error("[ChatInput] Dispositivos encontrados mas não acessíveis");
-                setErrorMessage("Não foi possível acessar o microfone. Verifique se ele está habilitado nas configurações do sistema e do navegador.");
+                const deviceNames = audioInputs.filter(d => d.label).map(d => d.label).join(", ");
+                console.error("[ChatInput] Dispositivos encontrados mas não acessíveis:", deviceNames);
+                setErrorMessage(`Microfone(s) encontrado(s) (${deviceNames}), mas não foi possível acessá-lo(s). Verifique se estão habilitados e não estão sendo usados por outro aplicativo.`);
               }
             }
           } catch (enumError: any) {
             console.error("[ChatInput] Erro ao enumerar dispositivos:", enumError);
-            // Se não conseguir enumerar, assumir que é problema de permissão ou dispositivo
-            setErrorMessage("Não foi possível acessar o microfone. Verifique se há um microfone conectado e se as permissões estão corretas.");
+            // Se não conseguir enumerar, assumir que é problema de dispositivo
+            setErrorMessage("Não foi possível verificar dispositivos de microfone. Verifique se há um microfone conectado e habilitado nas configurações do sistema.");
           }
           setVoiceState("idle");
           return;
