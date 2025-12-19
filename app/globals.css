@@ -3496,7 +3496,7 @@ a {
   }
 
   /* Esconder conteúdo de abas inativas em mobile */
-  .patient-focus-mode-mobile .patient-tab-content:not(.active) {
+  .patient-tab-content:not(.active) {
     display: none;
   }
 
@@ -3508,6 +3508,10 @@ a {
 
     .patient-tab-content {
       display: block !important;
+    }
+
+    .patient-mobile-header {
+      display: none;
     }
   }
 }

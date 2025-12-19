@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import type { PlantonistaAnswerContent } from "@/types/PlantonistaAnswerContent";
 import { MicroDashboardV2Renderer } from "./MicroDashboardV2Renderer";
 import { PatientCard } from "../patients/PatientCard";
@@ -8,6 +9,7 @@ import { OpinionBullets } from "./OpinionBullets";
 import { PatientBigTimeline } from "./PatientBigTimeline";
 import { getRecentDailyStatus } from "@/lib/patientTimeline";
 import { mockPatients } from "@/lib/mockData";
+import { Mic } from "lucide-react";
 
 interface PlantonistaAnswerPanelProps {
   content: PlantonistaAnswerContent;
@@ -51,6 +53,18 @@ export function PlantonistaAnswerPanel({
   onShowFullEvolution,
   patientUpdateKey = 0,
 }: PlantonistaAnswerPanelProps & { patientUpdateKey?: number }) {
+  const [activeTab, setActiveTab] = useState<"overview" | "evolution" | "opinion">("overview");
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth <= 767);
+    };
+    checkMobile();
+    window.addEventListener("resize", checkMobile);
+    return () => window.removeEventListener("resize", checkMobile);
+  }, []);
+
   const handleScrollToEvolution = () => {
     document.getElementById("patient-evolution-section")?.scrollIntoView({
       behavior: "smooth",
@@ -91,8 +105,87 @@ export function PlantonistaAnswerPanel({
         </div>
       )}
 
-      {/* Andar 1: Cabeçalho clínico curto - dentro de card */}
-      {content.focusPayload && (
+      {/* Cabeçalho compacto para mobile */}
+      {isMobile && content.focusPayload && (
+        <div className="patient-mobile-header">
+          <div className="patient-mobile-header-left">
+            <div className="patient-mobile-header-info">
+              <span className="patient-mobile-header-bed">{content.focusPayload.leito}</span>
+              <span className="patient-mobile-header-name">{content.focusPayload.nome}</span>
+            </div>
+            <div className="patient-mobile-header-chips">
+              <span
+                className={`patient-mobile-header-chip ${
+                  content.focusPayload.riskLevel === "alto"
+                    ? "bg-rose-50 text-rose-700 border border-rose-200"
+                    : content.focusPayload.riskLevel === "moderado"
+                    ? "bg-amber-50 text-amber-700 border border-amber-200"
+                    : "bg-slate-100 text-slate-700 border border-slate-200"
+                }`}
+              >
+                {content.focusPayload.riskPercent24h}%
+              </span>
+              {content.focusPayload.hasVM && (
+                <span className="patient-mobile-header-chip bg-blue-50 text-blue-700 border border-blue-200">
+                  VM
+                </span>
+              )}
+              {content.focusPayload.hasVaso && (
+                <span className="patient-mobile-header-chip bg-purple-50 text-purple-700 border border-purple-200">
+                  Vaso
+                </span>
+              )}
+            </div>
+          </div>
+          <button
+            type="button"
+            className="patient-mobile-header-voice-btn"
+            aria-label="Nota de voz"
+            title="Gravar nota de voz"
+            onClick={() => {
+              setActiveTab("evolution");
+              setTimeout(() => {
+                const evolutionSection = document.querySelector('.patient-tab-content.active .plantonista-section-evolution');
+                if (evolutionSection) {
+                  evolutionSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }
+              }, 100);
+            }}
+          >
+            <Mic className="w-5 h-5" />
+          </button>
+        </div>
+      )}
+
+      {/* Tab bar para mobile */}
+      {isMobile && content.focusPayload && (
+        <div className="patient-tab-bar">
+          <button
+            type="button"
+            className={`patient-tab ${activeTab === "overview" ? "active" : ""}`}
+            onClick={() => setActiveTab("overview")}
+          >
+            Visão geral
+          </button>
+          <button
+            type="button"
+            className={`patient-tab ${activeTab === "evolution" ? "active" : ""}`}
+            onClick={() => setActiveTab("evolution")}
+          >
+            Evolução
+          </button>
+          <button
+            type="button"
+            className={`patient-tab ${activeTab === "opinion" ? "active" : ""}`}
+            onClick={() => setActiveTab("opinion")}
+          >
+            Parecer
+          </button>
+        </div>
+      )}
+
+      {/* Andar 1: Cabeçalho clínico curto - dentro de card (desktop) */}
+      {!isMobile && content.focusPayload && (
         <section className="plantonista-section plantonista-section-header">
           <div className="plantonista-header-card">
             <div className="plantonista-header-main">
@@ -117,49 +210,58 @@ export function PlantonistaAnswerPanel({
         </section>
       )}
 
-      {/* Andar 2: Dashboards de decisão - dentro de card */}
-      {orderedDashboards.length > 0 && (
-        <section className="plantonista-section plantonista-section-dashboards">
-          <div className="plantonista-dashboards-card">
-            <h3 className="plantonista-section-title">Dashboards de decisão</h3>
-            <div className="plantonista-dashboards-grid">
-              {orderedDashboards.map((dashboard, idx) => (
-                <MicroDashboardV2Renderer key={idx} dashboard={dashboard} />
-              ))}
+      {/* Conteúdo da aba Visão geral */}
+      <div className={`patient-tab-content ${!isMobile || activeTab === "overview" ? "active" : ""}`}>
+        {/* Andar 2: Dashboards de decisão - dentro de card */}
+        {orderedDashboards.length > 0 && (
+          <section className="plantonista-section plantonista-section-dashboards">
+            <div className="plantonista-dashboards-card">
+              <h3 className="plantonista-section-title">Dashboards de decisão</h3>
+              <div className="plantonista-dashboards-grid">
+                {orderedDashboards.map((dashboard, idx) => (
+                  <MicroDashboardV2Renderer key={idx} dashboard={dashboard} />
+                ))}
+              </div>
             </div>
-          </div>
-        </section>
-      )}
+          </section>
+        )}
+      </div>
 
-      {/* Andar 3: Evolução - apenas timeline, eventos marcantes vão no preview */}
-      {patient && dailyStatus.length > 0 && (
-        <section className="plantonista-section plantonista-section-evolution">
-          <div className="plantonista-evolution-card">
-            <h3 className="plantonista-section-title">Evolução na UTI</h3>
-            <div className="plantonista-evolution-timeline">
-              <PatientBigTimeline
-                dailyStatus={dailyStatus}
-                highlights={content.timelineHighlights}
-              />
+      {/* Conteúdo da aba Evolução */}
+      <div className={`patient-tab-content ${!isMobile || activeTab === "evolution" ? "active" : ""}`}>
+        {/* Andar 3: Evolução - apenas timeline, eventos marcantes vão no preview */}
+        {patient && dailyStatus.length > 0 && (
+          <section className="plantonista-section plantonista-section-evolution">
+            <div className="plantonista-evolution-card">
+              <h3 className="plantonista-section-title">Evolução na UTI</h3>
+              <div className="plantonista-evolution-timeline">
+                <PatientBigTimeline
+                  dailyStatus={dailyStatus}
+                  highlights={content.timelineHighlights}
+                />
+              </div>
             </div>
-          </div>
-        </section>
-      )}
+          </section>
+        )}
+      </div>
 
-      {/* Andar 4: Parecer resumido - dentro de card */}
-      {/* IMPORTANTE: Priorizar voiceNoteSummary do paciente se disponível, senão usar plainTextAnswer */}
-      {/* Só renderizar se houver texto para exibir */}
-      {(patient?.voiceNoteSummary || content.plainTextAnswer) && (
-        <section 
-          className="plantonista-section plantonista-section-opinion"
-          key={`parecer-${patient?.id || 'default'}-${patient?.voiceNoteSummary ? patient.voiceNoteSummary.substring(0, 30).replace(/\s/g, '-') : 'plaintext'}-${patientUpdateKey || 0}`}
-        >
-          <div className="plantonista-opinion-card">
-            <h3 className="plantonista-section-title">Parecer do Plantonista</h3>
-            <OpinionBullets text={patient?.voiceNoteSummary || content.plainTextAnswer || ''} />
-          </div>
-        </section>
-      )}
+      {/* Conteúdo da aba Parecer */}
+      <div className={`patient-tab-content ${!isMobile || activeTab === "opinion" ? "active" : ""}`}>
+        {/* Andar 4: Parecer resumido - dentro de card */}
+        {/* IMPORTANTE: Priorizar voiceNoteSummary do paciente se disponível, senão usar plainTextAnswer */}
+        {/* Só renderizar se houver texto para exibir */}
+        {(patient?.voiceNoteSummary || content.plainTextAnswer) && (
+          <section 
+            className="plantonista-section plantonista-section-opinion"
+            key={`parecer-${patient?.id || 'default'}-${patient?.voiceNoteSummary ? patient.voiceNoteSummary.substring(0, 30).replace(/\s/g, '-') : 'plaintext'}-${patientUpdateKey || 0}`}
+          >
+            <div className="plantonista-opinion-card">
+              <h3 className="plantonista-section-title">Parecer do Plantonista</h3>
+              <OpinionBullets text={patient?.voiceNoteSummary || content.plainTextAnswer || ''} />
+            </div>
+          </section>
+        )}
+      </div>
 
       {/* CTA para ver evolução completa */}
       {content.focusPayload?.patientId && (
