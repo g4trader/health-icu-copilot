@@ -130,11 +130,12 @@ export function ChatInput({
         }
       }
       if (streamRef.current) {
-        streamRef.current.getTracks().forEach(track => track.stop());
+        streamRef.current.getTracks().forEach(t => t.stop());
         streamRef.current = null;
       }
       
       // Solicitar acesso ao microfone apenas quando o usuário clicar
+      // Usar exatamente { audio: true } sem deviceId ou outras configurações
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       streamRef.current = stream;
       
@@ -197,7 +198,7 @@ export function ChatInput({
       mediaRecorderRef.current.stop();
     }
     if (streamRef.current) {
-      streamRef.current.getTracks().forEach(track => track.stop());
+      streamRef.current.getTracks().forEach(t => t.stop());
       streamRef.current = null;
     }
     audioChunksRef.current = [];
