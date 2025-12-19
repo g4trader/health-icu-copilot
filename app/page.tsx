@@ -982,6 +982,7 @@ export default function HomePage() {
                           <PlantonistaAnswerPanel
                             key={`plantonista-${msg.id}-${content.focusPayload?.patientId || 'no-patient'}-${voiceNoteKey}-${patientUpdateKey}`}
                             content={content}
+                            patientUpdateKey={patientUpdateKey}
                             onSelectPatient={(patientId) => {
                               openPatientPreviewDrawer(patientId);
                             }}

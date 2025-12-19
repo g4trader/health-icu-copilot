@@ -61,6 +61,8 @@ export function detectVoiceCommand(text: string): VoiceCommand {
     /(?:mostrar|mostra|ver)\s+(?:o\s+)?(?:paciente|leito)\s+(\d+)/,
     // "abre o leito X" ou "abrir leito X"
     /(?:abre|abrir)\s+(?:o\s+)?leito\s+(\d+)/,
+    // "acessar paciente X" ou "acessar leito X"
+    /acessar\s+(?:o\s+)?(?:paciente|leito)\s+(\d+)/,
     // "leito X" (standalone)
     /^leito\s+(\d+)$/,
     // "focar no leito X" ou "focar leito X"

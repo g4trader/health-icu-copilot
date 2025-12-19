@@ -49,7 +49,8 @@ export function PlantonistaAnswerPanel({
   onSelectPatient,
   onExpandPatient,
   onShowFullEvolution,
-}: PlantonistaAnswerPanelProps) {
+  patientUpdateKey = 0,
+}: PlantonistaAnswerPanelProps & { patientUpdateKey?: number }) {
   const handleScrollToEvolution = () => {
     document.getElementById("patient-evolution-section")?.scrollIntoView({
       behavior: "smooth",
@@ -64,15 +65,8 @@ export function PlantonistaAnswerPanel({
     : null;
   const dailyStatus = patient ? getRecentDailyStatus(patient.id, 14) : [];
   
-  // Log para debug
-  if (patient && patient.voiceNoteSummary) {
-    console.log("[PlantonistaAnswerPanel] Paciente encontrado com voiceNoteSummary:", {
-      patientId: patient.id,
-      patientName: patient.nome,
-      voiceNoteSummary: patient.voiceNoteSummary.substring(0, 50),
-      hasPlainTextAnswer: !!content.plainTextAnswer
-    });
-  }
+  // Log para debug (apenas quando houver voiceNoteSummary)
+  // Removido para reduzir logs excessivos
 
   // Ordenar dashboards
   const orderedDashboards = orderDashboards(content.microDashboards);
@@ -154,35 +148,18 @@ export function PlantonistaAnswerPanel({
 
       {/* Andar 4: Parecer resumido - dentro de card */}
       {/* IMPORTANTE: Priorizar voiceNoteSummary do paciente se disponível, senão usar plainTextAnswer */}
-      {(() => {
-        // Determinar qual texto usar: priorizar voiceNoteSummary se disponível
-        const opinionText = patient?.voiceNoteSummary || content.plainTextAnswer || '';
-        const hasVoiceNote = !!patient?.voiceNoteSummary;
-        
-        console.log("[PlantonistaAnswerPanel] Renderizando parecer:", {
-          patientId: patient?.id,
-          patientName: patient?.nome,
-          hasVoiceNoteSummary: hasVoiceNote,
-          voiceNoteSummary: patient?.voiceNoteSummary?.substring(0, 50),
-          hasPlainTextAnswer: !!content.plainTextAnswer,
-          plainTextAnswer: content.plainTextAnswer?.substring(0, 50),
-          finalText: opinionText.substring(0, 50)
-        });
-        
-        if (!opinionText) return null;
-        
-        return (
-          <section 
-            className="plantonista-section plantonista-section-opinion"
-            key={`parecer-${patient?.id || 'default'}-${hasVoiceNote ? patient.voiceNoteSummary!.substring(0, 30).replace(/\s/g, '-') : 'plaintext'}-${Date.now()}`}
-          >
-            <div className="plantonista-opinion-card">
-              <h3 className="plantonista-section-title">Parecer do Plantonista</h3>
-              <OpinionBullets text={opinionText} />
-            </div>
-          </section>
-        );
-      })()}
+      {/* Só renderizar se houver texto para exibir */}
+      {(patient?.voiceNoteSummary || content.plainTextAnswer) && (
+        <section 
+          className="plantonista-section plantonista-section-opinion"
+          key={`parecer-${patient?.id || 'default'}-${patient?.voiceNoteSummary ? patient.voiceNoteSummary.substring(0, 30).replace(/\s/g, '-') : 'plaintext'}-${patientUpdateKey || 0}`}
+        >
+          <div className="plantonista-opinion-card">
+            <h3 className="plantonista-section-title">Parecer do Plantonista</h3>
+            <OpinionBullets text={patient?.voiceNoteSummary || content.plainTextAnswer || ''} />
+          </div>
+        </section>
+      )}
 
       {/* CTA para ver evolução completa */}
       {content.focusPayload?.patientId && (

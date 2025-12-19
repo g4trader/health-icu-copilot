@@ -3269,6 +3269,249 @@ a {
   }
 }
 
+/* ========================================
+   MOBILE-FIRST BREAKPOINTS (max-width: 767px)
+   ======================================== */
+@media (max-width: 767px) {
+  /* Main e cards ocupam width: 100%, padding menor */
+  .main-shell,
+  .chat-container,
+  .result-card {
+    width: 100%;
+    padding: 0.75rem;
+  }
+
+  .panel {
+    padding: 0.75rem;
+  }
+
+  /* Grids de 2-3 colunas viram 1 coluna */
+  .kpi-grid,
+  .plantonista-dashboards-grid,
+  .vitals-grid-refined,
+  .detail-summary-grid,
+  .fluid-balance-refined,
+  .snapshot-cards,
+  .plantonista-evolution-grid {
+    grid-template-columns: 1fr !important;
+    gap: 0.75rem;
+  }
+
+  /* Micro dashboards em coluna única */
+  .micro-dashboard-kpi-grid {
+    grid-template-columns: 1fr;
+  }
+
+  /* Lab values em coluna única */
+  .lab-values {
+    flex-direction: column;
+  }
+
+  /* Chat input fixo no rodapé */
+  .chat-input-footer {
+    position: sticky;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: var(--color-slate-50);
+    border-top: var(--border-width) solid var(--border-color);
+    box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.1);
+    z-index: 100;
+    padding: 0.75rem;
+  }
+
+  .chat-input-footer-inner {
+    padding: 0;
+    max-width: 100%;
+  }
+
+  /* Ajustar padding do conteúdo scrollável em mobile */
+  .chat-content-scrollable {
+    padding-bottom: 120px !important; /* Espaço para o footer fixo */
+  }
+
+  /* Garantir que botões e alvos de toque tenham pelo menos 44x44px */
+  button,
+  .chat-input-add-btn,
+  .chat-input-voice-btn,
+  .chat-input-send-btn,
+  .patient-pin-button,
+  .drawer-close-btn,
+  .hc-icon-btn,
+  .plantonista-cta-button,
+  .patient-context-action-btn,
+  .ask-button,
+  .chat-button,
+  .quick-prompt-chip,
+  .patient-tab,
+  .patient-mobile-header-voice-btn {
+    min-width: 44px;
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* Ajustar tamanhos de ícones em botões */
+  .chat-input-add-icon,
+  .chat-input-voice-icon {
+    width: 20px;
+    height: 20px;
+  }
+
+  /* Ajustar padding de botões pequenos */
+  .hc-icon-btn {
+    padding: 0.5rem 0.75rem;
+  }
+
+  /* Garantir que chips clicáveis também tenham tamanho mínimo */
+  .quick-prompt-chip {
+    padding: 0.75rem 1rem;
+  }
+
+  /* Cabeçalho compacto do paciente */
+  .patient-mobile-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.75rem;
+    background: #ffffff;
+    border-bottom: 1px solid #e2e8f0;
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    gap: 0.5rem;
+  }
+
+  .patient-mobile-header-left {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex: 1;
+    min-width: 0;
+  }
+
+  .patient-mobile-header-info {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+  }
+
+  .patient-mobile-header-bed {
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    color: #64748b;
+    background: #f1f5f9;
+    padding: 0.25rem 0.5rem;
+    border-radius: 0.25rem;
+    white-space: nowrap;
+  }
+
+  .patient-mobile-header-name {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: #1e293b;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .patient-mobile-header-chips {
+    display: flex;
+    align-items: center;
+    gap: 0.375rem;
+    flex-shrink: 0;
+  }
+
+  .patient-mobile-header-chip {
+    font-size: 0.6875rem;
+    font-weight: 600;
+    padding: 0.25rem 0.5rem;
+    border-radius: 0.375rem;
+    white-space: nowrap;
+  }
+
+  .patient-mobile-header-voice-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    border: 1px solid #e2e8f0;
+    border-radius: 50%;
+    background: #ffffff;
+    color: #64748b;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    flex-shrink: 0;
+  }
+
+  .patient-mobile-header-voice-btn:hover {
+    background: #f1f5f9;
+    color: #059669;
+    border-color: #86efac;
+  }
+
+  /* Tab bar para mobile */
+  .patient-tab-bar {
+    display: flex;
+    background: #ffffff;
+    border-bottom: 1px solid #e2e8f0;
+    position: sticky;
+    top: 0;
+    z-index: 40;
+  }
+
+  .patient-tab {
+    flex: 1;
+    padding: 0.875rem 0.5rem;
+    text-align: center;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: #64748b;
+    background: transparent;
+    border: none;
+    border-bottom: 2px solid transparent;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    min-height: 44px;
+  }
+
+  .patient-tab.active {
+    color: #059669;
+    border-bottom-color: #059669;
+    background: #f0fdf4;
+  }
+
+  .patient-tab-content {
+    display: none;
+  }
+
+  .patient-tab-content.active {
+    display: block;
+  }
+
+  /* Esconder conteúdo de abas inativas em mobile */
+  .patient-focus-mode-mobile .patient-tab-content:not(.active) {
+    display: none;
+  }
+
+  /* Em desktop, mostrar tudo */
+  @media (min-width: 768px) {
+    .patient-tab-bar {
+      display: none;
+    }
+
+    .patient-tab-content {
+      display: block !important;
+    }
+  }
+}
+
 /* Preview Badges */
 .preview-badges {
   display: flex;
