@@ -365,14 +365,20 @@ export default function HomePage() {
   const { setPreview, clearPreview, setOnSelectPatient, setOnSendMessage, previewPayload, previewType } = usePreview();
   const { setActivePatient: setActivePatientFromContext, addOpinion, setLastAnswerForPatient } = useClinicalSession();
 
-  // Detectar mobile
+  // Detectar mobile - inicializar como false para SSR, depois atualizar no cliente
   useEffect(() => {
     const checkMobile = () => {
-      setIsMobile(typeof window !== "undefined" && window.innerWidth < 768);
+      if (typeof window !== "undefined") {
+        setIsMobile(window.innerWidth < 768);
+      }
     };
+    // Verificar imediatamente
     checkMobile();
-    window.addEventListener("resize", checkMobile);
-    return () => window.removeEventListener("resize", checkMobile);
+    // Adicionar listener para resize
+    if (typeof window !== "undefined") {
+      window.addEventListener("resize", checkMobile);
+      return () => window.removeEventListener("resize", checkMobile);
+    }
   }, []);
 
   // Sincronizar activePatientId com o contexto
