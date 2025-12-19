@@ -693,6 +693,8 @@ export default function HomePage() {
       // Sempre usar patient.id válido (não usar activePatientId que pode ser undefined)
       console.log("[handleVoiceNoteResult] Paciente encontrado:", { id: patient.id, nome: patient.nome, leito: patient.leito });
       setActivePatientId(patient.id);
+      // Enviar mensagem ao chat informando a seleção
+      handleSend(`Comando de voz: mostrando paciente do leito ${bed}.`);
       // Não abrir drawer automaticamente para comandos de voz - apenas mudar foco
       // O drawer só abre quando o usuário clica manualmente
       return false; // Encerrar fluxo aqui para comandos de seleção
