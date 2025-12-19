@@ -80,7 +80,7 @@ export function ChatInput({
         }
       }
       if (streamRef.current) {
-        streamRef.current.getTracks().forEach(track => track.stop());
+        streamRef.current.getTracks().forEach(t => t.stop());
         streamRef.current = null;
       }
       mediaRecorderRef.current = null;
@@ -157,8 +157,9 @@ export function ChatInput({
       
       mediaRecorder.onstop = async () => {
         // Parar todas as tracks do stream para liberar o dispositivo
-        if (streamRef.current) {
-          streamRef.current.getTracks().forEach(track => track.stop());
+        const streamToStop = streamRef.current;
+        if (streamToStop) {
+          streamToStop.getTracks().forEach(t => t.stop());
           streamRef.current = null;
         }
         
