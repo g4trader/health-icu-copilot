@@ -98,45 +98,72 @@ export function useWakeWord({
         const SpeechRecognition = (window as any).webkitSpeechRecognition || (window as any).SpeechRecognition;
         const recognition = new SpeechRecognition();
         recognition.continuous = true;
-        recognition.interimResults = false;
+        recognition.interimResults = true; // Mudar para true para detectar mais rápido
         recognition.lang = "pt-BR";
 
+        // Variantes fonéticas das palavras-chave
+        const keywordVariants: Record<string, string[]> = {
+          "virtus": [
+            "virtus", "virtude", "virtu", "virtuz", "virtús", "virtudez",
+            "birtus", "birtuz", "birtude", // variações com 'b'
+            "firtus", "firtuz", // variações com 'f'
+          ],
+          "doctor": [
+            "doctor", "doutor", "doutor", "dotor", "doktor", "doktor",
+            "doutor", "dotor", "doktor", // variações comuns
+          ],
+        };
+
         recognition.onresult = (event: any) => {
-          const transcript = event.results[event.results.length - 1][0].transcript.toLowerCase();
+          // Pegar o último resultado (mais recente)
+          const lastResult = event.results[event.results.length - 1];
+          const transcript = lastResult[0].transcript.toLowerCase().trim();
           const normalized = transcript.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
 
-          // Verificar se contém alguma das palavras-chave
-          for (const keyword of keywords) {
-            const normalizedKeyword = keyword.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-            if (normalized.includes(normalizedKeyword)) {
-              // Wake word detectado!
-              recognition.stop();
-              cleanup();
-              
-              // Tocar beep
-              try {
-                const beep = new Audio("/sounds/wake.mp3");
-                beep.play().catch(() => {
-                  // Se não houver arquivo, criar beep sintético
-                  const beepContext = new (window.AudioContext || (window as any).webkitAudioContext)();
-                  const oscillator = beepContext.createOscillator();
-                  const gainNode = beepContext.createGain();
-                  oscillator.connect(gainNode);
-                  gainNode.connect(beepContext.destination);
-                  oscillator.frequency.value = 800;
-                  oscillator.type = "sine";
-                  gainNode.gain.setValueAtTime(0.3, beepContext.currentTime);
-                  gainNode.gain.exponentialRampToValueAtTime(0.01, beepContext.currentTime + 0.1);
-                  oscillator.start(beepContext.currentTime);
-                  oscillator.stop(beepContext.currentTime + 0.1);
-                });
-              } catch (e) {
-                // Ignorar erros de áudio
-              }
+          console.log("[useWakeWord] Transcript recebido:", transcript);
+          console.log("[useWakeWord] Normalizado:", normalized);
 
-              // Chamar callback
-              onWake();
-              return;
+          // Verificar cada palavra-chave e suas variantes
+          for (const keyword of keywords) {
+            const variants = keywordVariants[keyword] || [keyword];
+            
+            for (const variant of variants) {
+              const normalizedVariant = variant.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+              
+              // Verificar se o transcript contém a variante (como palavra completa ou parte)
+              // Usar regex para verificar como palavra completa ou no início/fim
+              const pattern = new RegExp(`\\b${normalizedVariant}\\b|^${normalizedVariant}|${normalizedVariant}$`, "i");
+              
+              if (pattern.test(normalized) || normalized.includes(normalizedVariant)) {
+                console.log("[useWakeWord] ✅ Wake word detectado:", variant, "em:", transcript);
+                recognition.stop();
+                cleanup();
+                
+                // Tocar beep
+                try {
+                  const beep = new Audio("/sounds/wake.mp3");
+                  beep.play().catch(() => {
+                    // Se não houver arquivo, criar beep sintético
+                    const beepContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+                    const oscillator = beepContext.createOscillator();
+                    const gainNode = beepContext.createGain();
+                    oscillator.connect(gainNode);
+                    gainNode.connect(beepContext.destination);
+                    oscillator.frequency.value = 800;
+                    oscillator.type = "sine";
+                    gainNode.gain.setValueAtTime(0.3, beepContext.currentTime);
+                    gainNode.gain.exponentialRampToValueAtTime(0.01, beepContext.currentTime + 0.1);
+                    oscillator.start(beepContext.currentTime);
+                    oscillator.stop(beepContext.currentTime + 0.1);
+                  });
+                } catch (e) {
+                  // Ignorar erros de áudio
+                }
+
+                // Chamar callback
+                onWake();
+                return;
+              }
             }
           }
         };
