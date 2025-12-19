@@ -3421,14 +3421,17 @@ a {
 
   /* Lista de pacientes mobile */
   .mobile-patients-list {
-    padding: 1rem 0.75rem;
-    width: 100%;
-    max-width: 100vw;
-    overflow-x: hidden;
-    min-height: calc(100vh - 200px); /* Garantir altura mínima */
+    padding: 1rem 0.75rem !important;
+    width: 100% !important;
+    max-width: 100vw !important;
+    overflow-x: hidden !important;
+    min-height: calc(100vh - 200px) !important;
     display: block !important;
     visibility: visible !important;
     opacity: 1 !important;
+    position: relative !important;
+    z-index: 1 !important;
+    background: #ffffff !important;
   }
 
   .mobile-patients-list * {
@@ -3439,6 +3442,10 @@ a {
     display: block !important;
     visibility: visible !important;
     opacity: 1 !important;
+    color: #1e293b !important;
+    font-size: 1.25rem !important;
+    font-weight: 600 !important;
+    margin: 0 0 1rem 0 !important;
   }
 
   .mobile-patients-grid {
@@ -3446,12 +3453,25 @@ a {
     flex-direction: column !important;
     visibility: visible !important;
     opacity: 1 !important;
+    gap: 0.75rem !important;
   }
 
   .mobile-patient-card {
     display: block !important;
     visibility: visible !important;
     opacity: 1 !important;
+    width: 100% !important;
+    padding: 1rem !important;
+    background: #ffffff !important;
+    border: 1px solid #e2e8f0 !important;
+    border-radius: 0.75rem !important;
+    text-align: left !important;
+    cursor: pointer !important;
+    transition: all 0.2s ease !important;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05) !important;
+    min-height: 44px !important;
+    position: relative !important;
+    z-index: 1 !important;
   }
 
   .mobile-patients-title {
