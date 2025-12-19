@@ -62,18 +62,6 @@ export function useWakeWord({
     setState("idle");
   }, []);
 
-  // Função para verificar se há dispositivos de áudio disponíveis
-  const checkAudioDevices = useCallback(async (): Promise<boolean> => {
-    try {
-      const devices = await navigator.mediaDevices.enumerateDevices();
-      const audioInputs = devices.filter(device => device.kind === "audioinput");
-      return audioInputs.length > 0;
-    } catch (error) {
-      console.warn("[useWakeWord] Erro ao enumerar dispositivos:", error);
-      return false;
-    }
-  }, []);
-
   // Função para iniciar detecção
   const start = useCallback(async () => {
     // Só funciona no client
@@ -86,18 +74,12 @@ export function useWakeWord({
       return;
     }
 
-    // Verificar se há dispositivos de áudio disponíveis
-    const hasAudioDevices = await checkAudioDevices();
-    if (!hasAudioDevices) {
-      console.warn("[useWakeWord] Nenhum dispositivo de áudio encontrado. Wake word desabilitado.");
-      setState("error");
-      return;
-    }
-
     try {
       setState("listening");
 
-      // Solicitar permissão de microfone com tratamento de erro específico
+      // Solicitar permissão de microfone diretamente
+      // Não verificar dispositivos antes, pois enumerateDevices pode não retornar
+      // dispositivos reais antes da permissão ser concedida
       let stream: MediaStream;
       try {
         stream = await navigator.mediaDevices.getUserMedia({ 
@@ -107,13 +89,21 @@ export function useWakeWord({
             autoGainControl: true,
           }
         });
+        console.log("[useWakeWord] ✅ Permissão de microfone concedida");
       } catch (mediaError: any) {
+        // Tratar erros específicos
         if (mediaError.name === "NotFoundError" || mediaError.name === "DevicesNotFoundError") {
           console.warn("[useWakeWord] Dispositivo de áudio não encontrado. Wake word desabilitado.");
           setState("error");
           return;
         }
-        throw mediaError; // Re-lançar outros erros
+        if (mediaError.name === "NotAllowedError" || mediaError.name === "PermissionDeniedError") {
+          console.warn("[useWakeWord] Permissão de microfone negada. Wake word desabilitado.");
+          setState("error");
+          return;
+        }
+        // Para outros erros, re-lançar
+        throw mediaError;
       }
       
       audioStreamRef.current = stream;
@@ -233,6 +223,7 @@ export function useWakeWord({
       }
 
       isListeningRef.current = true;
+      console.log("[useWakeWord] ✅ Wake word engine iniciado com sucesso");
     } catch (error: any) {
       console.error("[useWakeWord] Erro ao iniciar wake word:", error);
       
@@ -256,7 +247,7 @@ export function useWakeWord({
       setState("error");
       cleanup();
     }
-  }, [onWake, keywords, cleanup, checkAudioDevices]);
+  }, [onWake, keywords, cleanup]);
 
   // Função para parar detecção
   const stop = useCallback(() => {
@@ -285,14 +276,19 @@ export function useWakeWord({
       return;
     }
 
-    // Tentar iniciar (pode falhar se não houver dispositivo, mas isso é tratado)
-    start().catch((error) => {
-      console.warn("[useWakeWord] Erro ao iniciar wake word automaticamente:", error);
-      // O estado já foi atualizado no catch do start()
-    });
+    // Pequeno delay para garantir que a página carregou completamente
+    // Isso ajuda quando há pop-ups de permissão pendentes
+    const timeoutId = setTimeout(() => {
+      // Tentar iniciar (pode falhar se não houver dispositivo, mas isso é tratado)
+      start().catch((error) => {
+        console.warn("[useWakeWord] Erro ao iniciar wake word automaticamente:", error);
+        // O estado já foi atualizado no catch do start()
+      });
+    }, 500); // 500ms de delay para dar tempo do pop-up de permissão aparecer
 
     // Cleanup ao desmontar
     return () => {
+      clearTimeout(timeoutId);
       stop();
     };
   }, [start, stop]);
