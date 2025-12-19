@@ -1611,6 +1611,13 @@ a {
   height: calc(100vh - 80px);
 }
 
+@media (max-width: 767px) {
+  .app-shell {
+    height: calc(100vh - 60px) !important;
+    min-height: calc(100vh - 60px) !important;
+  }
+}
+
 .main-chat-area {
   display: flex;
   flex-direction: column;
@@ -1622,20 +1629,40 @@ a {
 }
 
 /* Layout da área de chat com footer fixo */
-.main-chat-content {
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-  overflow: hidden;
-}
+  .main-chat-content {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    overflow: hidden;
+  }
 
-.chat-content-scrollable {
-  flex: 1;
-  overflow-y: auto;
-  padding-bottom: 8rem; /* Espaço para o footer fixo */
-  min-height: 0;
-  padding-bottom: 1rem;
-}
+  @media (max-width: 767px) {
+    .main-chat-content {
+      height: 100% !important;
+      min-height: calc(100vh - 60px) !important;
+      overflow-y: auto !important;
+      overflow-x: hidden !important;
+    }
+  }
+
+  .chat-content-scrollable {
+    flex: 1;
+    overflow-y: auto;
+    padding-bottom: 8rem; /* Espaço para o footer fixo */
+    min-height: 0;
+    padding-bottom: 1rem;
+  }
+
+  @media (max-width: 767px) {
+    .chat-content-scrollable {
+      flex: 1 !important;
+      overflow-y: auto !important;
+      overflow-x: hidden !important;
+      min-height: 0 !important;
+      padding-bottom: 120px !important;
+      height: auto !important;
+    }
+  }
 
 .chat-input-footer {
   flex-shrink: 0;
