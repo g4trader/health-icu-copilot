@@ -69,6 +69,25 @@ export function ChatInput({
     }
   }, [errorMessage]);
 
+  // Cleanup: garantir que MediaRecorder e stream sejam limpos ao desmontar
+  useEffect(() => {
+    return () => {
+      if (mediaRecorderRef.current && mediaRecorderRef.current.state !== "inactive") {
+        try {
+          mediaRecorderRef.current.stop();
+        } catch (e) {
+          // Ignorar erros ao parar
+        }
+      }
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach(track => track.stop());
+        streamRef.current = null;
+      }
+      mediaRecorderRef.current = null;
+      audioChunksRef.current = [];
+    };
+  }, []);
+
   function handleMenuAction(action: string) {
     setShowMenu(false);
     
@@ -102,8 +121,21 @@ export function ChatInput({
         return;
       }
       
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      // Limpar qualquer gravação anterior antes de iniciar nova
+      if (mediaRecorderRef.current && mediaRecorderRef.current.state !== "inactive") {
+        try {
+          mediaRecorderRef.current.stop();
+        } catch (e) {
+          // Ignorar erros
+        }
+      }
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach(track => track.stop());
+        streamRef.current = null;
+      }
       
+      // Solicitar acesso ao microfone apenas quando o usuário clicar
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       streamRef.current = stream;
       
       const mediaRecorder = new MediaRecorder(stream, {
@@ -124,6 +156,7 @@ export function ChatInput({
       };
       
       mediaRecorder.onstop = async () => {
+        // Parar todas as tracks do stream para liberar o dispositivo
         if (streamRef.current) {
           streamRef.current.getTracks().forEach(track => track.stop());
           streamRef.current = null;
@@ -139,6 +172,7 @@ export function ChatInput({
       mediaRecorder.start();
       setVoiceState("recording");
     } catch (error: any) {
+      console.error("[ChatInput] Erro ao iniciar gravação:", error);
       const errorMsg = error.name === "NotAllowedError" || error.name === "PermissionDeniedError"
         ? "Permissão de microfone negada. Por favor, permita o acesso ao microfone."
         : error.name === "NotFoundError" || error.name === "DevicesNotFoundError"
