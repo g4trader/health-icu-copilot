@@ -92,129 +92,10 @@ export function ChatInput({
 
   async function startRecording() {
     try {
-      console.log("[ChatInput] startRecording chamado");
       setErrorMessage(null);
       setAudioBlob(null);
       
-      // Verificar se a API está disponível
-      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-        console.error("[ChatInput] MediaDevices API não disponível");
-        setErrorMessage("Seu navegador não suporta gravação de áudio.");
-        setVoiceState("idle");
-        return;
-      }
-      
-      console.log("[ChatInput] Solicitando permissão de microfone...");
-      console.log("[ChatInput] Contexto seguro (HTTPS):", window.location.protocol === "https:" || window.location.hostname === "localhost");
-      
-      // Verificar estado atual da permissão (se disponível)
-      try {
-        if (navigator.permissions && navigator.permissions.query) {
-          const permissionStatus = await navigator.permissions.query({ name: 'microphone' as PermissionName });
-          console.log("[ChatInput] Estado da permissão:", permissionStatus?.state);
-        }
-      } catch (permError) {
-        console.log("[ChatInput] Não foi possível verificar estado da permissão (normal em alguns navegadores)");
-      }
-      
-      // Tentar obter acesso ao microfone
-      // Primeiro tentar com configuração simples para garantir que a solicitação seja feita
-      let stream: MediaStream;
-      try {
-        // Tentar primeiro com configuração simples
-        console.log("[ChatInput] Tentando getUserMedia com configuração simples...");
-        console.log("[ChatInput] Aguardando resposta do navegador...");
-        
-        // Adicionar timeout para detectar se a promise está travada
-        const getUserMediaPromise = navigator.mediaDevices.getUserMedia({ audio: true });
-        const timeoutPromise = new Promise<never>((_, reject) => {
-          setTimeout(() => reject(new Error("Timeout: getUserMedia não respondeu em 10 segundos")), 10000);
-        });
-        
-        stream = await Promise.race([getUserMediaPromise, timeoutPromise]);
-        console.log("[ChatInput] ✅ Permissão de microfone concedida, stream obtido");
-      } catch (mediaError: any) {
-        console.error("[ChatInput] Erro ao obter acesso ao microfone:", mediaError);
-        console.error("[ChatInput] Nome do erro:", mediaError.name);
-        console.error("[ChatInput] Mensagem do erro:", mediaError.message);
-        
-        // Tratar erros específicos de permissão/dispositivo
-        if (mediaError.name === "NotAllowedError" || mediaError.name === "PermissionDeniedError") {
-          console.warn("[ChatInput] Permissão negada pelo usuário");
-          setErrorMessage("Permissão de microfone negada. Por favor, permita o acesso ao microfone nas configurações do navegador.");
-          setVoiceState("idle");
-          return;
-        }
-        
-        if (mediaError.message?.includes("Timeout")) {
-          console.error("[ChatInput] Timeout ao solicitar permissão - o navegador pode não estar respondendo");
-          setErrorMessage("O navegador não respondeu à solicitação de permissão. Tente recarregar a página.");
-          setVoiceState("idle");
-          return;
-        }
-        
-        if (mediaError.name === "NotFoundError" || mediaError.name === "DevicesNotFoundError") {
-          console.log("[ChatInput] NotFoundError detectado, verificando dispositivos disponíveis...");
-          // Verificar se realmente não há dispositivos disponíveis
-          try {
-            // Enumerar dispositivos (já temos permissão, então os nomes devem aparecer)
-            const devices = await navigator.mediaDevices.enumerateDevices();
-            const audioInputs = devices.filter(device => device.kind === "audioinput");
-            console.log("[ChatInput] Total de dispositivos encontrados:", devices.length);
-            console.log("[ChatInput] Dispositivos de áudio encontrados:", audioInputs.length);
-            console.log("[ChatInput] Todos os dispositivos (detalhado):", devices.map(d => ({ 
-              deviceId: d.deviceId, 
-              label: d.label || "(sem nome)",
-              kind: d.kind,
-              groupId: d.groupId
-            })));
-            console.log("[ChatInput] Tipos de dispositivos:", {
-              audioinput: devices.filter(d => d.kind === "audioinput").length,
-              audiooutput: devices.filter(d => d.kind === "audiooutput").length,
-              videoinput: devices.filter(d => d.kind === "videoinput").length
-            });
-            console.log("[ChatInput] Dispositivos de áudio:", audioInputs.map(d => ({ 
-              deviceId: d.deviceId, 
-              label: d.label || "(sem nome)",
-              kind: d.kind 
-            })));
-            
-            if (audioInputs.length === 0) {
-              console.error("[ChatInput] Nenhum dispositivo de áudio de entrada encontrado");
-              // Verificar se há dispositivos de vídeo (pode ter microfone integrado)
-              const videoInputs = devices.filter(device => device.kind === "videoinput");
-              if (videoInputs.length > 0) {
-                console.log("[ChatInput] Dispositivos de vídeo encontrados (podem ter microfone integrado):", videoInputs.length);
-                setErrorMessage("Nenhum microfone dedicado encontrado. Se você tem uma câmera com microfone integrado, tente permitir acesso à câmera também.");
-              } else {
-                setErrorMessage("Nenhum microfone encontrado no sistema. Verifique se há um microfone conectado e habilitado nas configurações do sistema operacional.");
-              }
-            } else {
-              // Há dispositivos listados, mas getUserMedia não conseguiu acessá-los
-              const hasNamedDevices = audioInputs.some(d => d.label && d.label.length > 0);
-              if (!hasNamedDevices) {
-                console.warn("[ChatInput] Dispositivos encontrados mas sem nomes - pode ser problema de permissão ou dispositivo não disponível");
-                setErrorMessage("Microfone detectado, mas não está disponível. Verifique se o microfone está conectado e habilitado nas configurações do sistema.");
-              } else {
-                const deviceNames = audioInputs.filter(d => d.label).map(d => d.label).join(", ");
-                console.error("[ChatInput] Dispositivos encontrados mas não acessíveis:", deviceNames);
-                setErrorMessage(`Microfone(s) encontrado(s) (${deviceNames}), mas não foi possível acessá-lo(s). Verifique se estão habilitados e não estão sendo usados por outro aplicativo.`);
-              }
-            }
-          } catch (enumError: any) {
-            console.error("[ChatInput] Erro ao enumerar dispositivos:", enumError);
-            // Se não conseguir enumerar, assumir que é problema de dispositivo
-            setErrorMessage("Não foi possível verificar dispositivos de microfone. Verifique se há um microfone conectado e habilitado nas configurações do sistema.");
-          }
-          setVoiceState("idle");
-          return;
-        }
-        
-        // Outros erros
-        setErrorMessage(`Erro ao acessar microfone: ${mediaError.message || "Erro desconhecido"}`);
-        setVoiceState("idle");
-        return;
-      }
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       
       streamRef.current = stream;
       
@@ -251,9 +132,13 @@ export function ChatInput({
       mediaRecorder.start();
       setVoiceState("recording");
     } catch (error: any) {
-      // Erro geral não capturado acima
-      console.error("[ChatInput] Erro inesperado ao iniciar gravação:", error);
-      setErrorMessage(`Erro ao iniciar gravação: ${error.message || "Erro desconhecido"}`);
+      const errorMsg = error.name === "NotAllowedError" || error.name === "PermissionDeniedError"
+        ? "Permissão de microfone negada. Por favor, permita o acesso ao microfone."
+        : error.name === "NotFoundError" || error.name === "DevicesNotFoundError"
+        ? "Nenhum microfone encontrado."
+        : `Erro ao iniciar gravação: ${error.message}`;
+      
+      setErrorMessage(errorMsg);
       setVoiceState("idle");
     }
   }
