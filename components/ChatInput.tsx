@@ -160,12 +160,19 @@ export function ChatInput({
             // Enumerar dispositivos (já temos permissão, então os nomes devem aparecer)
             const devices = await navigator.mediaDevices.enumerateDevices();
             const audioInputs = devices.filter(device => device.kind === "audioinput");
+            console.log("[ChatInput] Total de dispositivos encontrados:", devices.length);
             console.log("[ChatInput] Dispositivos de áudio encontrados:", audioInputs.length);
-            console.log("[ChatInput] Todos os dispositivos:", devices.map(d => ({ 
+            console.log("[ChatInput] Todos os dispositivos (detalhado):", devices.map(d => ({ 
               deviceId: d.deviceId, 
               label: d.label || "(sem nome)",
-              kind: d.kind 
+              kind: d.kind,
+              groupId: d.groupId
             })));
+            console.log("[ChatInput] Tipos de dispositivos:", {
+              audioinput: devices.filter(d => d.kind === "audioinput").length,
+              audiooutput: devices.filter(d => d.kind === "audiooutput").length,
+              videoinput: devices.filter(d => d.kind === "videoinput").length
+            });
             console.log("[ChatInput] Dispositivos de áudio:", audioInputs.map(d => ({ 
               deviceId: d.deviceId, 
               label: d.label || "(sem nome)",
@@ -173,8 +180,15 @@ export function ChatInput({
             })));
             
             if (audioInputs.length === 0) {
-              console.error("[ChatInput] Nenhum dispositivo de áudio encontrado no sistema");
-              setErrorMessage("Nenhum microfone encontrado no sistema. Verifique se há um microfone conectado e habilitado nas configurações do sistema operacional.");
+              console.error("[ChatInput] Nenhum dispositivo de áudio de entrada encontrado");
+              // Verificar se há dispositivos de vídeo (pode ter microfone integrado)
+              const videoInputs = devices.filter(device => device.kind === "videoinput");
+              if (videoInputs.length > 0) {
+                console.log("[ChatInput] Dispositivos de vídeo encontrados (podem ter microfone integrado):", videoInputs.length);
+                setErrorMessage("Nenhum microfone dedicado encontrado. Se você tem uma câmera com microfone integrado, tente permitir acesso à câmera também.");
+              } else {
+                setErrorMessage("Nenhum microfone encontrado no sistema. Verifique se há um microfone conectado e habilitado nas configurações do sistema operacional.");
+              }
             } else {
               // Há dispositivos listados, mas getUserMedia não conseguiu acessá-los
               const hasNamedDevices = audioInputs.some(d => d.label && d.label.length > 0);
