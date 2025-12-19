@@ -59,6 +59,16 @@ export function ChatInput({
     }
   }, [showMenu, isPatientMenuOpen]);
 
+  // Limpar mensagem de erro automaticamente após 5 segundos
+  useEffect(() => {
+    if (errorMessage) {
+      const timer = setTimeout(() => {
+        setErrorMessage(null);
+      }, 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [errorMessage]);
+
   function handleMenuAction(action: string) {
     setShowMenu(false);
     
