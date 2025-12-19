@@ -2032,6 +2032,20 @@ a {
   height: 20px;
 }
 
+/* Animação de loading para ícone de transcrição */
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.animate-spin {
+  animation: spin 1s linear infinite;
+}
+
 /* Estados de voz minimalistas */
 .voice-rec-btn {
   position: relative;
