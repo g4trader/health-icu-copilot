@@ -92,26 +92,29 @@ export function ChatInput({
 
   async function startRecording() {
     try {
+      console.log("[ChatInput] startRecording chamado");
       setErrorMessage(null);
       setAudioBlob(null);
       
       // Verificar se a API está disponível
       if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        console.error("[ChatInput] MediaDevices API não disponível");
         setErrorMessage("Seu navegador não suporta gravação de áudio.");
         setVoiceState("idle");
         return;
       }
       
+      console.log("[ChatInput] Solicitando permissão de microfone...");
+      console.log("[ChatInput] Contexto seguro (HTTPS):", window.location.protocol === "https:" || window.location.hostname === "localhost");
+      
       // Tentar obter acesso ao microfone
+      // Primeiro tentar com configuração simples para garantir que a solicitação seja feita
       let stream: MediaStream;
       try {
-        stream = await navigator.mediaDevices.getUserMedia({ 
-          audio: {
-            echoCancellation: true,
-            noiseSuppression: true,
-            autoGainControl: true,
-          }
-        });
+        // Tentar primeiro com configuração simples
+        console.log("[ChatInput] Tentando getUserMedia com configuração simples...");
+        stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        console.log("[ChatInput] ✅ Permissão de microfone concedida, stream obtido");
       } catch (mediaError: any) {
         // Tratar erros específicos de permissão/dispositivo
         if (mediaError.name === "NotAllowedError" || mediaError.name === "PermissionDeniedError") {
@@ -324,10 +327,17 @@ export function ChatInput({
   }
 
   function handleVoiceButtonClick() {
+    console.log("[ChatInput] handleVoiceButtonClick chamado, voiceState:", voiceState);
     if (voiceState === "idle") {
-      startRecording();
+      console.log("[ChatInput] Iniciando gravação...");
+      startRecording().catch((error) => {
+        console.error("[ChatInput] Erro ao iniciar gravação:", error);
+        setErrorMessage(`Erro ao iniciar gravação: ${error.message || "Erro desconhecido"}`);
+        setVoiceState("idle");
+      });
     } else if (voiceState === "recording") {
       // Clicar no microfone durante gravação = parar e enviar
+      console.log("[ChatInput] Parando gravação...");
       stopRecording();
     }
     // Se estiver em "transcribing", não fazer nada (aguardar conclusão)
