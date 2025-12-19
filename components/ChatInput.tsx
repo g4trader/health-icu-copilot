@@ -280,17 +280,10 @@ export function ChatInput({
   }
 
   function handleVoiceButtonClick() {
-    console.log("[ChatInput] handleVoiceButtonClick chamado, voiceState:", voiceState);
     if (voiceState === "idle") {
-      console.log("[ChatInput] Iniciando gravação...");
-      startRecording().catch((error) => {
-        console.error("[ChatInput] Erro ao iniciar gravação:", error);
-        setErrorMessage(`Erro ao iniciar gravação: ${error.message || "Erro desconhecido"}`);
-        setVoiceState("idle");
-      });
+      startRecording();
     } else if (voiceState === "recording") {
       // Clicar no microfone durante gravação = parar e enviar
-      console.log("[ChatInput] Parando gravação...");
       stopRecording();
     }
     // Se estiver em "transcribing", não fazer nada (aguardar conclusão)
