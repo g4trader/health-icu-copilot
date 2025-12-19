@@ -3398,10 +3398,33 @@ a {
     width: 100%;
     max-width: 100vw;
     overflow-x: hidden;
+    min-height: calc(100vh - 200px); /* Garantir altura mínima */
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
   }
 
   .mobile-patients-list * {
     max-width: 100%;
+  }
+
+  .mobile-patients-title {
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+  }
+
+  .mobile-patients-grid {
+    display: flex !important;
+    flex-direction: column !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+  }
+
+  .mobile-patient-card {
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
   }
 
   .mobile-patients-title {

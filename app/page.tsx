@@ -943,7 +943,8 @@ export default function HomePage() {
                           className="mobile-patient-card"
                           onClick={() => {
                             setActivePatientId(patient.id);
-                            showPatientOverviewInline(patient.id);
+                            // Em mobile, enviar mensagem para mostrar visão geral
+                            void handleSend(`Me dê um resumo do paciente da ${patient.leito} (${patient.nome}).`, undefined, patient.id);
                           }}
                         >
                           <div className="mobile-patient-card-header">
