@@ -95,6 +95,13 @@ export function ChatInput({
       setErrorMessage(null);
       setAudioBlob(null);
       
+      // Verificar se está em contexto seguro
+      if (typeof window === "undefined" || !navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        setErrorMessage("Gravação de áudio não está disponível neste navegador.");
+        setVoiceState("idle");
+        return;
+      }
+      
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       
       streamRef.current = stream;
