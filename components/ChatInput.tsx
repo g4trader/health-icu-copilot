@@ -154,19 +154,44 @@ export function ChatInput({
         }
         
         if (mediaError.name === "NotFoundError" || mediaError.name === "DevicesNotFoundError") {
+          console.log("[ChatInput] NotFoundError detectado, verificando dispositivos disponíveis...");
           // Verificar se realmente não há dispositivos disponíveis
           try {
+            // Primeiro, tentar obter permissão para enumerar dispositivos com nomes reais
+            // (sem permissão, os nomes aparecem como strings vazias)
+            try {
+              await navigator.mediaDevices.getUserMedia({ audio: true });
+            } catch (e) {
+              // Ignorar erro, apenas queremos "ativar" a enumeração
+            }
+            
             const devices = await navigator.mediaDevices.enumerateDevices();
             const audioInputs = devices.filter(device => device.kind === "audioinput");
+            console.log("[ChatInput] Dispositivos de áudio encontrados:", audioInputs.length);
+            console.log("[ChatInput] Dispositivos:", audioInputs.map(d => ({ 
+              deviceId: d.deviceId, 
+              label: d.label || "(sem nome - precisa de permissão)",
+              kind: d.kind 
+            })));
+            
             if (audioInputs.length === 0) {
-              setErrorMessage("Nenhum microfone encontrado. Verifique se há um microfone conectado.");
+              console.error("[ChatInput] Nenhum dispositivo de áudio encontrado no sistema");
+              setErrorMessage("Nenhum microfone encontrado. Verifique se há um microfone conectado e habilitado nas configurações do sistema.");
             } else {
               // Há dispositivos, mas pode ser problema de permissão ou acesso
-              setErrorMessage("Não foi possível acessar o microfone. Verifique as permissões do navegador.");
+              const hasNamedDevices = audioInputs.some(d => d.label && d.label.length > 0);
+              if (!hasNamedDevices) {
+                console.warn("[ChatInput] Dispositivos encontrados mas sem nomes - pode ser problema de permissão");
+                setErrorMessage("Microfone encontrado, mas não foi possível acessá-lo. Verifique as permissões do navegador e tente novamente.");
+              } else {
+                console.error("[ChatInput] Dispositivos encontrados mas não acessíveis");
+                setErrorMessage("Não foi possível acessar o microfone. Verifique se ele está habilitado nas configurações do sistema e do navegador.");
+              }
             }
-          } catch (enumError) {
-            // Se não conseguir enumerar, assumir que é problema de permissão
-            setErrorMessage("Não foi possível acessar o microfone. Verifique as permissões do navegador.");
+          } catch (enumError: any) {
+            console.error("[ChatInput] Erro ao enumerar dispositivos:", enumError);
+            // Se não conseguir enumerar, assumir que é problema de permissão ou dispositivo
+            setErrorMessage("Não foi possível acessar o microfone. Verifique se há um microfone conectado e se as permissões estão corretas.");
           }
           setVoiceState("idle");
           return;
