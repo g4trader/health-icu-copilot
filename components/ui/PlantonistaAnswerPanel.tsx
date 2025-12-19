@@ -153,18 +153,36 @@ export function PlantonistaAnswerPanel({
       )}
 
       {/* Andar 4: Parecer resumido - dentro de card */}
-      {/* Priorizar voiceNoteSummary do paciente se disponível, senão usar plainTextAnswer */}
-      {(patient?.voiceNoteSummary || content.plainTextAnswer) && (
-        <section 
-          className="plantonista-section plantonista-section-opinion"
-          key={`parecer-${patient?.id || 'default'}-${patient?.voiceNoteSummary ? patient.voiceNoteSummary.substring(0, 30).replace(/\s/g, '-') : 'default'}-${Date.now()}`}
-        >
-          <div className="plantonista-opinion-card">
-            <h3 className="plantonista-section-title">Parecer do Plantonista</h3>
-            <OpinionBullets text={patient?.voiceNoteSummary || content.plainTextAnswer || ''} />
-          </div>
-        </section>
-      )}
+      {/* IMPORTANTE: Priorizar voiceNoteSummary do paciente se disponível, senão usar plainTextAnswer */}
+      {(() => {
+        // Determinar qual texto usar: priorizar voiceNoteSummary se disponível
+        const opinionText = patient?.voiceNoteSummary || content.plainTextAnswer || '';
+        const hasVoiceNote = !!patient?.voiceNoteSummary;
+        
+        console.log("[PlantonistaAnswerPanel] Renderizando parecer:", {
+          patientId: patient?.id,
+          patientName: patient?.nome,
+          hasVoiceNoteSummary: hasVoiceNote,
+          voiceNoteSummary: patient?.voiceNoteSummary?.substring(0, 50),
+          hasPlainTextAnswer: !!content.plainTextAnswer,
+          plainTextAnswer: content.plainTextAnswer?.substring(0, 50),
+          finalText: opinionText.substring(0, 50)
+        });
+        
+        if (!opinionText) return null;
+        
+        return (
+          <section 
+            className="plantonista-section plantonista-section-opinion"
+            key={`parecer-${patient?.id || 'default'}-${hasVoiceNote ? patient.voiceNoteSummary!.substring(0, 30).replace(/\s/g, '-') : 'plaintext'}-${Date.now()}`}
+          >
+            <div className="plantonista-opinion-card">
+              <h3 className="plantonista-section-title">Parecer do Plantonista</h3>
+              <OpinionBullets text={opinionText} />
+            </div>
+          </section>
+        );
+      })()}
 
       {/* CTA para ver evolução completa */}
       {content.focusPayload?.patientId && (
