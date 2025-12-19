@@ -17,22 +17,11 @@ export function buildPlantonistaOpinion(patient: Patient, structured: any): stri
   }
   
   const status = structured.statusClinico ?? "estável";
-  const plano = structured.plano ?? null;
+  const plano = structured.plano ?? "Plano não especificado.";
   
   const parts: string[] = [
     `Paciente ${patient.nome} (${patient.idade} anos), leito ${patient.leito}.`
   ];
-  
-  // Adicionar diagnóstico principal se disponível
-  if (patient.diagnosticoPrincipal) {
-    parts.push(`Diagnóstico: ${patient.diagnosticoPrincipal}.`);
-  }
-  
-  // Adicionar risco de mortalidade se disponível
-  if (patient.riscoMortality24h !== undefined) {
-    const riskPercent = Math.round(patient.riscoMortality24h * 100);
-    parts.push(`Risco de mortalidade em 24h: ${riskPercent}%.`);
-  }
   
   // Adicionar status clínico se disponível
   if (structured.statusClinico) {
@@ -42,34 +31,14 @@ export function buildPlantonistaOpinion(patient: Patient, structured: any): stri
   // Adicionar informações adicionais se disponíveis
   if (structured.diureseAdequada === true) {
     parts.push("Diurese adequada.");
-  } else if (structured.diureseAdequada === false) {
-    parts.push("Diurese inadequada.");
   }
-  
   if (structured.sinaisVitaisBons === true) {
     parts.push("Sinais vitais bons.");
-  } else if (structured.sinaisVitaisBons === false) {
-    parts.push("Sinais vitais alterados.");
-  }
-  
-  // Adicionar exames recentes se disponível
-  if (structured.examesRecentes) {
-    parts.push(`Exames recentes: ${structured.examesRecentes}.`);
-  }
-  
-  // Adicionar radiologia se disponível
-  if (structured.radiologia) {
-    parts.push(`Radiologia: ${structured.radiologia}.`);
   }
   
   // Adicionar plano
-  if (plano) {
+  if (structured.plano) {
     parts.push(`Plano: ${plano}`);
-  }
-  
-  // Se não houver informações suficientes, adicionar mensagem padrão
-  if (parts.length <= 2) {
-    parts.push("Avaliação clínica realizada via nota de voz.");
   }
   
   return parts.join(" ");

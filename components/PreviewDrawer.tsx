@@ -240,7 +240,12 @@ function AllPatientsPreview({ payload }: { payload: PreviewPayload | null }) {
         console.error('[AllPatientsPreview] Erro ao enviar mensagem:', error);
       }
     }
-    onSelectPatient?.(patientId);
+    // Verificar se patientId é válido antes de chamar onSelectPatient
+    if (patientId && onSelectPatient) {
+      onSelectPatient(patientId);
+    } else if (!patientId) {
+      console.warn('[AllPatientsPreview] patientId não válido, não chamando onSelectPatient');
+    }
   };
 
   return (
@@ -287,7 +292,12 @@ function VentilatedPreview() {
         console.error('[VentilatedPreview] Erro ao enviar mensagem:', error);
       }
     }
-    onSelectPatient?.(patientId);
+    // Verificar se patientId é válido antes de chamar onSelectPatient
+    if (patientId && onSelectPatient) {
+      onSelectPatient(patientId);
+    } else if (!patientId) {
+      console.warn('[VentilatedPreview] patientId não válido, não chamando onSelectPatient');
+    }
   };
 
   return (
@@ -336,7 +346,12 @@ function VasopressorsPreview() {
         console.error('[VasopressorsPreview] Erro ao enviar mensagem:', error);
       }
     }
-    onSelectPatient?.(patientId);
+    // Verificar se patientId é válido antes de chamar onSelectPatient
+    if (patientId && onSelectPatient) {
+      onSelectPatient(patientId);
+    } else if (!patientId) {
+      console.warn('[VasopressorsPreview] patientId não válido, não chamando onSelectPatient');
+    }
   };
 
   return (

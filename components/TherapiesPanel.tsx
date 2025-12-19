@@ -72,3 +72,4 @@ export function TherapiesPanel({ patient }: TherapiesPanelProps) {
 
 
 
+

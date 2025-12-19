@@ -67,9 +67,12 @@ export function PatientCard({
       if (onSendMessage) {
         console.log('[PatientCard] Usando onSendMessage do contexto', { patientId: patient.id, message });
         onSendMessage(message, patient.id);
-        onSelectPatient?.(patient.id);
+        // Verificar se patient.id é válido antes de chamar onSelectPatient
+        if (patient.id && onSelectPatient) {
+          onSelectPatient(patient.id);
+        }
         // Ainda chamar onSelect para outras ações se necessário
-        if (onSelect) {
+        if (onSelect && patient.id) {
           onSelect(patient.id);
         }
         return;

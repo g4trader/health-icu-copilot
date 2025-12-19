@@ -4,7 +4,6 @@ import { useState, useRef, useEffect } from "react";
 import { FileText, GraduationCap } from "lucide-react";
 import type { ClinicalAgentType } from "@/lib/clinicalAgents";
 import type { Patient } from "@/lib/mockData";
-import { useWakeWord } from "@/hooks/useWakeWord";
 
 interface ChatInputProps {
   value: string;
@@ -38,30 +37,11 @@ export function ChatInput({
   const [voiceState, setVoiceState] = useState<"idle" | "recording" | "transcribing">("idle");
   const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [wakeWordDetected, setWakeWordDetected] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const patientMenuRef = useRef<HTMLDivElement>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
   const streamRef = useRef<MediaStream | null>(null);
-  
-  // Wake word detection
-  const handleWakeWord = () => {
-    // Só iniciar gravação se estiver em idle
-    if (voiceState === "idle") {
-      setWakeWordDetected(true);
-      // Remover o indicador após alguns segundos
-      setTimeout(() => setWakeWordDetected(false), 3000);
-      // Iniciar gravação
-      startRecording();
-    }
-    // Se já estiver gravando ou transcrevendo, ignorar
-  };
-  
-  const { state: wakeWordState } = useWakeWord({
-    onWake: handleWakeWord,
-    keywords: ["virtus", "doctor"],
-  });
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -415,11 +395,7 @@ export function ChatInput({
 
         <input
           type="text"
-          placeholder={
-            wakeWordDetected
-              ? "Ouvindo… fale seu comando ou parecer clínico"
-              : "Digite sua pergunta..."
-          }
+          placeholder="Digite sua pergunta..."
           className="chat-input-field"
           value={value}
           autoComplete="off"
@@ -443,17 +419,6 @@ export function ChatInput({
           disabled={loading}
         />
 
-        {/* Indicador de wake word listening */}
-        {wakeWordState === "listening" && voiceState === "idle" && (
-          <div 
-            className="wake-word-indicator"
-            title="Aguardando wake word 'virtus' / 'doctor'"
-            aria-label="Wake word ativo"
-          >
-            <div className="wake-word-dot"></div>
-          </div>
-        )}
-        
         {/* Botão de microfone */}
         <button
           type="button"
