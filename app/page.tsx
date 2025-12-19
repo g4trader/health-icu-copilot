@@ -920,9 +920,9 @@ export default function HomePage() {
         </header>
 
         <AppShell>
-          <div className="main-chat-content">
-            <main className="chat-content-scrollable">
-              <div className="chat-container">
+          <div className="main-chat-content" style={{ width: '100%', maxWidth: '100vw', overflowX: 'hidden' }}>
+            <main className="chat-content-scrollable" style={{ width: '100%', maxWidth: '100vw', overflowX: 'hidden' }}>
+              <div className="chat-container" style={{ width: '100%', maxWidth: '100vw', overflowX: 'hidden' }}>
                 <div className="mobile-patients-list">
                   <h2 className="mobile-patients-title">Pacientes da UTI</h2>
                   <div className="mobile-patients-grid">
