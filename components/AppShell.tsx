@@ -9,7 +9,7 @@ interface AppShellProps {
 }
 
 export function AppShell({ children }: AppShellProps) {
-  const [isMobile, setIsMobile] = useState(false);
+  const [isMobile, setIsMobile] = useState(true); // Iniciar como true para evitar flash da sidebar
 
   useEffect(() => {
     const checkMobile = () => {
@@ -17,6 +17,7 @@ export function AppShell({ children }: AppShellProps) {
         setIsMobile(window.innerWidth < 768);
       }
     };
+    // Verificar imediatamente no mount
     checkMobile();
     if (typeof window !== "undefined") {
       window.addEventListener("resize", checkMobile);
