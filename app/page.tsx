@@ -671,39 +671,31 @@ export default function HomePage() {
       return false;
     }
 
-    // Verificar se é um comando de navegação de paciente
-    if (result.command && result.command.type === "select-patient") {
-      const bedNumber = result.command.bed;
-      console.log("[handleVoiceNoteResult] Comando de seleção detectado:", { bed: bedNumber });
-      
-      // IMPORTANTE: Para comandos de seleção, apenas abrir o drawer do paciente
-      // NÃO chamar LLM, NÃO atualizar voiceNoteSummary, NÃO atualizar snapshots
+    // Tratar explicitamente o caso de comando select-patient
+    if (result.command?.type === "select-patient") {
+      const bed = result.command.bed;
+      console.log("[handleVoiceNoteResult] Comando de seleção detectado:", { bed });
       
       // Buscar paciente pelo leito
-      const bedStr = String(bedNumber).padStart(2, '0');
-      const patientByBed = mockPatients.find(p => 
+      const bedStr = String(bed).padStart(2, '0');
+      const patient = mockPatients.find(p => 
         p.leito.includes(bedStr) || 
-        p.leito.includes(String(bedNumber)) ||
-        p.leito.replace(/\D/g, '') === String(bedNumber)
+        p.leito.includes(String(bed)) ||
+        p.leito.replace(/\D/g, '') === String(bed)
       );
       
-      if (patientByBed) {
-        console.log("[handleVoiceNoteResult] Paciente encontrado:", { id: patientByBed.id, nome: patientByBed.nome, leito: patientByBed.leito });
-        // Apenas mudar o foco do paciente no chat (não abrir drawer lateral)
-        // O drawer só abre quando o usuário clica manualmente
-        setActivePatientId(patientByBed.id);
-        // NÃO chamar showPatientOverviewInline para comandos de voz
-        // Isso evitaria a duplicação de mensagens
-        // A mensagem "Comando de voz: mostrando paciente do leito X" já foi adicionada no ChatInput
-        // Se o usuário quiser ver o overview completo, pode clicar no card do paciente
-        // Não fazer mais nada - encerrar o fluxo aqui
+      if (!patient) {
+        console.warn("[handleVoiceNoteResult] Nenhum paciente encontrado para leito", bed);
+        handleSend(`Paciente do leito ${bed} não encontrado.`);
         return false;
-      } else {
-        console.warn("[handleVoiceNoteResult] Paciente não encontrado para leito:", bedNumber);
-        // Adicionar mensagem de erro no chat
-        handleSend(`Paciente do leito ${bedNumber} não encontrado.`);
-        return false; // Encerrar fluxo mesmo se não encontrou
       }
+      
+      // Sempre usar patient.id válido (não usar activePatientId que pode ser undefined)
+      console.log("[handleVoiceNoteResult] Paciente encontrado:", { id: patient.id, nome: patient.nome, leito: patient.leito });
+      setActivePatientId(patient.id);
+      // Não abrir drawer automaticamente para comandos de voz - apenas mudar foco
+      // O drawer só abre quando o usuário clica manualmente
+      return false; // Encerrar fluxo aqui para comandos de seleção
     }
 
     // Se não for comando de seleção, verificar se é intenção de atualizar parecer

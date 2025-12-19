@@ -256,31 +256,27 @@ export function ChatInput({
       
       const data = await response.json();
       
-      // Verificar se é um comando de voz (navegação ou atualização de parecer)
+      // Se existir data.command, chamar onVoiceResult e retornar imediatamente
+      // sem processar como nota clínica
       if (data.command) {
-        if (data.command.type === "select-patient") {
-          // Comando de navegação - apenas mudar foco, não processar como nota clínica
-          console.log("[ChatInput] Comando de seleção de paciente detectado");
-          
-          // Adicionar mensagem no chat informando o comando
-          onSend(`Comando de voz: mostrando paciente do leito ${data.command.bed}.`);
-          
-          // Chamar handler para mudar foco do paciente (sem processar como nota clínica)
-          if (onVoiceResult) {
-            onVoiceResult({ text: data.text, command: data.command });
-          }
-        } else if (data.command.type === "update-opinion") {
-          // Comando de atualização de parecer - processar normalmente
-          console.log("[ChatInput] Comando de atualização de parecer detectado");
-          
+        console.log("[ChatInput] Comando detectado:", data.command);
+        if (onVoiceResult) {
+          const result: { text: string; command: any; structured?: any } = { 
+            text: data.text, 
+            command: data.command 
+          };
           if (data.structured) {
-            if (onVoiceResult) {
-              onVoiceResult({ text: data.text, structured: data.structured, command: data.command });
-            }
-            // Não enviar a nota como mensagem - o parecer já foi atualizado
+            result.structured = data.structured;
           }
+          onVoiceResult(result);
         }
-      } else if (data.error) {
+        setVoiceState("idle");
+        setAudioBlob(null);
+        return; // Retornar imediatamente, sem processar como nota clínica
+      }
+      
+      // Se não for comando, processar normalmente
+      if (data.error) {
         // Erro na API (ex: tentou atualizar parecer sem paciente selecionado)
         onSend(data.error);
         if (onVoiceResult) {
