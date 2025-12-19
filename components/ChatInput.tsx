@@ -278,9 +278,10 @@ export function ChatInput({
       // Se não for comando, processar normalmente
       if (data.error) {
         // Erro na API (ex: tentou atualizar parecer sem paciente selecionado)
+        console.log("[ChatInput] Erro recebido da API:", data.error);
         onSend(data.error);
         if (onVoiceResult) {
-          onVoiceResult({ text: data.text, error: data.error });
+          onVoiceResult({ text: data.text || "", error: data.error });
         }
       } else if (data.structured) {
         // Nota clínica normal - verificar se foi processada como parecer
@@ -304,6 +305,16 @@ export function ChatInput({
         } else {
           console.log("[ChatInput] ⚠️ Condição não atendida - wasProcessedAsOpinion:", wasProcessedAsOpinion, "data.text:", !!data.text);
         }
+      } else if (data.text) {
+        // Se não houver structured mas houver text, enviar como mensagem normal
+        console.log("[ChatInput] Resposta sem structured, enviando texto transcrito:", data.text);
+        onSend(`Nota de voz: ${data.text}`);
+        if (onVoiceResult) {
+          onVoiceResult({ text: data.text });
+        }
+      } else {
+        // Caso inesperado - logar para debug
+        console.warn("[ChatInput] Resposta da API sem text, structured ou error:", data);
       }
       
       // Limpar e voltar para idle
