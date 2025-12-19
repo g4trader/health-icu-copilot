@@ -143,13 +143,12 @@ export function PlantonistaAnswerPanel({
             aria-label="Nota de voz"
             title="Gravar nota de voz"
             onClick={() => {
-              setActiveTab("evolution");
-              setTimeout(() => {
-                const evolutionSection = document.querySelector('.patient-tab-content.active .plantonista-section-evolution');
-                if (evolutionSection) {
-                  evolutionSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                }
-              }, 100);
+              // Em mobile, o microfone está no ChatInput fixo no rodapé
+              // Este botão pode ser usado para scroll até o chat ou apenas indicar que o microfone está disponível
+              const chatInput = document.querySelector('.chat-input-footer');
+              if (chatInput) {
+                chatInput.scrollIntoView({ behavior: 'smooth', block: 'end' });
+              }
             }}
           >
             <Mic className="w-5 h-5" />
@@ -157,7 +156,7 @@ export function PlantonistaAnswerPanel({
         </div>
       )}
 
-      {/* Tab bar para mobile */}
+      {/* Tab bar para mobile - apenas "Visão geral" quando há paciente ativo */}
       {isMobile && content.focusPayload && (
         <div className="patient-tab-bar">
           <button
@@ -166,20 +165,6 @@ export function PlantonistaAnswerPanel({
             onClick={() => setActiveTab("overview")}
           >
             Visão geral
-          </button>
-          <button
-            type="button"
-            className={`patient-tab ${activeTab === "evolution" ? "active" : ""}`}
-            onClick={() => setActiveTab("evolution")}
-          >
-            Evolução
-          </button>
-          <button
-            type="button"
-            className={`patient-tab ${activeTab === "opinion" ? "active" : ""}`}
-            onClick={() => setActiveTab("opinion")}
-          >
-            Parecer
           </button>
         </div>
       )}
@@ -210,7 +195,7 @@ export function PlantonistaAnswerPanel({
         </section>
       )}
 
-      {/* Conteúdo da aba Visão geral */}
+      {/* Conteúdo da aba Visão geral - em mobile mostra apenas isso quando há paciente */}
       <div className={`patient-tab-content ${!isMobile || activeTab === "overview" ? "active" : ""}`}>
         {/* Andar 2: Dashboards de decisão - dentro de card */}
         {orderedDashboards.length > 0 && (
@@ -227,41 +212,45 @@ export function PlantonistaAnswerPanel({
         )}
       </div>
 
-      {/* Conteúdo da aba Evolução */}
-      <div className={`patient-tab-content ${!isMobile || activeTab === "evolution" ? "active" : ""}`}>
-        {/* Andar 3: Evolução - apenas timeline, eventos marcantes vão no preview */}
-        {patient && dailyStatus.length > 0 && (
-          <section className="plantonista-section plantonista-section-evolution">
-            <div className="plantonista-evolution-card">
-              <h3 className="plantonista-section-title">Evolução na UTI</h3>
-              <div className="plantonista-evolution-timeline">
-                <PatientBigTimeline
-                  dailyStatus={dailyStatus}
-                  highlights={content.timelineHighlights}
-                />
+      {/* Conteúdo da aba Evolução - apenas em desktop ou se não for mobile */}
+      {!isMobile && (
+        <div className={`patient-tab-content ${!isMobile || activeTab === "evolution" ? "active" : ""}`}>
+          {/* Andar 3: Evolução - apenas timeline, eventos marcantes vão no preview */}
+          {patient && dailyStatus.length > 0 && (
+            <section className="plantonista-section plantonista-section-evolution">
+              <div className="plantonista-evolution-card">
+                <h3 className="plantonista-section-title">Evolução na UTI</h3>
+                <div className="plantonista-evolution-timeline">
+                  <PatientBigTimeline
+                    dailyStatus={dailyStatus}
+                    highlights={content.timelineHighlights}
+                  />
+                </div>
               </div>
-            </div>
-          </section>
-        )}
-      </div>
+            </section>
+          )}
+        </div>
+      )}
 
-      {/* Conteúdo da aba Parecer */}
-      <div className={`patient-tab-content ${!isMobile || activeTab === "opinion" ? "active" : ""}`}>
-        {/* Andar 4: Parecer resumido - dentro de card */}
-        {/* IMPORTANTE: Priorizar voiceNoteSummary do paciente se disponível, senão usar plainTextAnswer */}
-        {/* Só renderizar se houver texto para exibir */}
-        {(patient?.voiceNoteSummary || content.plainTextAnswer) && (
-          <section 
-            className="plantonista-section plantonista-section-opinion"
-            key={`parecer-${patient?.id || 'default'}-${patient?.voiceNoteSummary ? patient.voiceNoteSummary.substring(0, 30).replace(/\s/g, '-') : 'plaintext'}-${patientUpdateKey || 0}`}
-          >
-            <div className="plantonista-opinion-card">
-              <h3 className="plantonista-section-title">Parecer do Plantonista</h3>
-              <OpinionBullets text={patient?.voiceNoteSummary || content.plainTextAnswer || ''} />
-            </div>
-          </section>
-        )}
-      </div>
+      {/* Conteúdo da aba Parecer - apenas em desktop ou se não for mobile */}
+      {!isMobile && (
+        <div className={`patient-tab-content ${!isMobile || activeTab === "opinion" ? "active" : ""}`}>
+          {/* Andar 4: Parecer resumido - dentro de card */}
+          {/* IMPORTANTE: Priorizar voiceNoteSummary do paciente se disponível, senão usar plainTextAnswer */}
+          {/* Só renderizar se houver texto para exibir */}
+          {(patient?.voiceNoteSummary || content.plainTextAnswer) && (
+            <section 
+              className="plantonista-section plantonista-section-opinion"
+              key={`parecer-${patient?.id || 'default'}-${patient?.voiceNoteSummary ? patient.voiceNoteSummary.substring(0, 30).replace(/\s/g, '-') : 'plaintext'}-${patientUpdateKey || 0}`}
+            >
+              <div className="plantonista-opinion-card">
+                <h3 className="plantonista-section-title">Parecer do Plantonista</h3>
+                <OpinionBullets text={patient?.voiceNoteSummary || content.plainTextAnswer || ''} />
+              </div>
+            </section>
+          )}
+        </div>
+      )}
 
       {/* CTA para ver evolução completa */}
       {content.focusPayload?.patientId && (

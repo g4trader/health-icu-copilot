@@ -356,11 +356,24 @@ export default function HomePage() {
   const [expandedPatientId, setExpandedPatientId] = useState<string | null>(null);
   // Estado para forçar re-render quando voiceNoteSummary for atualizado
   const [patientUpdateKey, setPatientUpdateKey] = useState(0);
+  // Detecção de mobile
+  const [isMobile, setIsMobile] = useState(false);
+  
   // Buscar paciente com a chave de atualização para forçar re-render
   const activePatient = mockPatients.find(p => p.id === activePatientId) || null;
   const expandedPatient = mockPatients.find(p => p.id === expandedPatientId) || null;
   const { setPreview, clearPreview, setOnSelectPatient, setOnSendMessage, previewPayload, previewType } = usePreview();
   const { setActivePatient: setActivePatientFromContext, addOpinion, setLastAnswerForPatient } = useClinicalSession();
+
+  // Detectar mobile
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(typeof window !== "undefined" && window.innerWidth < 768);
+    };
+    checkMobile();
+    window.addEventListener("resize", checkMobile);
+    return () => window.removeEventListener("resize", checkMobile);
+  }, []);
 
   // Sincronizar activePatientId com o contexto
   useEffect(() => {
@@ -885,6 +898,99 @@ export default function HomePage() {
     return false;
   }, [activePatientId, activePatient, handleSend, showPatientOverviewInline, previewType, previewPayload, clearPreview, setPreview]);
 
+  // Renderização mobile: lista de pacientes se não houver paciente selecionado
+  if (isMobile && !activePatient && conversation.length === 0) {
+    const sortedPatients = getTopPatients(mockPatients.length);
+    
+    return (
+      <div className="app-wrapper">
+        <header className="hc-topbar">
+          <div className="hc-brand">
+            <Image src="/favicon.png" alt="Health Copilot" className="hc-icon" width={32} height={32} />
+            <div className="hc-brand-text">
+              <div className="hc-title">
+                HEALTH COPILOT<span className="hc-reg">®</span>
+              </div>
+              <div className="hc-subtitle">UTI Pediátrica</div>
+            </div>
+          </div>
+          <div className="hc-actions">
+            <span className="hc-badge">PROTÓTIPO</span>
+          </div>
+        </header>
+
+        <AppShell>
+          <div className="main-chat-content">
+            <main className="chat-content-scrollable">
+              <div className="chat-container">
+                <div className="mobile-patients-list">
+                  <h2 className="mobile-patients-title">Pacientes da UTI</h2>
+                  <div className="mobile-patients-grid">
+                    {sortedPatients.map((patient) => {
+                      const riskPercent = Math.round(patient.riscoMortality24h * 100);
+                      const riskLevel = riskLevelFromScore(patient.riscoMortality24h);
+                      
+                      return (
+                        <button
+                          key={patient.id}
+                          type="button"
+                          className="mobile-patient-card"
+                          onClick={() => {
+                            setActivePatientId(patient.id);
+                            showPatientOverviewInline(patient.id);
+                          }}
+                        >
+                          <div className="mobile-patient-card-header">
+                            <span className="mobile-patient-bed">{patient.leito}</span>
+                            <span
+                              className={`mobile-patient-risk ${
+                                riskLevel === "alto"
+                                  ? "risk-high"
+                                  : riskLevel === "moderado"
+                                  ? "risk-medium"
+                                  : "risk-low"
+                              }`}
+                            >
+                              {riskPercent}%
+                            </span>
+                          </div>
+                          <div className="mobile-patient-name">{patient.nome}</div>
+                          <div className="mobile-patient-meta">
+                            {patient.idade} anos • {patient.diagnosticoPrincipal}
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+            </main>
+
+            <footer className="chat-input-footer">
+              <div className="chat-input-footer-inner">
+                <ChatInput
+                  value={input}
+                  onChange={setInput}
+                  onSend={handleSend}
+                  loading={loading}
+                  currentAgent={currentAgent}
+                  onAgentChange={setCurrentAgent}
+                  patients={mockPatients}
+                  onSelectPatientFromUI={(patientId) => {
+                    setActivePatientId(patientId);
+                    showPatientOverviewInline(patientId);
+                  }}
+                  onVoiceResult={handleVoiceNoteResult}
+                  activePatientId={activePatientId}
+                />
+              </div>
+            </footer>
+          </div>
+        </AppShell>
+      </div>
+    );
+  }
+
   return (
     <div className="app-wrapper">
       <header className="hc-topbar">
@@ -911,7 +1017,7 @@ export default function HomePage() {
         <div className="main-chat-content">
           <main className="chat-content-scrollable">
             <div className="chat-container">
-              {conversation.length === 0 && !loading && (
+              {conversation.length === 0 && !loading && !isMobile && (
                 <div className="hero">
                   <h1 className="hero-title">Como posso ajudar a UTI pediátrica hoje?</h1>
                   <p className="hero-subtitle">
@@ -924,10 +1030,12 @@ export default function HomePage() {
 
               {conversation.length > 0 && (
                 <div className="conversation">
-                    <PatientContextBar 
-                    activePatient={activePatient} 
-                    onClear={() => setActivePatientId(null)}
-                  />
+                    {!isMobile && (
+                      <PatientContextBar 
+                        activePatient={activePatient} 
+                        onClear={() => setActivePatientId(null)}
+                      />
+                    )}
                   {conversation.map((msg) => (
                   <div 
                     key={msg.id} 
