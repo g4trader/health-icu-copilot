@@ -44,3 +44,4 @@ export function VitalsPanel({ patient }: VitalsPanelProps) {
 
 
 
+
