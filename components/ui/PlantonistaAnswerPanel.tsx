@@ -10,6 +10,7 @@ import { PatientBigTimeline } from "./PatientBigTimeline";
 import { getRecentDailyStatus } from "@/lib/patientTimeline";
 import { mockPatients } from "@/lib/mockData";
 import { Mic } from "lucide-react";
+import { usePreview } from "../PreviewProvider";
 
 interface PlantonistaAnswerPanelProps {
   content: PlantonistaAnswerContent;
@@ -55,6 +56,7 @@ export function PlantonistaAnswerPanel({
 }: PlantonistaAnswerPanelProps & { patientUpdateKey?: number }) {
   const [activeTab, setActiveTab] = useState<"overview" | "evolution" | "opinion">("overview");
   const [isMobile, setIsMobile] = useState(false);
+  const { onSendMessage } = usePreview();
 
   useEffect(() => {
     const checkMobile = () => {
@@ -99,6 +101,12 @@ export function PlantonistaAnswerPanel({
                 key={patient.id}
                 patient={patient}
                 onSelect={onSelectPatient}
+                onSendPatientMessage={(patientId, message) => {
+                  // Enviar mensagem ao chat em vez de abrir drawer
+                  if (onSendMessage) {
+                    onSendMessage(message, patientId);
+                  }
+                }}
               />
             ))}
           </div>
