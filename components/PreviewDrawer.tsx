@@ -2,7 +2,7 @@
 
 import { usePreview, type PreviewPayload } from "./PreviewProvider";
 import { mockPatients, getTopPatients, riskLevelFromScore } from "@/lib/mockData";
-import { getPatientsOnVentilation, getPatientsOnVasopressors, getHighRiskPatients } from "@/lib/icuSummary";
+import { getPatientsOnVentilation, getPatientsOnVasopressors, getHighRiskPatients, getHighRiskPatientsList } from "@/lib/icuSummary";
 import type { Patient } from "@/lib/mockData";
 import { PatientDetailPanel } from "./PatientDetailPanel";
 import { PatientPinButton } from "./PatientPinButton";
@@ -369,10 +369,8 @@ function VasopressorsPreview() {
 }
 
 function HighRiskPreview() {
-  // Alto risco: riscoMortality24h >= 0.61 (conforme definido em icuSummary.ts)
-  const highRisk = mockPatients.filter(p => {
-    return p.riscoMortality24h >= 0.61;
-  });
+  // Usar mesma função de lib/icuSummary.ts para garantir consistência entre card e lista
+  const highRisk = getHighRiskPatientsList();
   const { onSelectPatient, onSendMessage } = usePreview();
 
   const handleCardClick = async (patientId: string) => {

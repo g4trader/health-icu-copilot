@@ -32,16 +32,23 @@ export function getPatientsOnVasopressors(): number {
 }
 
 /**
- * Retorna número de pacientes em alto risco (riscoMortality24h >= 0.61)
+ * Retorna TODOS os pacientes em alto risco (riscoMortality24h >= 0.61)
+ * Usa mesma lógica para garantir consistência entre número e lista
  */
-export function getHighRiskPatients(): number {
+export function getHighRiskPatientsList(): Patient[] {
   // Alto risco: riscoMortality24h >= 0.61 (range padronizado: 0.61-1.00)
-  const highRiskPatients = mockPatients.filter(p => {
+  return mockPatients.filter(p => {
     const isHighRisk = p.riscoMortality24h >= 0.61 || riskLevelFromScore(p.riscoMortality24h) === "alto";
     return isHighRisk;
   });
-  
-  return highRiskPatients.length;
+}
+
+/**
+ * Retorna número de pacientes em alto risco (riscoMortality24h >= 0.61)
+ * Usa a mesma função getHighRiskPatientsList() para garantir consistência
+ */
+export function getHighRiskPatients(): number {
+  return getHighRiskPatientsList().length;
 }
 
 /**
