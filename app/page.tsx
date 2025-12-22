@@ -1022,8 +1022,7 @@ export default function HomePage() {
                 <div className="hero">
                   <h1 className="hero-title">Como posso ajudar a UTI pediátrica hoje?</h1>
                   <p className="hero-subtitle">
-                    Faça uma pergunta sobre risco de mortalidade, prioridade de atendimento, exames laboratoriais, 
-                    imagens, prescrições ou perfil da unidade.
+                    Veja rapidamente quais pacientes exigem mais atenção, revise a evolução das últimas horas e faça perguntas sobre risco, exames e eventos críticos.
                   </p>
                   <ContextSnapshot onPromptClick={handlePromptClick} />
                 </div>

@@ -3844,7 +3844,7 @@ a {
 
 .snapshot-cards {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(3, 1fr);
   gap: 1rem;
   margin-bottom: 2rem;
 }
@@ -3866,6 +3866,24 @@ a {
 .snapshot-card-highlight {
   border-color: #fecaca;
   background: #fef2f2;
+}
+
+.snapshot-card-alert {
+  border-color: #dc2626;
+  background: #fef2f2;
+  border-width: 2px;
+}
+
+.snapshot-card-alert:hover {
+  border-color: #b91c1c;
+  box-shadow: 0 4px 12px rgba(220, 38, 38, 0.2);
+}
+
+.snapshot-card-subtext {
+  font-size: 0.75rem;
+  color: #64748b;
+  margin-top: 0.25rem;
+  font-weight: 400;
 }
 
 .snapshot-card-label {
@@ -3890,6 +3908,24 @@ a {
 
 .quick-prompts-section {
   margin-top: 2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+.prompts-block {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.prompts-block-title {
+  font-size: 0.95rem;
+  color: #1e293b;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+  text-transform: none;
+  letter-spacing: normal;
 }
 
 .quick-prompts-label {

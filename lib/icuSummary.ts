@@ -64,6 +64,49 @@ export function getLowRiskPatients(): number {
   }).length;
 }
 
+/**
+ * Retorna número de pacientes em ventilação invasiva vs não invasiva
+ * CMV e SIMV são considerados invasivos; PSV, CPAP, BiPAP, HFOV podem ser invasivos ou não invasivos
+ * Por simplicidade, consideramos CMV e SIMV como invasivos, e os demais como não invasivos
+ */
+export function getVentilationBreakdown(): { invasive: number; nonInvasive: number; total: number } {
+  const onVM = mockPatients.filter(p => p.ventilationParams !== undefined);
+  const invasive = onVM.filter(p => {
+    const vm = p.ventilationParams;
+    // CMV e SIMV são modos invasivos típicos
+    return vm && (vm.modo === "CMV" || vm.modo === "SIMV");
+  }).length;
+  const nonInvasive = onVM.length - invasive;
+  return { invasive, nonInvasive, total: onVM.length };
+}
+
+/**
+ * Retorna número de leitos ocupados (total de pacientes)
+ */
+export function getOccupiedBeds(): number {
+  return mockPatients.length;
+}
+
+/**
+ * Retorna número de admissões nas últimas 24h (mock - pacientes com diasDeUTI <= 1)
+ */
+export function getAdmissionsLast24h(): number {
+  return mockPatients.filter(p => (p.diasDeUTI || 0) <= 1).length;
+}
+
+/**
+ * Retorna número de altas previstas nas próximas 24h (mock - pacientes de baixo risco sem VM/vaso)
+ */
+export function getDischargesNext24h(): number {
+  return mockPatients.filter(p => {
+    const hasVM = !!p.ventilationParams;
+    const hasVaso = p.medications.some(m => m.tipo === "vasopressor" && m.ativo);
+    const riskScore = calculateRiskScore(p);
+    const isLowRisk = riskLevelFromScore(riskScore) === "baixo";
+    return isLowRisk && !hasVM && !hasVaso;
+  }).length;
+}
+
 
 
 
