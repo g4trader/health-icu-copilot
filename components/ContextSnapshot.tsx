@@ -19,16 +19,11 @@ interface ContextSnapshotProps {
   onPromptClick: (prompt: string) => void;
 }
 
-const prioritizationPrompts = [
+const quickAccessPrompts = [
   "Quais são os 3 pacientes mais graves nas próximas 24h e por quê?",
   "Quem piorou nas últimas 6h?",
-  "Quais pacientes têm maior risco respiratório hoje?"
-];
-
-const reviewPrompts = [
-  "Me dê um resumo clínico das últimas 24h do paciente do leito 03.",
-  "O que mudou desde o último plantão?",
-  "Quais exames laboratoriais recentes merecem atenção?"
+  "Quais pacientes têm maior risco respiratório hoje?",
+  "Me dê um resumo clínico das últimas 24h do paciente do leito 03."
 ];
 
 export function ContextSnapshot({ onPromptClick }: ContextSnapshotProps) {
@@ -109,36 +104,18 @@ export function ContextSnapshot({ onPromptClick }: ContextSnapshotProps) {
       </div>
 
       <div className="quick-prompts-section">
-        <div className="prompts-block">
-          <h3 className="prompts-block-title">Priorizar pacientes</h3>
-          <div className="quick-prompts">
-            {prioritizationPrompts.map((prompt, idx) => (
-              <button
-                key={idx}
-                type="button"
-                className="quick-prompt-chip"
-                onClick={() => onPromptClick(prompt)}
-              >
-                {prompt}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        <div className="prompts-block">
-          <h3 className="prompts-block-title">Revisar casos</h3>
-          <div className="quick-prompts">
-            {reviewPrompts.map((prompt, idx) => (
-              <button
-                key={idx}
-                type="button"
-                className="quick-prompt-chip"
-                onClick={() => onPromptClick(prompt)}
-              >
-                {prompt}
-              </button>
-            ))}
-          </div>
+        <h3 className="prompts-block-title">Acesso rápido</h3>
+        <div className="quick-prompts">
+          {quickAccessPrompts.map((prompt, idx) => (
+            <button
+              key={idx}
+              type="button"
+              className="quick-prompt-chip"
+              onClick={() => onPromptClick(prompt)}
+            >
+              {prompt}
+            </button>
+          ))}
         </div>
       </div>
     </div>
