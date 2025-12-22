@@ -232,6 +232,14 @@ Patient {
 - `getHighRiskPatients()` usa `riscoMortality24h >= 0.61` OU `riskLevelFromScore(riscoMortality24h) === "alto"`
 - `riskLevelFromScore()` usa thresholds diferentes de `riscoMortality24h` direto
 - Pode haver inconsistência se `riscoMortality24h` não for calculado via `calculateRiskScore()`
+- **Duplicação**: `HighRiskPreview` em `PreviewDrawer.tsx:373` refaz o mesmo filtro:
+  ```typescript
+  const highRisk = mockPatients.filter(p => {
+    const isHighRisk = p.riscoMortality24h >= 0.61 || riskLevelFromScore(p.riscoMortality24h) === "alto";
+    return isHighRisk;
+  });
+  ```
+  Isso é exatamente a mesma lógica de `getHighRiskPatients()`, mas implementada localmente.
 
 ---
 
@@ -361,6 +369,9 @@ Patient {
 |-------|-----------|---------|-------------|
 | **Cálculos no Frontend** | `ContextSnapshot` calcula números diretamente, não via API | Médio | `components/ContextSnapshot.tsx` |
 | **Filtros Duplicados** | `PreviewDrawer` refaz filtros que já existem em `lib/icuSummary.ts` | Alto | `components/PreviewDrawer.tsx:266, 318, 373` |
+| | `VentilatedPreview`: Filtra `mockPatients.filter(p => p.ventilationParams !== undefined)` - mesma lógica de `getPatientsOnVentilation()` | | |
+| | `VasopressorsPreview`: Filtra `mockPatients.filter(p => p.medications.some(...))` - mesma lógica de `getPatientsOnVasopressors()` | | |
+| | `HighRiskPreview`: Filtra com mesma lógica de `getHighRiskPatients()` | | |
 | **Sem Tratamento de Estados** | Não há estados de "carregando", "erro", "sem dados" | Médio | Vários componentes |
 | **Dados Desatualizados** | `mockPatients` não é atualizado automaticamente | Alto | Estado React não sincroniza com "backend" |
 | **Múltiplas Fontes de Verdade** | `mockPatients` importado em vários lugares, pode divergir | Alto | `lib/mockData.ts` importado em múltiplos arquivos |
