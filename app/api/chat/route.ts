@@ -37,6 +37,7 @@ import { getLlmPatientAnswer, callPlantonistaAgent } from "@/lib/llmPatientAnswe
 import type { LlmPatientAnswer } from "@/types/LlmPatientAnswer";
 import { getDailyStatus } from "@/lib/patientTimeline";
 import type { UnitProfile } from "@/types/UnitProfile";
+import { getPioresPacientesUltimas6h } from "@/lib/patientDeterioration";
 
 interface RequestBody {
   message: string;
@@ -61,6 +62,7 @@ const DISCLAIMER =
  * Tipos de intenção detectáveis
  */
 type Intent = 
+  | "PIOROU_6H"
   | "PRIORITIZACAO"
   | "PACIENTE_ESPECIFICO"
   | "SINAIS_VITAIS"
@@ -392,6 +394,49 @@ function detectIntent(
 
   // FALLBACK
   return "FALLBACK";
+}
+
+/**
+ * Handler para intenção de PIOROU_6H
+ */
+function handlePiorou6hIntent(): { reply: string; topPatients?: PatientType[] } {
+  const deteriorations = getPioresPacientesUltimas6h();
+  
+  if (deteriorations.length === 0) {
+    return {
+      reply: "Nas últimas 6h, nenhum paciente apresentou piora significativa segundo os critérios definidos. Posso detalhar as tendências de sinais vitais se você quiser." + DISCLAIMER
+    };
+  }
+
+  // Limitar a top 3
+  const top3 = deteriorations.slice(0, 3);
+  const lines: string[] = [];
+  
+  lines.push("**Pacientes com piora nas últimas 6 horas:**\n");
+  
+  top3.forEach((deterioration, index) => {
+    const p = deterioration.patient;
+    const bedNumber = p.leito.replace(/\D/g, '');
+    const nameAbbrev = p.nome.length > 10 ? p.nome.substring(0, 10) + "..." : p.nome;
+    
+    lines.push(`${index + 1}. **Leito ${bedNumber} / ${nameAbbrev}**`);
+    
+    // Adicionar bullets explicando a piora (2-3 principais razões)
+    const mainReasons = deterioration.reasons.slice(0, 3);
+    mainReasons.forEach(reason => {
+      lines.push(`   • ${reason}`);
+    });
+    
+    lines.push(""); // Linha em branco entre pacientes
+  });
+  
+  // Frase final sugerindo ações
+  lines.push("**Sugestões de ações:** Reavaliar hemodinâmica e ventilação, rever necessidade de exames adicionais e considerar ajustes terapêuticos conforme protocolo da unidade.");
+  
+  return {
+    reply: lines.join("\n") + DISCLAIMER,
+    topPatients: top3.map(d => d.patient)
+  };
 }
 
 /**
@@ -977,6 +1022,11 @@ export async function POST(req: Request) {
     };
 
     switch (intent) {
+      case "PIOROU_6H": {
+        const piorouResult = handlePiorou6hIntent();
+        result = { ...piorouResult, showIcuPanel: false };
+        break;
+      }
       case "PRIORITIZACAO": {
         const prioritizationResult = handlePrioritizationIntent(message);
         result = { ...prioritizationResult, showIcuPanel: true };
