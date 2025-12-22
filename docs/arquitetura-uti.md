@@ -354,10 +354,9 @@ Patient {
 
 | Risco | Descrição | Impacto | Localização |
 |-------|-----------|---------|-------------|
-| **Lógica Duplicada de Risco** | `getHighRiskPatients()` e `HighRiskPreview` têm lógica **diferente** | **Crítico** | `lib/icuSummary.ts` vs `components/PreviewDrawer.tsx:373` |
-| | `getHighRiskPatients()`: `riscoMortality24h >= 0.61 || riskLevelFromScore(riscoMortality24h) === "alto"` | | |
-| | `HighRiskPreview`: `riscoMortality24h >= 0.61` (sem `riskLevelFromScore`) | | |
-| | **Resultado**: Card pode mostrar número diferente da lista! | | |
+| **Lógica Duplicada de Risco** | ✅ **CORRIGIDO**: `HighRiskPreview` agora usa `getHighRiskPatientsList()` | Resolvido | `lib/icuSummary.ts` vs `components/PreviewDrawer.tsx:373` |
+| | Antes: `HighRiskPreview` filtrava localmente com lógica diferente | | |
+| | Agora: Usa `getHighRiskPatientsList()` centralizada | | |
 | **Inconsistência de Thresholds** | `getHighRiskPatients()` usa `riscoMortality24h >= 0.61` OU `riskLevelFromScore()`, mas `riskLevelFromScore()` pode dar resultado diferente | Alto | `lib/icuSummary.ts:37-44` |
 | **Cálculo de Risco em Múltiplos Lugares** | `calculateRiskScore()` chamado em vários arquivos, pode divergir | Médio | `lib/mockData.ts`, `lib/icuSummary.ts`, `lib/patientDeterioration.ts` |
 | **Sem Testes Automatizados** | Apenas `lib/__tests__/icuSummary.test.ts` básico | Alto | Falta cobertura |
@@ -371,10 +370,10 @@ Patient {
 | Risco | Descrição | Impacto | Localização |
 |-------|-----------|---------|-------------|
 | **Cálculos no Frontend** | `ContextSnapshot` calcula números diretamente, não via API | Médio | `components/ContextSnapshot.tsx` |
-| **Filtros Duplicados** | `PreviewDrawer` refaz filtros que já existem em `lib/icuSummary.ts` | Alto | `components/PreviewDrawer.tsx:266, 318, 373` |
+| **Filtros Duplicados** | `PreviewDrawer` refaz filtros que já existem em `lib/icuSummary.ts` | Alto | `components/PreviewDrawer.tsx:266, 318` |
 | | `VentilatedPreview`: Filtra `mockPatients.filter(p => p.ventilationParams !== undefined)` - mesma lógica de `getPatientsOnVentilation()` | | |
 | | `VasopressorsPreview`: Filtra `mockPatients.filter(p => p.medications.some(...))` - mesma lógica de `getPatientsOnVasopressors()` | | |
-| | `HighRiskPreview`: Filtra com **lógica diferente** de `getHighRiskPatients()` (veja risco acima) | | |
+| | ✅ `HighRiskPreview`: **CORRIGIDO** - agora usa `getHighRiskPatientsList()` | | |
 | **Sem Tratamento de Estados** | Não há estados de "carregando", "erro", "sem dados" | Médio | Vários componentes |
 | **Dados Desatualizados** | `mockPatients` não é atualizado automaticamente | Alto | Estado React não sincroniza com "backend" |
 | **Múltiplas Fontes de Verdade** | `mockPatients` importado em vários lugares, pode divergir | Alto | `lib/mockData.ts` importado em múltiplos arquivos |
@@ -529,7 +528,7 @@ Patient {
 ### Crítico (Fazer Agora)
 1. ✅ Centralizar cálculos de risco (já parcialmente feito com `lib/icuSummary.ts`)
 2. ✅ Garantir consistência entre cards e listas de admissões/altas (já corrigido)
-3. ⚠️ **CORRIGIR**: `HighRiskPreview` usa lógica diferente de `getHighRiskPatients()` - pode causar inconsistência entre card e lista
+3. ✅ **CORRIGIDO**: `HighRiskPreview` agora usa `getHighRiskPatientsList()` centralizada
 4. ⚠️ Remover duplicação de lógica entre `lib/icuSummary.ts` e `PreviewDrawer` (VentilatedPreview, VasopressorsPreview)
 5. ⚠️ Adicionar tratamento de estados de erro/loading no frontend
 
