@@ -280,6 +280,18 @@ function detectIntent(
   
   // Removido: AGENTE_PARECER não existe mais - apenas Plantonista (general) e Radiologista Virtual
 
+  // PIOROU_6H - Detectar antes de PRIORITIZACAO para ter prioridade
+  if (
+    (msg.includes("piorou") && (msg.includes("6h") || msg.includes("6 horas") || msg.includes("últimas 6") || msg.includes("ultimas 6"))) ||
+    msg.includes("quem piorou") ||
+    (msg.includes("piorou") && !msg.includes("melhorou") && (msg.includes("últimas") || msg.includes("ultimas"))) ||
+    msg.includes("deteriorou") ||
+    msg.includes("piora nas últimas 6") ||
+    msg.includes("piora nas ultimas 6")
+  ) {
+    return "PIOROU_6H";
+  }
+
   // PRIORITIZACAO
   if (
     msg.includes("prioridade") ||
