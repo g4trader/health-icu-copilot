@@ -8,7 +8,9 @@ import {
   getVentilationBreakdown,
   getOccupiedBeds,
   getAdmissionsLast24h,
-  getDischargesNext24h
+  getDischargesNext24h,
+  getAdmissoes24h,
+  getAltasPrevistas24h
 } from "@/lib/icuSummary";
 import { usePreview } from "./PreviewProvider";
 import { mockPatients } from "@/lib/mockData";
@@ -88,7 +90,7 @@ export function ContextSnapshot({ onPromptClick }: ContextSnapshotProps) {
         <button
           type="button"
           className="snapshot-card snapshot-card-clickable"
-          onClick={() => setPreview('allPatients', { patients: mockPatients })}
+          onClick={() => setPreview('allPatients', { patients: getAdmissoes24h() })}
         >
           <div className="snapshot-card-label">Admissões (24h)</div>
           <div className="snapshot-card-value">{admissions24h}</div>
@@ -98,7 +100,7 @@ export function ContextSnapshot({ onPromptClick }: ContextSnapshotProps) {
         <button
           type="button"
           className="snapshot-card snapshot-card-clickable"
-          onClick={() => setPreview('allPatients', { patients: mockPatients })}
+          onClick={() => setPreview('allPatients', { patients: getAltasPrevistas24h() })}
         >
           <div className="snapshot-card-label">Altas Previstas (24h)</div>
           <div className="snapshot-card-value">{discharges24h}</div>

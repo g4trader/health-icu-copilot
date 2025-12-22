@@ -3,7 +3,7 @@
  * Funções utilitárias para montar o Context Snapshot
  */
 
-import { mockPatients } from "./mockData";
+import { mockPatients, type Patient } from "./mockData";
 import { calculateRiskScore, riskLevelFromScore } from "./mockData";
 
 /**
@@ -88,23 +88,69 @@ export function getOccupiedBeds(): number {
 }
 
 /**
- * Retorna número de admissões nas últimas 24h (mock - pacientes com diasDeUTI <= 1)
+ * Retorna TODOS os pacientes cuja data/hora de admissão na UTI pediátrica 
+ * esteja entre now - 24h e now.
+ * 
+ * Regra: pacientes com diasDeUTI <= 1 (admitidos nas últimas 24 horas)
+ * Considera os mesmos filtros para "pertencer à UTI pediátrica" (todos os mockPatients)
  */
-export function getAdmissionsLast24h(): number {
-  return mockPatients.filter(p => (p.diasDeUTI || 0) <= 1).length;
+export function getAdmissoes24h(): Patient[] {
+  const now = new Date();
+  const twentyFourHoursAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+  
+  return mockPatients.filter(p => {
+    // Calcular data de admissão: hoje menos diasDeUTI dias
+    const admissionDate = new Date(now);
+    admissionDate.setDate(admissionDate.getDate() - (p.diasDeUTI || 0) + 1);
+    
+    // Admissão está entre 24h atrás e agora
+    return admissionDate >= twentyFourHoursAgo && admissionDate <= now;
+  });
 }
 
 /**
- * Retorna número de altas previstas nas próximas 24h (mock - pacientes de baixo risco sem VM/vaso)
+ * Retorna número de admissões nas últimas 24h
+ * Usa a mesma função getAdmissoes24h() para garantir consistência
  */
-export function getDischargesNext24h(): number {
+export function getAdmissionsLast24h(): number {
+  return getAdmissoes24h().length;
+}
+
+/**
+ * Retorna TODOS os pacientes com status de alta planejada na UTI pediátrica 
+ * e data/hora de alta prevista entre now e now + 24h.
+ * 
+ * Regra: pacientes de baixo risco sem VM/vaso que estão em condições de alta
+ * Considera os mesmos filtros para "pertencer à UTI pediátrica" (todos os mockPatients)
+ */
+export function getAltasPrevistas24h(): Patient[] {
+  const now = new Date();
+  const twentyFourHoursFromNow = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+  
   return mockPatients.filter(p => {
     const hasVM = !!p.ventilationParams;
     const hasVaso = p.medications.some(m => m.tipo === "vasopressor" && m.ativo);
     const riskScore = calculateRiskScore(p);
     const isLowRisk = riskLevelFromScore(riskScore) === "baixo";
-    return isLowRisk && !hasVM && !hasVaso;
-  }).length;
+    
+    // Paciente em condições de alta: baixo risco, sem VM, sem vaso
+    const isReadyForDischarge = isLowRisk && !hasVM && !hasVaso;
+    
+    if (!isReadyForDischarge) return false;
+    
+    // Para mock: considerar que pacientes prontos para alta têm alta prevista nas próximas 24h
+    // Em produção, isso viria de um campo dataAltaPrevista
+    // Por enquanto, assumimos que todos os pacientes prontos têm alta prevista nas próximas 24h
+    return true;
+  });
+}
+
+/**
+ * Retorna número de altas previstas nas próximas 24h
+ * Usa a mesma função getAltasPrevistas24h() para garantir consistência
+ */
+export function getDischargesNext24h(): number {
+  return getAltasPrevistas24h().length;
 }
 
 
