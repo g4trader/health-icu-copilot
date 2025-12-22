@@ -627,32 +627,33 @@ export default function HomePage() {
         microDashboardsV2: apiResponse.microDashboardsV2,
         llmAnswer: apiResponse.llmAnswer,
         focusPayload: apiResponse.focusPayload,
-        timelineHighlights: apiResponse.timelineHighlights,
-        plantonistaContent: plantonistaContent
+        plantonistaContent
       };
+      
       setConversation((prev) => [...prev, agentMessage]);
       
-      // Se houver um paciente focado, atualizar estado
-      if (apiResponse.focusedPatient) {
-        setActivePatientId(apiResponse.focusedPatient.id);
-      } else if (patientId) {
+      // Atualizar paciente ativo se necessário
+      if (patientId && apiResponse.focusedPatient) {
         setActivePatientId(patientId);
       }
-      
-      // Armazenar resposta no contexto se houver focusPayload
-      if (plantonistaContent.focusPayload?.patientId) {
-        setLastAnswerForPatient(plantonistaContent.focusPayload.patientId, plantonistaContent);
-      }
-      
-      // Fechar preview drawer para direcionar atenção ao chat
-      clearPreview();
     };
-
+    
+    // Listener para eventos de sendPatientMessage (fallback quando onSendMessage não está disponível)
+    const handleSendPatientMessage = (event: Event) => {
+      const customEvent = event as CustomEvent<{ patientId: string; message: string }>;
+      const { patientId, message } = customEvent.detail;
+      console.log('[app/page] Evento sendPatientMessage recebido, enviando ao chat:', { patientId, message });
+      void handleSend(message, undefined, patientId);
+    };
+    
     window.addEventListener('chatMessageSent', handleChatMessageSent);
+    window.addEventListener('sendPatientMessage', handleSendPatientMessage);
+    
     return () => {
       window.removeEventListener('chatMessageSent', handleChatMessageSent);
+      window.removeEventListener('sendPatientMessage', handleSendPatientMessage);
     };
-  }, [setLastAnswerForPatient, clearPreview]);
+  }, [handleSend, setActivePatientId, setConversation]);
 
   // Removido handleKeyDown - agora o ChatInput gerencia isso internamente
   // Não precisamos mais deste handler aqui

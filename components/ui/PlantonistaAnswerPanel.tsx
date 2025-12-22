@@ -103,8 +103,16 @@ export function PlantonistaAnswerPanel({
                 onSelect={onSelectPatient}
                 onSendPatientMessage={(patientId, message) => {
                   // Enviar mensagem ao chat em vez de abrir drawer
+                  console.log('[PlantonistaAnswerPanel] onSendPatientMessage chamado', { patientId, message, hasOnSendMessage: !!onSendMessage });
                   if (onSendMessage) {
+                    console.log('[PlantonistaAnswerPanel] Chamando onSendMessage do contexto');
                     onSendMessage(message, patientId);
+                  } else {
+                    console.warn('[PlantonistaAnswerPanel] onSendMessage não disponível no contexto');
+                    // Fallback: disparar evento customizado para que o page.tsx possa capturar
+                    window.dispatchEvent(new CustomEvent('sendPatientMessage', {
+                      detail: { patientId, message }
+                    }));
                   }
                 }}
               />
