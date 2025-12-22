@@ -99,9 +99,13 @@ export function getAdmissoes24h(): Patient[] {
   const twentyFourHoursAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
   
   return mockPatients.filter(p => {
-    // Calcular data de admissão: hoje menos diasDeUTI dias
+    // Calcular data de admissão: hoje menos (diasDeUTI - 1) dias
+    // Se diasDeUTI = 1, foi admitido hoje (hoje - 0 = hoje)
+    // Se diasDeUTI = 2, foi admitido ontem (hoje - 1 = ontem)
     const admissionDate = new Date(now);
-    admissionDate.setDate(admissionDate.getDate() - (p.diasDeUTI || 0) + 1);
+    const daysAgo = (p.diasDeUTI || 1) - 1;
+    admissionDate.setDate(admissionDate.getDate() - daysAgo);
+    admissionDate.setHours(0, 0, 0, 0); // Normalizar para início do dia
     
     // Admissão está entre 24h atrás e agora
     return admissionDate >= twentyFourHoursAgo && admissionDate <= now;

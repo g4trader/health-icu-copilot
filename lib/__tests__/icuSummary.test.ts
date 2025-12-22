@@ -30,7 +30,9 @@ export function testIcuSummaryConsistency() {
   let allAdmissionsInRange = true;
   admissionsArray.forEach(patient => {
     const admissionDate = new Date(now);
-    admissionDate.setDate(admissionDate.getDate() - (patient.diasDeUTI || 0) + 1);
+    const daysAgo = (patient.diasDeUTI || 1) - 1;
+    admissionDate.setDate(admissionDate.getDate() - daysAgo);
+    admissionDate.setHours(0, 0, 0, 0);
     if (admissionDate < twentyFourHoursAgo || admissionDate > now) {
       allAdmissionsInRange = false;
     }
