@@ -1021,9 +1021,6 @@ export default function HomePage() {
               {conversation.length === 0 && !loading && !isMobile && (
                 <div className="hero">
                   <h1 className="hero-title">Como posso ajudar a UTI pediátrica hoje?</h1>
-                  <p className="hero-subtitle">
-                    Veja rapidamente quais pacientes exigem mais atenção, revise a evolução das últimas horas e faça perguntas sobre risco, exames e eventos críticos.
-                  </p>
                   <ContextSnapshot onPromptClick={handlePromptClick} />
                 </div>
               )}
