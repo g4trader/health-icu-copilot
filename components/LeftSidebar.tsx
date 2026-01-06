@@ -1,13 +1,13 @@
 "use client";
 
 import { useState } from "react";
-import { User, Scan, BarChart3, GraduationCap } from "lucide-react";
+import { User, Scan, BarChart3, GraduationCap, Wrench } from "lucide-react";
 import { useClinicalSession } from "@/lib/ClinicalSessionContext";
 import { usePreview } from "@/components/PreviewProvider";
 import { mockPatients } from "@/lib/mockData";
 import { PatientCard } from "./patients/PatientCard";
 
-type SidebarMode = "plantonista" | "radiologista" | "dados-locais" | "educacao";
+type SidebarMode = "plantonista" | "radiologista" | "dados-locais" | "educacao" | "ferramentas";
 
 interface SidebarItem {
   id: SidebarMode;
@@ -42,6 +42,11 @@ export function LeftSidebar() {
       id: "educacao",
       label: "UpToDate",
       icon: GraduationCap,
+    },
+    {
+      id: "ferramentas",
+      label: "Ferramentas",
+      icon: Wrench,
     },
   ];
 
