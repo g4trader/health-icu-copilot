@@ -907,10 +907,10 @@ export default function HomePage() {
       <div className="app-wrapper">
         <header className="hc-topbar">
           <div className="hc-brand">
-            <Image src="/favicon.png" alt="Health Copilot" className="hc-icon" width={32} height={32} />
+            <Image src="/favicon-vic.svg" alt="VIC" className="hc-icon" width={32} height={32} />
             <div className="hc-brand-text">
               <div className="hc-title">
-                HEALTH COPILOT<span className="hc-reg">®</span>
+                VIC
               </div>
               <div className="hc-subtitle">UTI Pediátrica</div>
             </div>
@@ -997,10 +997,10 @@ export default function HomePage() {
     <div className="app-wrapper">
       <header className="hc-topbar">
         <div className="hc-brand">
-          <Image src="/favicon.png" alt="Health Copilot" className="hc-icon" width={32} height={32} />
+          <Image src="/favicon-vic.svg" alt="VIC" className="hc-icon" width={32} height={32} />
           <div className="hc-brand-text">
             <div className="hc-title">
-              HEALTH COPILOT<span className="hc-reg">®</span>
+              VIC
             </div>
             <div className="hc-subtitle">UTI Pediátrica</div>
           </div>

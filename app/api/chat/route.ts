@@ -194,7 +194,7 @@ function handleAgentOpinionIntent(patientId: string, agentId: ClinicalAgentId): 
 
   if (mockOpinion) {
     // Usar parecer mockado textual
-    const footer = '\n\n---\n*Health Copilot+ v1.0.0* | Dados: Simulados | Parecer de agente de subespecialidade. Este conteúdo é apenas apoio à decisão e não substitui avaliação médica presencial.';
+    const footer = '\n\n---\n*VIC v1.0.0* | Dados: Simulados | Parecer de agente de subespecialidade. Este conteúdo é apenas apoio à decisão e não substitui avaliação médica presencial.';
     
     return {
       reply: mockOpinion + footer,
@@ -950,7 +950,7 @@ function handleClinicalCalculationIntent(message: string, focusedPatientId: stri
 function handleFallbackIntent(): { reply: string; showIcuPanel: boolean } {
   return {
     reply: (
-      "Olá! Sou o **Health Copilot +**, um assistente de apoio à decisão para UTI pediátrica.\n\n" +
+      "Olá! Sou o **VIC**, um assistente de apoio à decisão para UTI pediátrica.\n\n" +
       "Posso ajudar com:\n\n" +
       "1. **Priorização de pacientes** por risco de mortalidade e instabilidade\n" +
       "2. **Análise de sinais vitais** e parâmetros hemodinâmicos\n" +
@@ -1203,7 +1203,7 @@ export async function POST(req: Request) {
     }
     
     // Adicionar transparência e disclaimers
-    const transparencyFooter = `\n\n---\n**Health Copilot+ v${VERSION}** | Dados: Simulados | ${llmUtilizado ? `LLM: ${MODEL_VERSION}` : "Processamento determinístico"}`;
+    const transparencyFooter = `\n\n---\n**VIC v${VERSION}** | Dados: Simulados | ${llmUtilizado ? `LLM: ${MODEL_VERSION}` : "Processamento determinístico"}`;
     finalReply = finalReply + transparencyFooter;
 
     // Determinar tipo de resposta

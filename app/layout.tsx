@@ -4,10 +4,10 @@ import { PreviewProvider } from "@/components/PreviewProvider";
 import { ClinicalSessionProvider } from "@/lib/ClinicalSessionContext";
 
 export const metadata: Metadata = {
-  title: "Health Copilot + - UTI Pediátrica",
-  description: "Interface de apoio à decisão para UTI Pediátrica, com visual limpo e hospitalar.",
+  title: "VIC - UTI Pediátrica",
+  description: "VIC. Always on. Acompanhamento contínuo para UTI Pediátrica.",
   icons: {
-    icon: "/favicon.png"
+    icon: "/favicon-vic.svg"
   }
 };
 
@@ -19,8 +19,9 @@ export default function RootLayout({
   return (
     <html lang="pt-BR">
       <head>
-        <link rel="icon" href="/favicon.png" sizes="any" type="image/png" />
-        <link rel="apple-touch-icon" href="/favicon.png" />
+        <link rel="icon" href="/favicon-vic.svg" type="image/svg+xml" />
+        <link rel="icon" href="/favicon-vic.png" sizes="32x32" type="image/png" />
+        <link rel="apple-touch-icon" href="/icon-vic-512.png" />
         <meta name="theme-color" content="#10b981" />
       </head>
       <body>
