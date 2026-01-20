@@ -7,7 +7,7 @@ import { usePreview } from "@/components/PreviewProvider";
 import { mockPatients } from "@/lib/mockData";
 import { PatientCard } from "./patients/PatientCard";
 
-type SidebarMode = "plantonista" | "radiologista" | "dados-locais" | "educacao" | "ferramentas";
+type SidebarMode = "radiologista" | "dados-locais" | "educacao" | "ferramentas";
 
 interface SidebarItem {
   id: SidebarMode;
@@ -19,14 +19,9 @@ interface SidebarItem {
 export function LeftSidebar() {
   const { pinnedPatients, setActivePatient, activePatientId } = useClinicalSession();
   const { setPreview } = usePreview();
-  const [activeMode, setActiveMode] = useState<SidebarMode>("plantonista");
+  const [activeMode, setActiveMode] = useState<SidebarMode>("radiologista");
 
   const sidebarItems: SidebarItem[] = [
-    {
-      id: "plantonista",
-      label: "Plantonista",
-      icon: User,
-    },
     {
       id: "radiologista",
       label: "Radiologista virtual",
