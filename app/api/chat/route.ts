@@ -194,7 +194,7 @@ function handleAgentOpinionIntent(patientId: string, agentId: ClinicalAgentId): 
 
   if (mockOpinion) {
     // Usar parecer mockado textual
-    const footer = '\n\n---\n*Kyron AI agent v1.0.0* | Dados: Simulados | Parecer de agente de subespecialidade. Este conteúdo é apenas apoio à decisão e não substitui avaliação médica presencial.';
+    const footer = '\n\n---\n*AI agent v1.0.0* | Dados: Simulados | Parecer de agente de subespecialidade. Este conteúdo é apenas apoio à decisão e não substitui avaliação médica presencial.';
     
     return {
       reply: mockOpinion + footer,
@@ -1203,7 +1203,7 @@ export async function POST(req: Request) {
     }
     
     // Adicionar transparência e disclaimers
-    const transparencyFooter = `\n\n---\n**Kyron AI agent v${VERSION}** | Dados: Simulados | ${llmUtilizado ? `LLM: ${MODEL_VERSION}` : "Processamento determinístico"}`;
+    const transparencyFooter = `\n\n---\n**AI agent v${VERSION}** | Dados: Simulados | ${llmUtilizado ? `LLM: ${MODEL_VERSION}` : "Processamento determinístico"}`;
     finalReply = finalReply + transparencyFooter;
 
     // Determinar tipo de resposta
