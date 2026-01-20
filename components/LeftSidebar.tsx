@@ -133,7 +133,7 @@ export function LeftSidebar() {
           </div>
           <div className="sidebar-user-info">
             <span className="sidebar-user-name">Aristóteles</span>
-            <span className="sidebar-user-role">UTI Pediátrica A</span>
+            <span className="sidebar-user-role">Unidade Pediátrica A</span>
           </div>
         </div>
       </div>

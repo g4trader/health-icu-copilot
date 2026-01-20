@@ -1,5 +1,5 @@
 /**
- * Script para gerar PNGs a partir dos SVGs do VIC
+ * Script para gerar PNGs a partir dos SVGs do Kyron
  * Requer: npm install sharp
  * Uso: node scripts/generate-png-assets.js
  */
@@ -21,45 +21,45 @@ try {
     const publicDir = path.join(__dirname, '..', 'public');
     
     // Favicon
-    const faviconSvg = path.join(publicDir, 'favicon-vic.svg');
+    const faviconSvg = path.join(publicDir, 'favicon-kyron.svg');
     if (fs.existsSync(faviconSvg)) {
       for (const size of sizes.favicon) {
         await sharp(faviconSvg)
           .resize(size, size)
           .png()
-          .toFile(path.join(publicDir, `favicon-vic-${size}.png`));
-        console.log(`✓ Generated favicon-vic-${size}.png`);
+          .toFile(path.join(publicDir, `favicon-kyron-${size}.png`));
+        console.log(`✓ Generated favicon-kyron-${size}.png`);
       }
       // Favicon padrão (32x32)
       await sharp(faviconSvg)
         .resize(32, 32)
         .png()
-        .toFile(path.join(publicDir, 'favicon-vic.png'));
-      console.log(`✓ Generated favicon-vic.png (default)`);
+        .toFile(path.join(publicDir, 'favicon-kyron.png'));
+      console.log(`✓ Generated favicon-kyron.png (default)`);
     }
 
     // Icon
-    const iconSvg = path.join(publicDir, 'icon-vic.svg');
+    const iconSvg = path.join(publicDir, 'icon-kyron.svg');
     if (fs.existsSync(iconSvg)) {
       for (const size of sizes.icon) {
         await sharp(iconSvg)
           .resize(size, size)
           .png()
-          .toFile(path.join(publicDir, `icon-vic-${size}.png`));
-        console.log(`✓ Generated icon-vic-${size}.png`);
+          .toFile(path.join(publicDir, `icon-kyron-${size}.png`));
+        console.log(`✓ Generated icon-kyron-${size}.png`);
       }
     }
 
     // Logo
-    const logoSvg = path.join(publicDir, 'logo-vic.svg');
+    const logoSvg = path.join(publicDir, 'logo-kyron.svg');
     if (fs.existsSync(logoSvg)) {
       for (const size of sizes.logo) {
         const height = Math.round(size * 0.3); // Proporção 3:1
         await sharp(logoSvg)
           .resize(size, height, { fit: 'contain', background: { r: 255, g: 255, b: 255, alpha: 0 } })
           .png()
-          .toFile(path.join(publicDir, `logo-vic-${size}.png`));
-        console.log(`✓ Generated logo-vic-${size}.png`);
+          .toFile(path.join(publicDir, `logo-kyron-${size}.png`));
+        console.log(`✓ Generated logo-kyron-${size}.png`);
       }
     }
 

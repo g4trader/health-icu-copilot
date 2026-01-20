@@ -194,7 +194,7 @@ function handleAgentOpinionIntent(patientId: string, agentId: ClinicalAgentId): 
 
   if (mockOpinion) {
     // Usar parecer mockado textual
-    const footer = '\n\n---\n*VIC v1.0.0* | Dados: Simulados | Parecer de agente de subespecialidade. Este conteúdo é apenas apoio à decisão e não substitui avaliação médica presencial.';
+    const footer = '\n\n---\n*Kyron AI agent v1.0.0* | Dados: Simulados | Parecer de agente de subespecialidade. Este conteúdo é apenas apoio à decisão e não substitui avaliação médica presencial.';
     
     return {
       reply: mockOpinion + footer,
@@ -712,7 +712,7 @@ function handleUnitProfileIntent(): { reply: string; showIcuPanel: boolean; show
   const templates = [
     () => {
       const lines: string[] = [];
-      lines.push("Analisando perfil epidemiológico da UTI pediátrica (últimos 30 dias)...");
+      lines.push("Analisando perfil epidemiológico da unidade (últimos 30 dias)...");
       lines.push("");
       lines.push("**Casuística da unidade:**");
       lines.push("");
@@ -753,12 +753,12 @@ function handleUnitProfileIntent(): { reply: string; showIcuPanel: boolean; show
         lines.push(`  Germes: ${p.germes.join(", ")}`);
       });
       lines.push("");
-      lines.push("**Observação:** Perfil típico de UTI pediátrica com predominância de casos respiratórios e infecciosos, seguidos de cardiopatias e trauma.");
+      lines.push("**Observação:** Perfil típico de unidade pediátrica com predominância de casos respiratórios e infecciosos, seguidos de cardiopatias e trauma.");
       return lines.join("\n");
     },
     () => {
       const lines: string[] = [];
-      lines.push("Consultando banco de dados epidemiológico da UTI pediátrica...");
+      lines.push("Consultando banco de dados epidemiológico da unidade...");
       lines.push("");
       lines.push("**Perfil da casuística (últimos 30 dias):**");
       lines.push("");
@@ -950,7 +950,7 @@ function handleClinicalCalculationIntent(message: string, focusedPatientId: stri
 function handleFallbackIntent(): { reply: string; showIcuPanel: boolean } {
   return {
     reply: (
-      "Olá! Sou o **VIC**, um assistente de apoio à decisão para UTI pediátrica.\n\n" +
+      "Olá! Sou o **Kyron**, um assistente de IA para apoio à decisão clínica.\n\n" +
       "Posso ajudar com:\n\n" +
       "1. **Priorização de pacientes** por risco de mortalidade e instabilidade\n" +
       "2. **Análise de sinais vitais** e parâmetros hemodinâmicos\n" +
@@ -983,7 +983,7 @@ export async function POST(req: Request) {
     const sessionId = body.sessionId || `session-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
     const userId = body.userId || "user-mock";
     const role = body.role || "plantonista";
-    const unidade = body.unidade || "UTI Pediátrica A";
+    const unidade = body.unidade || "Unidade Pediátrica A";
     const turno = body.turno || "manhã";
     
     // Memória clínica
@@ -1203,7 +1203,7 @@ export async function POST(req: Request) {
     }
     
     // Adicionar transparência e disclaimers
-    const transparencyFooter = `\n\n---\n**VIC v${VERSION}** | Dados: Simulados | ${llmUtilizado ? `LLM: ${MODEL_VERSION}` : "Processamento determinístico"}`;
+    const transparencyFooter = `\n\n---\n**Kyron AI agent v${VERSION}** | Dados: Simulados | ${llmUtilizado ? `LLM: ${MODEL_VERSION}` : "Processamento determinístico"}`;
     finalReply = finalReply + transparencyFooter;
 
     // Determinar tipo de resposta

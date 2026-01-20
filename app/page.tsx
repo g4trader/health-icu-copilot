@@ -448,7 +448,7 @@ export default function HomePage() {
           sessionId: sessionIdRef.current,
           userId: "user-mock",
           role: "plantonista",
-          unidade: "UTI Pediátrica A",
+          unidade: "Unidade Pediátrica A",
           turno: "manhã",
           currentAgent: currentAgent,
           agentId: agentIdParam,
@@ -907,12 +907,12 @@ export default function HomePage() {
       <div className="app-wrapper">
         <header className="hc-topbar">
           <div className="hc-brand">
-            <Image src="/favicon-vic.svg" alt="VIC" className="hc-icon" width={32} height={32} />
+            <Image src="/favicon-kyron.svg" alt="Kyron" className="hc-icon" width={32} height={32} />
             <div className="hc-brand-text">
               <div className="hc-title">
-                VIC
+                Kyron
               </div>
-              <div className="hc-subtitle">UTI Pediátrica</div>
+              <div className="hc-subtitle">Kyron AI agent</div>
             </div>
           </div>
           <div className="hc-actions">
@@ -997,12 +997,12 @@ export default function HomePage() {
     <div className="app-wrapper">
       <header className="hc-topbar">
         <div className="hc-brand">
-          <Image src="/favicon-vic.svg" alt="VIC" className="hc-icon" width={32} height={32} />
+          <Image src="/favicon-kyron.svg" alt="Kyron" className="hc-icon" width={32} height={32} />
           <div className="hc-brand-text">
             <div className="hc-title">
-              VIC
+              Kyron
             </div>
-            <div className="hc-subtitle">UTI Pediátrica</div>
+            <div className="hc-subtitle">Kyron AI agent</div>
           </div>
         </div>
 
@@ -1021,7 +1021,7 @@ export default function HomePage() {
             <div className="chat-container">
               {conversation.length === 0 && !loading && !isMobile && (
                 <div className="hero">
-                  <h1 className="hero-title">Como posso ajudar a UTI pediátrica hoje?</h1>
+                  <h1 className="hero-title">Como posso ajudar hoje?</h1>
                   <ContextSnapshot onPromptClick={handlePromptClick} />
                 </div>
               )}

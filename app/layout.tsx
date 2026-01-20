@@ -4,10 +4,10 @@ import { PreviewProvider } from "@/components/PreviewProvider";
 import { ClinicalSessionProvider } from "@/lib/ClinicalSessionContext";
 
 export const metadata: Metadata = {
-  title: "VIC - UTI Pediátrica",
-  description: "VIC. Always on. Acompanhamento contínuo para UTI Pediátrica.",
+  title: "Kyron AI agent",
+  description: "Kyron AI agent. Always on. Assistente de IA para apoio à decisão clínica.",
   icons: {
-    icon: "/favicon-vic.svg"
+    icon: "/favicon-kyron.svg"
   }
 };
 
@@ -19,9 +19,9 @@ export default function RootLayout({
   return (
     <html lang="pt-BR">
       <head>
-        <link rel="icon" href="/favicon-vic.svg" type="image/svg+xml" />
-        <link rel="icon" href="/favicon-vic.png" sizes="32x32" type="image/png" />
-        <link rel="apple-touch-icon" href="/icon-vic-512.png" />
+        <link rel="icon" href="/favicon-kyron.svg" type="image/svg+xml" />
+        <link rel="icon" href="/favicon-kyron.png" sizes="32x32" type="image/png" />
+        <link rel="apple-touch-icon" href="/icon-kyron-512.png" />
         <meta name="theme-color" content="#10b981" />
       </head>
       <body>
