@@ -1,7 +1,8 @@
 "use client";
 
+import Image from "next/image";
 import { useState } from "react";
-import { User, Scan, BarChart3, GraduationCap, Wrench } from "lucide-react";
+import { Scan, BarChart3, GraduationCap, Wrench } from "lucide-react";
 import { useClinicalSession } from "@/lib/ClinicalSessionContext";
 import { usePreview } from "@/components/PreviewProvider";
 import { mockPatients } from "@/lib/mockData";
@@ -66,6 +67,20 @@ export function LeftSidebar() {
   return (
     <aside className="left-sidebar">
       <div className="sidebar-content">
+        <div className="sidebar-brand">
+          <Image
+            src="/logo_kyron.png"
+            alt="Kyron logo"
+            width={32}
+            height={32}
+            className="sidebar-logo"
+          />
+          <div className="sidebar-brand-text">
+            <div className="sidebar-brand-title">Kyron</div>
+            <div className="sidebar-brand-subtitle">AI agent</div>
+          </div>
+        </div>
+
         <nav className="sidebar-nav">
           <div className="sidebar-section">
             <ul className="sidebar-list">
