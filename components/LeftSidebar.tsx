@@ -70,14 +70,14 @@ export function LeftSidebar() {
         <div className="sidebar-brand">
           <Image
             src="/logo_kyron.png"
-            alt="Kyron logo"
+            alt="Iatron logo"
             width={32}
             height={32}
             className="sidebar-logo"
           />
           <div className="sidebar-brand-text">
-            <div className="sidebar-brand-title">Kyron</div>
-            <div className="sidebar-brand-subtitle">AI agent</div>
+            <div className="sidebar-brand-title">Iatron</div>
+            <div className="sidebar-brand-subtitle">Iatron</div>
           </div>
         </div>
 

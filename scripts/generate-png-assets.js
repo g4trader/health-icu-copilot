@@ -1,5 +1,5 @@
 /**
- * Script para gerar PNGs a partir dos SVGs do Kyron
+ * Script para gerar PNGs a partir dos SVGs do Iatron
  * Requer: npm install sharp
  * Uso: node scripts/generate-png-assets.js
  */

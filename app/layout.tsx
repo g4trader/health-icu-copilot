@@ -4,8 +4,8 @@ import { PreviewProvider } from "@/components/PreviewProvider";
 import { ClinicalSessionProvider } from "@/lib/ClinicalSessionContext";
 
 export const metadata: Metadata = {
-  title: "AI agent",
-  description: "AI agent. Always on. Assistente de IA para apoio à decisão clínica.",
+  title: "Iatron",
+  description: "Iatron. Always on. Assistente de IA para apoio à decisão clínica.",
   icons: {
     icon: "/favicon-kyron.png"
   }

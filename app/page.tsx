@@ -907,12 +907,12 @@ export default function HomePage() {
       <div className="app-wrapper">
         <header className="hc-topbar">
           <div className="hc-brand">
-            <Image src="/favicon-kyron.png" alt="Kyron" className="hc-icon" width={32} height={32} />
+            <Image src="/favicon-kyron.png" alt="Iatron" className="hc-icon" width={32} height={32} />
             <div className="hc-brand-text">
               <div className="hc-title">
-                Kyron
+                Iatron
               </div>
-              <div className="hc-subtitle">AI agent</div>
+              <div className="hc-subtitle">Iatron</div>
             </div>
           </div>
           <div className="hc-actions">
@@ -997,12 +997,12 @@ export default function HomePage() {
     <div className="app-wrapper">
         <header className="hc-topbar">
           <div className="hc-brand">
-            <Image src="/favicon-kyron.png" alt="Kyron" className="hc-icon" width={32} height={32} />
+            <Image src="/favicon-kyron.png" alt="Iatron" className="hc-icon" width={32} height={32} />
             <div className="hc-brand-text">
               <div className="hc-title">
-                Kyron
+                Iatron
               </div>
-              <div className="hc-subtitle">AI agent</div>
+              <div className="hc-subtitle">Iatron</div>
             </div>
           </div>
 
