@@ -1,13 +1,11 @@
 "use client";
 
-import { useState } from "react";
 import { Scan, BarChart3, GraduationCap, Wrench } from "lucide-react";
 import { useClinicalSession } from "@/lib/ClinicalSessionContext";
 import { usePreview } from "@/components/PreviewProvider";
+import { useSidebarMode, type SidebarMode } from "@/lib/SidebarModeContext";
 import { mockPatients } from "@/lib/mockData";
 import { PatientCard } from "./patients/PatientCard";
-
-type SidebarMode = "radiologista" | "dados-locais" | "educacao" | "ferramentas";
 
 interface SidebarItem {
   id: SidebarMode;
@@ -19,7 +17,7 @@ interface SidebarItem {
 export function LeftSidebar() {
   const { pinnedPatients, setActivePatient, activePatientId } = useClinicalSession();
   const { setPreview } = usePreview();
-  const [activeMode, setActiveMode] = useState<SidebarMode>("radiologista");
+  const { activeMode, setActiveMode } = useSidebarMode();
 
   const sidebarItems: SidebarItem[] = [
     {
@@ -54,13 +52,11 @@ export function LeftSidebar() {
   };
 
   const handleModeSelect = (mode: SidebarMode) => {
-    // Se o modo requer paciente e não há paciente selecionado, não faz nada
     const item = sidebarItems.find(i => i.id === mode);
     if (item?.requiresPatient && !activePatientId) {
       return;
     }
     setActiveMode(mode);
-    // TODO: Implementar lógica de mudança de modo no chat
   };
 
   return (

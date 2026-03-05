@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect, useCallback } from "react";
+import { usePathname } from "next/navigation";
 import Image from "next/image";
 import { mockPatients, getTopPatients, riskLevelFromScore, mockUnitProfile, type Patient } from "@/lib/mockData";
 import { clinicalAgents, type ClinicalAgentType, type ClinicalAgentId } from "@/lib/clinicalAgents";
@@ -27,6 +28,8 @@ import { PatientPinButton } from "@/components/PatientPinButton";
 import { PatientOpinionBadges } from "@/components/PatientOpinionBadges";
 import { PatientCard } from "@/components/patients/PatientCard";
 import { useClinicalSession } from "@/lib/ClinicalSessionContext";
+import { useSidebarModeOptional } from "@/lib/SidebarModeContext";
+import { DadosLocaisDashboard } from "@/components/dashboard/DadosLocaisDashboard";
 import type { MicroDashboardPayload } from "@/types/MicroDashboard";
 import { processVoiceNote, buildPlantonistaOpinion } from "@/lib/voiceNoteUpdater";
 import { isUpdateOpinionIntent } from "@/lib/voiceIntents";
@@ -364,6 +367,9 @@ export default function HomePage() {
   const expandedPatient = mockPatients.find(p => p.id === expandedPatientId) || null;
   const { setPreview, clearPreview, setOnSelectPatient, setOnSendMessage, previewPayload, previewType } = usePreview();
   const { setActivePatient: setActivePatientFromContext, addOpinion, setLastAnswerForPatient } = useClinicalSession();
+  const pathname = usePathname();
+  const sidebarMode = useSidebarModeOptional();
+  const showDadosLocaisDashboard = pathname === "/iatron-fut" && sidebarMode?.activeMode === "dados-locais";
 
   // Detectar mobile - inicializar como false para SSR, depois atualizar no cliente
   useEffect(() => {
@@ -899,8 +905,8 @@ export default function HomePage() {
     return false;
   }, [activePatientId, activePatient, handleSend, previewType, previewPayload, clearPreview, setPreview]);
 
-  // Renderização mobile: lista de pacientes se não houver paciente selecionado
-  if (isMobile && !activePatient && conversation.length === 0) {
+  // Renderização mobile: lista de pacientes se não houver paciente selecionado (exceto quando dashboard Dados locais está ativo)
+  if (isMobile && !activePatient && conversation.length === 0 && !showDadosLocaisDashboard) {
     const sortedPatients = getTopPatients(mockPatients.length);
     
     return (
@@ -1017,6 +1023,12 @@ export default function HomePage() {
 
       <AppShell>
         <div className="main-chat-content">
+          {showDadosLocaisDashboard ? (
+            <main className="chat-content-scrollable">
+              <DadosLocaisDashboard />
+            </main>
+          ) : (
+          <>
           <main className="chat-content-scrollable">
             <div className="chat-container">
               {conversation.length === 0 && !loading && !isMobile && (
@@ -1122,7 +1134,10 @@ export default function HomePage() {
               )}
             </div>
           </main>
+          </>
+          )}
 
+          {!showDadosLocaisDashboard && (
           <footer className="chat-input-footer">
             <div className="chat-input-footer-inner">
               <ChatInput
@@ -1141,6 +1156,7 @@ export default function HomePage() {
               />
             </div>
           </footer>
+          )}
         </div>
       </AppShell>
         </div>

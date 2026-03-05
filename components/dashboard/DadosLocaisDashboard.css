@@ -1,0 +1,116 @@
+.dados-locais-dashboard {
+  padding: 1.5rem;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.dados-locais-header {
+  margin-bottom: 1.5rem;
+}
+
+.dados-locais-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0 0 0.25rem 0;
+}
+
+.dados-locais-subtitle {
+  font-size: 0.875rem;
+  color: #64748b;
+  margin: 0;
+}
+
+.dados-locais-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.dados-locais-panel {
+  padding: 1.25rem;
+}
+
+.dados-locais-table-wrap {
+  overflow-x: auto;
+}
+
+.dados-locais-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+}
+
+.dados-locais-table th,
+.dados-locais-table td {
+  padding: 0.625rem 0.75rem;
+  text-align: left;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.dados-locais-table th {
+  font-weight: 600;
+  color: #475569;
+  background: #f8fafc;
+}
+
+.dados-locais-table tbody tr:hover {
+  background: #f8fafc;
+}
+
+.dados-locais-th-num,
+.dados-locais-td-num {
+  text-align: right;
+  white-space: nowrap;
+}
+
+.dados-locais-table-wide {
+  min-width: 520px;
+}
+
+.dados-locais-tag {
+  display: inline-block;
+  padding: 0.2rem 0.5rem;
+  border-radius: 0.375rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  background: #f1f5f9;
+  color: #475569;
+}
+
+.dados-locais-small {
+  font-size: 0.8125rem;
+  color: #64748b;
+}
+
+.dados-locais-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 1rem;
+}
+
+.dados-locais-kpi-card {
+  padding: 1rem;
+}
+
+.dados-locais-kpi-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  margin-bottom: 0.25rem;
+}
+
+.dados-locais-kpi-value {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #0f172a;
+  line-height: 1.2;
+}
+
+.dados-locais-kpi-desc {
+  font-size: 0.75rem;
+  color: #64748b;
+  margin-top: 0.25rem;
+}

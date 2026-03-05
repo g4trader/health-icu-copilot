@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 import { PreviewProvider } from "@/components/PreviewProvider";
 import { ClinicalSessionProvider } from "@/lib/ClinicalSessionContext";
+import { SidebarModeProvider } from "@/lib/SidebarModeContext";
 
 export const metadata: Metadata = {
   title: "Iatron",
@@ -26,7 +27,9 @@ export default function RootLayout({
       <body>
         <ClinicalSessionProvider>
           <PreviewProvider>
-            {children}
+            <SidebarModeProvider>
+              {children}
+            </SidebarModeProvider>
           </PreviewProvider>
         </ClinicalSessionProvider>
       </body>
