@@ -912,7 +912,7 @@ export default function HomePage() {
               <div className="hc-title">
                 Iatron
               </div>
-              <div className="hc-subtitle">Iatron</div>
+              <div className="hc-subtitle">Agent</div>
             </div>
           </div>
           <div className="hc-actions">
@@ -1002,7 +1002,7 @@ export default function HomePage() {
               <div className="hc-title">
                 Iatron
               </div>
-              <div className="hc-subtitle">Iatron</div>
+              <div className="hc-subtitle">Agent</div>
             </div>
           </div>
 
