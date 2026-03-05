@@ -1,406 +1,168 @@
 /* ============================================
-   Iatron Futurista - Tema escuro + ciano
-   Painéis de monitoramento médico, com profundidade e brilho
+   Iatron Fut - Cópia fiel da versão principal
+   Única diferença: linhas cinzas → azul forte (mesma tonalidade da logo)
    ============================================ */
 
-@import url("https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&display=swap");
-
-/* Body: viewport inteiro escuro */
+/* Body igual à versão principal */
 body.iatron-fut-body {
-  background: #0d1117 !important;
+  background: var(--color-slate-50) !important;
   min-height: 100vh;
 }
 
+/* Variável de borda: azul forte (tonalidade da logo) */
 .iatron-fut {
-  --fut-bg: #0d1117;
-  --fut-bg-elevated: #161b22;
-  --fut-bg-panel: #1c2128;
-  --fut-panel-glass: rgba(28, 33, 40, 0.85);
-  --fut-border: rgba(0, 188, 212, 0.2);
-  --fut-border-strong: rgba(0, 188, 212, 0.45);
-  --fut-accent: #00bcd4;
-  --fut-accent-dim: #5dd4e3;
-  --fut-accent-glow: rgba(0, 188, 212, 0.25);
-  --fut-accent-glow-strong: rgba(0, 188, 212, 0.4);
-  --fut-text: #e6edf3;
-  --fut-text-muted: #8b949e;
-  --fut-text-bright: #f0f6fc;
-  min-height: 100vh;
-  width: 100%;
-  background: var(--fut-bg);
-  background-image: radial-gradient(ellipse 120% 80% at 50% -20%, rgba(0, 188, 212, 0.08), transparent 50%),
-    linear-gradient(180deg, var(--fut-bg) 0%, #0a0e12 100%);
-  color: var(--fut-text);
-  font-family: "Outfit", system-ui, sans-serif;
+  --fut-line: #2563eb;
+  --fut-line-hover: #1d4ed8;
 }
 
-/* ---- Topbar ---- */
+/* Sobrescreve --border-color para que todos os elementos que usam var(--border-color) fiquem azuis */
+.iatron-fut {
+  --border-color: var(--fut-line);
+}
+
+/* Topbar */
 .iatron-fut .hc-topbar {
-  background: var(--fut-bg-elevated);
-  border-bottom: 1px solid var(--fut-border);
-  box-shadow: 0 1px 0 rgba(0, 188, 212, 0.06);
-}
-
-.iatron-fut .hc-title,
-.iatron-fut .hc-brand-text .hc-title {
-  color: var(--fut-text-bright);
-  font-weight: 700;
-}
-
-.iatron-fut .hc-subtitle {
-  color: var(--fut-text-muted);
+  border-bottom-color: var(--fut-line);
 }
 
 .iatron-fut .hc-icon-btn {
-  background: var(--fut-bg-panel);
-  border: 1px solid var(--fut-border);
-  color: var(--fut-text);
+  border-color: var(--fut-line);
 }
 
 .iatron-fut .hc-icon-btn:hover {
-  background: rgba(0, 188, 212, 0.1);
-  border-color: var(--fut-accent);
-  color: var(--fut-accent-dim);
-  box-shadow: 0 0 12px var(--fut-accent-glow);
+  border-color: var(--fut-line-hover);
 }
 
-.iatron-fut .hc-badge {
-  background: var(--fut-accent-glow);
-  color: var(--fut-accent-dim);
-  border: 1px solid var(--fut-border);
-}
-
-/* ---- App shell ---- */
-.iatron-fut .app-wrapper {
-  background: transparent;
-}
-
-.iatron-fut .main-chat-area {
-  background: transparent;
-  border-left: 1px solid var(--fut-border);
-}
-
-.iatron-fut .chat-input-footer-inner {
-  background: var(--fut-bg-elevated);
-  border-top: 1px solid var(--fut-border);
-  box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.2);
-}
-
-/* ---- Sidebar ---- */
+/* Sidebar */
 .iatron-fut .left-sidebar {
-  background: var(--fut-bg-elevated);
-  border-right: 1px solid var(--fut-border);
-}
-
-.iatron-fut .sidebar-brand-title {
-  color: var(--fut-text-bright);
-  font-weight: 700;
-}
-
-.iatron-fut .sidebar-brand-subtitle {
-  color: var(--fut-accent-dim);
-}
-
-.iatron-fut .sidebar-title {
-  color: var(--fut-text-muted);
-  letter-spacing: 0.06em;
-}
-
-.iatron-fut .sidebar-link {
-  color: var(--fut-text);
-}
-
-.iatron-fut .sidebar-link:hover:not(.sidebar-link-disabled) {
-  background: var(--fut-bg-panel);
-  color: var(--fut-accent-dim);
-}
-
-.iatron-fut .sidebar-link-active {
-  background: rgba(0, 188, 212, 0.12);
-  color: var(--fut-accent);
-  box-shadow: 0 0 0 1px var(--fut-border);
-}
-
-.iatron-fut .sidebar-link-active:hover {
-  background: rgba(0, 188, 212, 0.18);
-  color: var(--fut-accent-dim);
+  border-right-color: var(--fut-line);
 }
 
 .iatron-fut .sidebar-footer {
-  background: var(--fut-bg-elevated);
-  border-top: 1px solid var(--fut-border);
+  border-top-color: var(--fut-line);
 }
 
-.iatron-fut .sidebar-user-avatar {
-  background: var(--fut-bg-panel);
-  color: var(--fut-accent-dim);
+.iatron-fut .sidebar-link-active {
+  border-color: transparent;
+  box-shadow: 0 0 0 1px var(--fut-line);
 }
 
-.iatron-fut .sidebar-user-name { color: var(--fut-text); }
-.iatron-fut .sidebar-user-role { color: var(--fut-text-muted); }
-.iatron-fut .sidebar-empty-message { color: var(--fut-text-muted); }
-.iatron-fut .sidebar-pinned-patient:hover { background: var(--fut-bg-panel); }
-.iatron-fut .sidebar-pinned-avatar {
-  background: var(--fut-accent-glow);
-  color: var(--fut-accent-dim);
+.iatron-fut .sidebar-link:hover:not(.sidebar-link-disabled) {
+  border-color: transparent;
 }
-.iatron-fut .sidebar-pinned-name { color: var(--fut-text); }
-.iatron-fut .sidebar-pinned-meta { color: var(--fut-text-muted); }
 
-/* ---- Painéis e cards (evitar qualquer branco) ---- */
+/* Main chat area */
+.iatron-fut .main-chat-area {
+  border-left-color: var(--fut-line);
+}
+
+.iatron-fut .chat-input-footer-inner {
+  border-top-color: var(--fut-line);
+}
+
+/* Panels e cards */
 .iatron-fut .panel {
-  background: var(--fut-bg-panel);
-  border: 1px solid var(--fut-border);
-  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.25), 0 0 0 1px rgba(0, 188, 212, 0.05);
+  border-color: var(--fut-line);
 }
 
-.iatron-fut .panel-title { color: var(--fut-text-bright); }
-
-/* Prioritization (TOP 3 pacientes) */
-.iatron-fut .prioritization-panel {
-  background: var(--fut-bg-panel) !important;
-  border: 1px solid var(--fut-border) !important;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(0, 188, 212, 0.08) !important;
-}
-
-.iatron-fut .prioritization-panel .panel-title { color: var(--fut-text-bright) !important; }
-
-.iatron-fut .prioritization-card {
-  background: var(--fut-bg-elevated) !important;
-  border: 1px solid var(--fut-border) !important;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.2) !important;
-}
-
-.iatron-fut .prioritization-card-clickable:hover {
-  border-color: var(--fut-accent) !important;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25), 0 0 20px var(--fut-accent-glow) !important;
-}
-
-.iatron-fut .prioritization-rank { color: var(--fut-text-muted) !important; }
-.iatron-fut .prioritization-name { color: var(--fut-text-bright) !important; }
-.iatron-fut .prioritization-meta,
-.iatron-fut .prioritization-diagnosis { color: var(--fut-text-muted) !important; }
-
-/* Detail card (cards de paciente, resumo, etc.) */
-.iatron-fut .detail-card {
-  background: var(--fut-bg-panel) !important;
-  border: 1px solid var(--fut-border) !important;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2), 0 0 0 1px rgba(0, 188, 212, 0.06) !important;
-}
-
-.iatron-fut .detail-card:hover {
-  border-color: var(--fut-border-strong) !important;
-  box-shadow: 0 6px 28px rgba(0, 0, 0, 0.25), 0 0 24px var(--fut-accent-glow) !important;
-}
-
-.iatron-fut .detail-card-title { color: var(--fut-text-bright) !important; }
-
-/* Botão "Ver paciente" dentro de .detail-card / PatientCard */
-.iatron-fut .detail-card button[type="button"],
-.iatron-fut .detail-card .bg-blue-50 {
-  background: rgba(0, 188, 212, 0.15) !important;
-  color: var(--fut-accent-dim) !important;
-  border: 1px solid var(--fut-border) !important;
-}
-
-.iatron-fut .detail-card button[type="button"]:hover,
-.iatron-fut .detail-card .bg-blue-50:hover {
-  background: rgba(0, 188, 212, 0.25) !important;
-  box-shadow: 0 0 16px var(--fut-accent-glow) !important;
-  border-color: var(--fut-accent) !important;
-}
-
-/* Patient card (lista) */
 .iatron-fut .patient-card {
-  background: var(--fut-bg-panel) !important;
-  border: 1px solid var(--fut-border) !important;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.2) !important;
+  border-color: var(--fut-line);
 }
 
 .iatron-fut .patient-card:hover {
-  border-color: var(--fut-accent) !important;
-  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.25), 0 0 20px var(--fut-accent-glow) !important;
+  border-color: var(--fut-line-hover);
 }
 
-.iatron-fut .patient-name,
-.iatron-fut .patient-score { color: var(--fut-text) !important; }
-.iatron-fut .patient-meta,
-.iatron-fut .patient-tag { color: var(--fut-text-muted) !important; }
-.iatron-fut .patient-tag {
-  background: var(--fut-bg-elevated) !important;
-  border-color: var(--fut-border) !important;
+.iatron-fut .detail-card {
+  border-color: var(--fut-line);
 }
 
-/* Risk pills */
-.iatron-fut .risk-high,
-.iatron-fut .risk-pill.risk-alto {
-  background: rgba(239, 68, 68, 0.2) !important;
-  color: #fca5a5 !important;
-  border-color: rgba(239, 68, 68, 0.5) !important;
+.iatron-fut .detail-card:hover {
+  border-color: var(--fut-line-hover);
 }
 
-.iatron-fut .risk-medium,
-.iatron-fut .risk-pill.risk-moderado {
-  background: rgba(251, 191, 36, 0.2) !important;
-  color: #fde047 !important;
-  border-color: rgba(251, 191, 36, 0.5) !important;
+/* Prioritization */
+.iatron-fut .prioritization-panel {
+  border-color: var(--fut-line);
 }
 
-.iatron-fut .risk-low,
-.iatron-fut .risk-pill.risk-baixo {
-  background: var(--fut-accent-glow) !important;
-  color: var(--fut-accent-dim) !important;
-  border-color: var(--fut-border) !important;
+.iatron-fut .prioritization-card {
+  border-color: var(--fut-line);
 }
 
-/* Hero (tela inicial) */
-.iatron-fut .hero { color: var(--fut-text); }
-.iatron-fut .hero-title,
-.iatron-fut .hero h1 { color: var(--fut-text-bright); font-weight: 700; }
-.iatron-fut .hero-subtitle,
-.iatron-fut .hero p { color: var(--fut-text-muted); }
+.iatron-fut .prioritization-card-clickable:hover {
+  border-color: var(--fut-line-hover);
+}
 
-/* Context snapshot (cards de totais) */
+/* Context snapshot / snapshot cards */
 .iatron-fut .context-snapshot {
-  background: transparent !important;
-  border: none !important;
+  border-color: var(--fut-line);
 }
-
-.iatron-fut .snapshot-cards { gap: 1rem; }
 
 .iatron-fut .snapshot-card {
-  background: var(--fut-bg-panel) !important;
-  border: 1px solid var(--fut-border) !important;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2), 0 0 0 1px rgba(0, 188, 212, 0.06) !important;
+  border-color: var(--fut-line);
 }
 
 .iatron-fut .snapshot-card:hover {
-  border-color: var(--fut-border-strong) !important;
-  box-shadow: 0 6px 28px rgba(0, 0, 0, 0.25), 0 0 20px var(--fut-accent-glow) !important;
+  border-color: var(--fut-line-hover);
 }
 
-.iatron-fut .snapshot-card-label { color: var(--fut-text-muted) !important; }
-.iatron-fut .snapshot-card-value { color: var(--fut-text-bright) !important; }
-.iatron-fut .snapshot-card-subtext { color: var(--fut-text-muted) !important; }
-.iatron-fut .snapshot-card-value-highlight { color: #fca5a5 !important; }
-.iatron-fut .snapshot-card-alert {
-  background: rgba(239, 68, 68, 0.15) !important;
-  border-color: rgba(239, 68, 68, 0.5) !important;
+/* Chat */
+.iatron-fut .chat-log {
+  border-color: var(--fut-line);
 }
 
-/* Prompts / acesso rápido */
-.iatron-fut .prompts-block-title { color: var(--fut-text-bright) !important; }
-.iatron-fut .quick-prompts-section { color: var(--fut-text); }
+.iatron-fut .chat-user {
+  border-color: var(--fut-line);
+}
+
+.iatron-fut .chat-agent {
+  border-color: var(--fut-line);
+}
+
+.iatron-fut .chat-input-field {
+  border-color: var(--fut-line);
+}
+
+.iatron-fut .chat-input-field:focus {
+  border-color: var(--fut-line-hover);
+}
+
+.iatron-fut .chat-input-add-btn,
+.iatron-fut .chat-input-voice-btn {
+  border-color: var(--fut-line);
+}
+
+.iatron-fut .chat-input-add-btn:hover,
+.iatron-fut .chat-input-voice-btn:hover {
+  border-color: var(--fut-line-hover);
+}
 
 /* Patient context bar */
 .iatron-fut .patient-context-bar,
 .iatron-fut .patient-context-bar-empty,
 .iatron-fut .patient-context-bar-active {
-  background: var(--fut-bg-panel) !important;
-  border-color: var(--fut-border) !important;
-  color: var(--fut-text) !important;
+  border-color: var(--fut-line);
 }
 
-.iatron-fut .patient-context-bar-active { border-color: var(--fut-accent) !important; box-shadow: 0 0 0 1px var(--fut-accent-glow); }
-.iatron-fut .patient-context-bed { color: var(--fut-text-muted) !important; }
-.iatron-fut .patient-context-name { color: var(--fut-text-bright) !important; }
-.iatron-fut .patient-context-meta { color: var(--fut-text-muted) !important; }
 .iatron-fut .patient-context-chip {
-  background: var(--fut-bg-elevated) !important;
-  color: var(--fut-text) !important;
-  border: 1px solid var(--fut-border);
+  border-color: var(--fut-line);
 }
 
-/* Chat */
-.iatron-fut .chat-log {
-  background: transparent !important;
-  border-color: var(--fut-border);
-}
-
-.iatron-fut .chat-user {
-  background: rgba(0, 188, 212, 0.15) !important;
-  color: var(--fut-accent-dim) !important;
-  border: 1px solid var(--fut-border) !important;
-  box-shadow: 0 2px 12px rgba(0, 188, 212, 0.1);
-}
-
-.iatron-fut .chat-agent {
-  background: var(--fut-bg-panel) !important;
-  color: var(--fut-text) !important;
-  border: 1px solid var(--fut-border) !important;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.15);
-}
-
-.iatron-fut .chat-meta { color: var(--fut-text-muted); }
-
-/* Input de chat */
-.iatron-fut .chat-input-footer,
-.iatron-fut .chat-input-wrapper { background: transparent !important; }
-
-.iatron-fut .chat-input-field {
-  background: var(--fut-bg-panel) !important;
-  border: 1px solid var(--fut-border) !important;
-  color: var(--fut-text) !important;
-}
-
-.iatron-fut .chat-input-field::placeholder { color: var(--fut-text-muted); }
-
-.iatron-fut .chat-input-field:focus {
-  border-color: var(--fut-accent) !important;
-  box-shadow: 0 0 0 2px var(--fut-accent-glow) !important;
-}
-
-.iatron-fut .chat-input-add-btn,
-.iatron-fut .chat-input-voice-btn {
-  background: var(--fut-bg-panel) !important;
-  border: 1px solid var(--fut-border) !important;
-  color: var(--fut-text-muted) !important;
-}
-
-.iatron-fut .chat-input-add-btn:hover,
-.iatron-fut .chat-input-voice-btn:hover {
-  border-color: var(--fut-accent) !important;
-  color: var(--fut-accent-dim) !important;
-  box-shadow: 0 0 12px var(--fut-accent-glow);
+/* Bordas que usam valores fixos cinza no globals - override para azul */
+.iatron-fut .chat-input-wrapper,
+.iatron-fut .chat-input-left-buttons,
+.iatron-fut .chat-input-patient-menu,
+.iatron-fut .chat-input-patient-menu-header,
+.iatron-fut .chat-input-patient-menu-item {
+  border-color: var(--fut-line) !important;
 }
 
 .iatron-fut .chat-input-send-btn {
-  background: var(--fut-accent) !important;
-  color: var(--fut-bg) !important;
-  border: none !important;
+  border-color: transparent;
 }
 
-.iatron-fut .chat-input-send-btn:hover:not(:disabled) {
-  background: var(--fut-accent-dim) !important;
-  box-shadow: 0 0 24px var(--fut-accent-glow-strong) !important;
-}
-
-.iatron-fut .chat-input-send-icon,
-.iatron-fut .chat-input-add-icon,
-.iatron-fut .chat-input-voice-icon { color: inherit; }
-
-/* Context snapshot e blocos de conteúdo */
-.iatron-fut .context-snapshot h3,
-.iatron-fut .context-snapshot h4 { color: var(--fut-text-bright); }
-.iatron-fut .context-snapshot p,
-.iatron-fut .context-snapshot li { color: var(--fut-text); }
-
-/* Botão PIN */
-.iatron-fut .patient-pin-button { color: var(--fut-text-muted); }
-.iatron-fut .patient-pin-button:hover { color: var(--fut-accent-dim); background: var(--fut-bg-panel); }
-.iatron-fut .patient-pin-button.pinned { color: var(--fut-accent); }
-
-/* Scrollbars */
-.iatron-fut ::-webkit-scrollbar { width: 8px; height: 8px; }
-.iatron-fut ::-webkit-scrollbar-track { background: var(--fut-bg); }
-.iatron-fut ::-webkit-scrollbar-thumb {
-  background: var(--fut-bg-panel);
-  border-radius: 4px;
-  border: 2px solid var(--fut-bg);
-}
-.iatron-fut ::-webkit-scrollbar-thumb:hover { background: var(--fut-border); }
-
-/* ---- Blocos de resposta (plantonista, micro-dashboard) ---- */
+/* Blocos plantonista / micro-dashboard */
 .iatron-fut .plantonista-response-panel,
 .iatron-fut .plantonista-section,
 .iatron-fut .plantonista-header-card,
@@ -410,63 +172,19 @@ body.iatron-fut-body {
 .iatron-fut .plantonista-timeline-event-card,
 .iatron-fut .plantonista-opinion-card,
 .iatron-fut .micro-dashboard-card {
-  background: var(--fut-bg-panel) !important;
-  border: 1px solid var(--fut-border) !important;
-  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.25), 0 0 0 1px rgba(0, 188, 212, 0.06) !important;
+  border-color: var(--fut-line) !important;
 }
 
-.iatron-fut .plantonista-section-title,
-.iatron-fut .plantonista-header-name,
-.iatron-fut .plantonista-timeline-summary-title,
-.iatron-fut .micro-dashboard-title { color: var(--fut-text-bright) !important; }
-
-.iatron-fut .plantonista-header-diagnosis,
-.iatron-fut .plantonista-response-text,
-.iatron-fut .micro-dashboard-subtitle,
-.iatron-fut .micro-dashboard-body { color: var(--fut-text) !important; }
-
-.iatron-fut .plantonista-cta-button {
-  background: var(--fut-accent) !important;
-  color: var(--fut-bg) !important;
-  border: 1px solid var(--fut-accent) !important;
+/* Dividers / border-top / border-bottom que são cinza */
+.iatron-fut [class*="border-t"],
+.iatron-fut [class*="border-b"] {
+  border-top-color: var(--fut-line) !important;
+  border-bottom-color: var(--fut-line) !important;
 }
 
-.iatron-fut .plantonista-cta-button:hover {
-  background: var(--fut-accent-dim) !important;
-  box-shadow: 0 0 24px var(--fut-accent-glow-strong) !important;
+/* Garantir que tabelas e listas com bordas cinza fiquem azuis */
+.iatron-fut table,
+.iatron-fut th,
+.iatron-fut td {
+  border-color: var(--fut-line) !important;
 }
-
-/* Override genérico: qualquer fundo branco/claro que escape */
-.iatron-fut [style*="background: rgb(255, 255, 255)"],
-.iatron-fut [style*="background:#fff"],
-.iatron-fut [style*="background: #fff"],
-.iatron-fut [style*="background-color: white"] {
-  background: var(--fut-bg-panel) !important;
-}
-
-/* Support badges (VM, vasopressor, etc.) */
-.iatron-fut .support-badge {
-  background: var(--fut-bg-elevated) !important;
-  color: var(--fut-text) !important;
-  border: 1px solid var(--fut-border);
-}
-
-.iatron-fut .support-badge.ventilation {
-  background: var(--fut-accent-glow) !important;
-  color: var(--fut-accent-dim) !important;
-}
-
-.iatron-fut .support-badge.vasopressor {
-  background: rgba(251, 191, 36, 0.2) !important;
-  color: #fde047 !important;
-}
-
-/* Texto escuro que possa vazar (classes utilitárias) */
-.iatron-fut .text-slate-900,
-.iatron-fut .text-slate-800 { color: var(--fut-text-bright) !important; }
-.iatron-fut .text-slate-700,
-.iatron-fut .text-slate-600 { color: var(--fut-text) !important; }
-.iatron-fut .text-slate-500,
-.iatron-fut .text-slate-400 { color: var(--fut-text-muted) !important; }
-.iatron-fut .border-slate-200,
-.iatron-fut .border-slate-300 { border-color: var(--fut-border) !important; }
