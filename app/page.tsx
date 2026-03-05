@@ -897,7 +897,7 @@ export default function HomePage() {
     
     // Retornar false para permitir envio como mensagem normal (não foi parecer)
     return false;
-  }, [activePatientId, activePatient, handleSend, showPatientOverviewInline, previewType, previewPayload, clearPreview, setPreview]);
+  }, [activePatientId, activePatient, handleSend, previewType, previewPayload, clearPreview, setPreview]);
 
   // Renderização mobile: lista de pacientes se não houver paciente selecionado
   if (isMobile && !activePatient && conversation.length === 0) {

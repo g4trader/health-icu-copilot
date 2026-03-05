@@ -13,7 +13,7 @@ type SidebarMode = "radiologista" | "dados-locais" | "educacao" | "ferramentas";
 interface SidebarItem {
   id: SidebarMode;
   label: string;
-  icon: typeof User;
+  icon: typeof Scan;
   requiresPatient?: boolean;
 }
 
