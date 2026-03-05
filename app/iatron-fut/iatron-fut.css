@@ -1,0 +1,374 @@
+/* ============================================
+   Iatron Futurista - Tema escuro + ciano
+   Inspirado em painéis de monitoramento médico
+   ============================================ */
+
+.iatron-fut {
+  --fut-bg: #1a202c;
+  --fut-bg-elevated: #1e2b3c;
+  --fut-bg-panel: #252d3d;
+  --fut-border: rgba(0, 188, 212, 0.25);
+  --fut-accent: #00bcd4;
+  --fut-accent-dim: #4dd0e1;
+  --fut-accent-glow: rgba(0, 188, 212, 0.35);
+  --fut-text: #e0e0e0;
+  --fut-text-muted: #94a3b8;
+  --fut-text-bright: #f5f5f5;
+  min-height: 100vh;
+  width: 100%;
+  background: var(--fut-bg);
+  color: var(--fut-text);
+}
+
+/* Topbar */
+.iatron-fut .hc-topbar {
+  background: var(--fut-bg-elevated);
+  border-bottom: 1px solid var(--fut-border);
+}
+
+.iatron-fut .hc-title,
+.iatron-fut .hc-brand-text .hc-title {
+  color: var(--fut-text-bright);
+}
+
+.iatron-fut .hc-subtitle {
+  color: var(--fut-text-muted);
+}
+
+.iatron-fut .hc-icon-btn {
+  background: var(--fut-bg-panel);
+  border-color: var(--fut-border);
+  color: var(--fut-text);
+}
+
+.iatron-fut .hc-icon-btn:hover {
+  background: var(--fut-bg-elevated);
+  border-color: var(--fut-accent);
+  color: var(--fut-accent-dim);
+}
+
+.iatron-fut .hc-badge {
+  background: var(--fut-accent-glow);
+  color: var(--fut-accent-dim);
+}
+
+/* App wrapper / shell */
+.iatron-fut .app-wrapper {
+  background: var(--fut-bg);
+}
+
+.iatron-fut .main-chat-area {
+  background: var(--fut-bg);
+  border-left-color: var(--fut-border);
+}
+
+.iatron-fut .chat-input-footer-inner {
+  background: var(--fut-bg-elevated);
+  border-top: 1px solid var(--fut-border);
+}
+
+/* Sidebar */
+.iatron-fut .left-sidebar {
+  background: var(--fut-bg-elevated);
+  border-right-color: var(--fut-border);
+}
+
+.iatron-fut .sidebar-brand-title {
+  color: var(--fut-text-bright);
+}
+
+.iatron-fut .sidebar-brand-subtitle {
+  color: var(--fut-accent-dim);
+}
+
+.iatron-fut .sidebar-title {
+  color: var(--fut-text-muted);
+}
+
+.iatron-fut .sidebar-link {
+  color: var(--fut-text);
+}
+
+.iatron-fut .sidebar-link:hover:not(.sidebar-link-disabled) {
+  background: var(--fut-bg-panel);
+  color: var(--fut-accent-dim);
+}
+
+.iatron-fut .sidebar-link-active {
+  background: var(--fut-bg-panel);
+  color: var(--fut-accent);
+  box-shadow: 0 0 0 1px var(--fut-border);
+}
+
+.iatron-fut .sidebar-link-active:hover {
+  background: var(--fut-bg-panel);
+  color: var(--fut-accent-dim);
+}
+
+.iatron-fut .sidebar-footer {
+  background: var(--fut-bg-elevated);
+  border-top-color: var(--fut-border);
+}
+
+.iatron-fut .sidebar-user-avatar {
+  background: var(--fut-bg-panel);
+  color: var(--fut-accent-dim);
+}
+
+.iatron-fut .sidebar-user-name {
+  color: var(--fut-text);
+}
+
+.iatron-fut .sidebar-user-role {
+  color: var(--fut-text-muted);
+}
+
+.iatron-fut .sidebar-empty-message {
+  color: var(--fut-text-muted);
+}
+
+.iatron-fut .sidebar-pinned-patient:hover {
+  background: var(--fut-bg-panel);
+}
+
+.iatron-fut .sidebar-pinned-avatar {
+  background: var(--fut-accent-glow);
+  color: var(--fut-accent-dim);
+}
+
+.iatron-fut .sidebar-pinned-name {
+  color: var(--fut-text);
+}
+
+.iatron-fut .sidebar-pinned-meta {
+  color: var(--fut-text-muted);
+}
+
+/* Panels e cards */
+.iatron-fut .panel {
+  background: var(--fut-bg-panel);
+  border-color: var(--fut-border);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.iatron-fut .panel-title {
+  color: var(--fut-text-bright);
+}
+
+.iatron-fut .patient-card {
+  background: var(--fut-bg-panel);
+  border-color: var(--fut-border);
+}
+
+.iatron-fut .patient-card:hover {
+  border-color: var(--fut-accent);
+  box-shadow: 0 0 12px var(--fut-accent-glow);
+}
+
+.iatron-fut .patient-name,
+.iatron-fut .patient-score {
+  color: var(--fut-text);
+}
+
+.iatron-fut .patient-meta,
+.iatron-fut .patient-tag {
+  color: var(--fut-text-muted);
+}
+
+.iatron-fut .patient-tag {
+  background: var(--fut-bg-elevated);
+  border-color: var(--fut-border);
+}
+
+/* Risk pills - mantendo semântica com tons ciano/cinza */
+.iatron-fut .risk-high,
+.iatron-fut .risk-pill.risk-alto {
+  background: rgba(239, 68, 68, 0.2);
+  color: #fca5a5;
+  border-color: rgba(239, 68, 68, 0.4);
+}
+
+.iatron-fut .risk-medium,
+.iatron-fut .risk-pill.risk-moderado {
+  background: rgba(251, 191, 36, 0.2);
+  color: #fde047;
+  border-color: rgba(251, 191, 36, 0.4);
+}
+
+.iatron-fut .risk-low,
+.iatron-fut .risk-pill.risk-baixo {
+  background: var(--fut-accent-glow);
+  color: var(--fut-accent-dim);
+  border-color: var(--fut-border);
+}
+
+/* Hero (tela inicial) */
+.iatron-fut .hero-title,
+.iatron-fut .hero h1 {
+  color: var(--fut-text-bright);
+}
+
+.iatron-fut .hero-subtitle,
+.iatron-fut .hero p {
+  color: var(--fut-text-muted);
+}
+
+/* Chat log e mensagens */
+.iatron-fut .chat-log {
+  background: var(--fut-bg);
+  border-color: var(--fut-border);
+}
+
+.iatron-fut .chat-user {
+  background: var(--fut-accent-glow);
+  color: var(--fut-accent-dim);
+  border-color: var(--fut-accent);
+}
+
+.iatron-fut .chat-agent {
+  background: var(--fut-bg-panel);
+  color: var(--fut-text);
+  border-color: var(--fut-border);
+}
+
+.iatron-fut .chat-meta {
+  color: var(--fut-text-muted);
+}
+
+/* Input de chat */
+.iatron-fut .chat-input-footer,
+.iatron-fut .chat-input-wrapper {
+  background: transparent;
+}
+
+.iatron-fut .chat-input-field {
+  background: var(--fut-bg-panel);
+  border-color: var(--fut-border);
+  color: var(--fut-text);
+}
+
+.iatron-fut .chat-input-field::placeholder {
+  color: var(--fut-text-muted);
+}
+
+.iatron-fut .chat-input-field:focus {
+  border-color: var(--fut-accent);
+  box-shadow: 0 0 0 2px var(--fut-accent-glow);
+}
+
+.iatron-fut .chat-input-add-btn,
+.iatron-fut .chat-input-voice-btn {
+  background: var(--fut-bg-panel);
+  border-color: var(--fut-border);
+  color: var(--fut-text-muted);
+}
+
+.iatron-fut .chat-input-add-btn:hover,
+.iatron-fut .chat-input-voice-btn:hover {
+  border-color: var(--fut-accent);
+  color: var(--fut-accent-dim);
+}
+
+.iatron-fut .chat-input-send-btn {
+  background: var(--fut-accent);
+  color: var(--fut-bg);
+}
+
+.iatron-fut .chat-input-send-btn:hover:not(:disabled) {
+  background: var(--fut-accent-dim);
+  box-shadow: 0 0 16px var(--fut-accent-glow);
+}
+
+.iatron-fut .chat-input-send-icon,
+.iatron-fut .chat-input-add-icon,
+.iatron-fut .chat-input-voice-icon {
+  color: inherit;
+}
+
+/* Context snapshot e blocos de conteúdo */
+.iatron-fut .context-snapshot {
+  background: var(--fut-bg-panel);
+  border-color: var(--fut-border);
+}
+
+.iatron-fut .context-snapshot h3,
+.iatron-fut .context-snapshot h4 {
+  color: var(--fut-text-bright);
+}
+
+.iatron-fut .context-snapshot p,
+.iatron-fut .context-snapshot li {
+  color: var(--fut-text);
+}
+
+/* Botão PIN */
+.iatron-fut .patient-pin-button {
+  color: var(--fut-text-muted);
+}
+
+.iatron-fut .patient-pin-button:hover {
+  color: var(--fut-accent-dim);
+  background: var(--fut-bg-panel);
+}
+
+.iatron-fut .patient-pin-button.pinned {
+  color: var(--fut-accent);
+}
+
+/* Scrollbars discretos no tema */
+.iatron-fut ::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.iatron-fut ::-webkit-scrollbar-track {
+  background: var(--fut-bg);
+}
+
+.iatron-fut ::-webkit-scrollbar-thumb {
+  background: var(--fut-bg-panel);
+  border-radius: 4px;
+}
+
+.iatron-fut ::-webkit-scrollbar-thumb:hover {
+  background: var(--fut-border);
+}
+
+/* Blocos de resposta / painéis no chat */
+.iatron-fut .plantonista-response-panel,
+.iatron-fut .plantonista-section,
+.iatron-fut .plantonista-header-card,
+.iatron-fut .plantonista-dashboards-card,
+.iatron-fut .plantonista-evolution-card,
+.iatron-fut .plantonista-timeline-summary-card,
+.iatron-fut .plantonista-timeline-event-card,
+.iatron-fut .plantonista-opinion-card,
+.iatron-fut .micro-dashboard-card {
+  background: var(--fut-bg-panel) !important;
+  border-color: var(--fut-border) !important;
+}
+
+.iatron-fut .plantonista-section-title,
+.iatron-fut .plantonista-header-name,
+.iatron-fut .plantonista-timeline-summary-title,
+.iatron-fut .micro-dashboard-title {
+  color: var(--fut-text-bright) !important;
+}
+
+.iatron-fut .plantonista-header-diagnosis,
+.iatron-fut .plantonista-response-text,
+.iatron-fut .micro-dashboard-subtitle,
+.iatron-fut .micro-dashboard-body {
+  color: var(--fut-text) !important;
+}
+
+.iatron-fut .plantonista-cta-button {
+  background: var(--fut-accent);
+  color: var(--fut-bg);
+  border-color: var(--fut-accent);
+}
+
+.iatron-fut .plantonista-cta-button:hover {
+  background: var(--fut-accent-dim);
+  box-shadow: 0 0 12px var(--fut-accent-glow);
+}
